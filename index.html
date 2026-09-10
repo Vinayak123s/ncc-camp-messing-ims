@@ -6,290 +6,568 @@
 <title>NCC Camp Messing IMS</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--nav:#2f35c9;--gold:#d49b26;--bg:#f3f6fa;--ink:#14213d;--muted:#64748b;--line:#e3e8ef;--white:#fff}
-*{box-sizing:border-box}body{margin:0;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+:root{
+ --nav:#101722;--nav2:#182230;--accent:#19b4c6;--accent2:#41d8e6;--gold:#e4a623;
+ --bg:#0b1017;--panel:#131c28;--panel2:#0f1722;--ink:#f3f7fb;--muted:#93a4b5;
+ --line:#243140;--danger:#ef4444;--ok:#32d583;--shadow:0 18px 50px rgba(0,0,0,.35)
+}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
 button,input,select{font:inherit}.hidden{display:none!important}
-.top{position:fixed;top:0;left:0;right:0;height:60px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px 0 78px;z-index:20}.brand{font-weight:900}.userbox{margin-left:auto;font-size:13px;color:var(--muted)}
-.side{position:fixed;left:0;top:0;bottom:0;width:64px;background:linear-gradient(180deg,#3036ce,#292697);z-index:30;color:#fff;padding:10px 7px;transition:.2s;overflow:hidden}.side.expanded{width:220px}
-.hamb{height:44px;border:0;background:transparent;color:#fff;font-size:28px;cursor:pointer;width:48px;border-radius:7px}.hamb:hover{background:rgba(255,255,255,.12)}
-.logo-wrap{height:92px;display:flex;align-items:center;justify-content:center;border-bottom:1px solid rgba(255,255,255,.15);margin-bottom:9px}.nc-logo{width:45px;height:45px;border-radius:50%;background:#fff;color:#3036ce;display:flex;align-items:center;justify-content:center;font-weight:900;overflow:hidden}.nc-logo img{width:100%;height:100%;object-fit:cover}.logo-text{margin-left:10px;display:none;font-weight:900;font-size:13px;white-space:nowrap}.side.expanded .logo-text{display:block}
-.navbtn{width:100%;border:0;background:transparent;color:#fff;border-radius:6px;display:flex;align-items:center;gap:13px;padding:11px 10px;margin:3px 0;cursor:pointer;text-align:left}.navbtn:hover,.navbtn.active{background:var(--gold)}.ico{width:28px;text-align:center;font-size:18px}.label{display:none;white-space:nowrap}.side.expanded .label{display:inline}
-.logout{position:absolute;bottom:12px;left:7px;right:7px}
-main{margin-left:64px;padding:82px 20px 28px}.side.expanded~main{margin-left:220px}
-.page{display:none}.page.active{display:block}.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}.head h1{margin:0;font-size:26px}.head p{margin:4px 0;color:var(--muted)}
-.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:13px}.card{padding:18px;border-radius:5px;color:#fff;min-height:115px;box-shadow:0 2px 8px rgba(0,0,0,.08)}.card b{font-size:31px;display:block;margin:7px 0}.c1{background:#1aa0b2}.c2{background:#eb10ad}.c3{background:#1fc39a}.c4{background:#f8bd0b;color:#111}
-.panel{background:#fff;border:1px solid var(--line);border-radius:7px;margin-top:15px;padding:15px;box-shadow:0 1px 5px rgba(0,0,0,.04)}table{width:100%;border-collapse:collapse;min-width:720px}th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{background:#f8fafc}.tablewrap{overflow:auto}
-.btn{border:0;border-radius:5px;padding:9px 13px;cursor:pointer;background:#4b46df;color:#fff;font-weight:700}.btn.alt{background:#fff;color:#172033;border:1px solid #cbd5e1}.btn.warn{background:#c98d23}.btn.danger{background:#c62828}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}.form{background:#fff;border:1px solid var(--line);padding:18px;border-radius:7px}.form label{display:block;font-size:12px;font-weight:700;margin:10px 0 4px}.form input,.form select{width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:5px}
-.toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar input,.toolbar select{padding:9px;border:1px solid #cbd5e1;border-radius:5px}
-.modal{position:fixed;inset:0;background:rgba(15,23,42,.48);display:flex;align-items:center;justify-content:center;padding:20px;z-index:100}.modalbox{background:#fff;border-radius:10px;width:min(720px,100%);max-height:90vh;overflow:auto;padding:20px}.modalhead{display:flex;justify-content:space-between;align-items:center}.modalhead h2{margin:0}.close{border:0;background:#eee;border-radius:50%;width:32px;height:32px;cursor:pointer}
-.rows{display:grid;gap:8px}.row{display:grid;grid-template-columns:1.6fr .8fr .9fr .9fr 40px;gap:7px;align-items:center}.row.stockout{grid-template-columns:1.6fr .8fr .9fr .9fr 40px}.row input,.row select{padding:8px;border:1px solid #cbd5e1;border-radius:4px}.total{text-align:right;font-weight:800;font-size:18px;margin-top:8px}
-.login{min-height:100vh;display:grid;place-items:center;background:linear-gradient(135deg,#e8edff,#dcf6ff);padding:20px}.loginbox{background:#fff;border-radius:16px;width:min(420px,100%);padding:30px;box-shadow:0 15px 50px rgba(15,23,42,.15)}.loginbox h1{margin:0;font-size:26px}.loginbox p{color:var(--muted)}.loginbox label{display:block;font-size:12px;font-weight:700;margin:14px 0 4px}.loginbox input{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:5px}
-.msg{margin-top:12px;font-size:13px}.okmsg{color:#15803d}.errmsg{color:#b91c1c}.small{font-size:12px;color:var(--muted)}
-@media(max-width:800px){.cards{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.top{padding-left:70px}.userbox{display:none}}
-@media(max-width:560px){.side{width:0;padding:10px 0}.side.open{width:220px;padding:10px 7px}.side.expanded{width:220px}main,.side.expanded~main{margin-left:0}.cards{grid-template-columns:1fr}.top{padding-left:58px}.side.open~main{filter:brightness(.9)}.row{grid-template-columns:1fr 80px 90px 85px 35px}}
+body:before{content:"";position:fixed;inset:-10%;z-index:-2;background:
+ radial-gradient(circle at 85% 15%,rgba(32,185,220,.16),transparent 28%),
+ radial-gradient(circle at 12% 90%,rgba(44,123,229,.13),transparent 26%),
+ radial-gradient(circle at 75% 95%,rgba(236,72,153,.08),transparent 24%);filter:blur(12px)
+}
+.login-shell{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px;
+ background:
+ radial-gradient(circle at 20% 20%,rgba(51,167,235,.26),transparent 22%),
+ radial-gradient(circle at 82% 20%,rgba(62,214,230,.18),transparent 25%),
+ linear-gradient(135deg,#dce8ff 0%,#b7dcff 52%,#c8f3ff 100%);position:relative;overflow:hidden}
+.login-shell:before,.login-shell:after{content:"";position:absolute;border-radius:48% 52% 40% 60%;background:rgba(255,255,255,.18);filter:blur(2px)}
+.login-shell:before{width:420px;height:420px;left:-100px;bottom:-120px}
+.login-shell:after{width:430px;height:430px;right:-90px;top:-150px}
+.login-card{width:min(520px,100%);padding:34px 38px;border-radius:26px;background:rgba(17,51,88,.82);
+ border:1px solid rgba(255,255,255,.2);box-shadow:0 32px 80px rgba(0,50,100,.25);backdrop-filter:blur(16px)}
+.login-brand{display:flex;align-items:center;gap:15px;margin-bottom:22px}.login-logo{width:58px;height:58px;border-radius:18px;background:#fff;color:#0f5eb0;display:grid;place-items:center;font-weight:1000;font-size:18px}
+.login-title{font-size:26px;font-weight:900;letter-spacing:.4px}.login-sub{color:#cae5fb;font-size:14px;line-height:1.5}
+.login-card label{display:block;color:#eaf6ff;font-size:12px;font-weight:800;margin:15px 0 6px}
+.login-card input{width:100%;padding:13px 14px;border-radius:9px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.95);color:#122033;outline:none}
+.login-card input:focus{border-color:#75e4ef;box-shadow:0 0 0 3px rgba(25,180,198,.18)}
+.primary-login{width:100%;margin-top:18px;padding:13px;border:0;border-radius:9px;background:#0a4d7f;color:#fff;font-weight:900;cursor:pointer}
+.primary-login:hover{background:#0b5e97}.login-links{display:flex;justify-content:space-between;gap:10px;margin-top:12px}
+.linkbtn{border:0;background:transparent;color:#cfeeff;cursor:pointer;font-size:12px;padding:4px}.linkbtn:hover{text-decoration:underline}
+.login-msg{margin-top:12px;font-size:13px;color:#ffcbc8;min-height:18px}.dev{margin-top:22px;text-align:center;color:#bde8ff;font-size:11px}
+.app{min-height:100vh}.topbar{height:68px;background:rgba(15,22,31,.95);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px 0 88px;position:fixed;left:0;right:0;top:0;z-index:50}
+.brand{font-weight:900;font-size:17px;letter-spacing:.2px}.top-right{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--muted);font-size:13px}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#cbd5e1,#64748b);display:grid;place-items:center;color:#102033;font-weight:900}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:72px;background:linear-gradient(180deg,#121923,#0b1017);border-right:1px solid var(--line);z-index:60;padding:10px 8px;transition:.2s;overflow:hidden}
+.sidebar.expanded{width:235px}.hamb{width:50px;height:44px;border:0;border-radius:9px;background:transparent;color:#fff;font-size:27px;cursor:pointer}
+.hamb:hover{background:#1a2533}.side-brand{height:88px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;justify-content:center;margin:4px 0 10px}
+.nc{width:44px;height:44px;border-radius:50%;background:#fff;color:#1477af;display:grid;place-items:center;font-weight:1000}.nc img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.side-name{display:none;font-weight:900;font-size:12px;line-height:1.1;white-space:nowrap}.sidebar.expanded .side-name{display:block}
+.nav{width:100%;padding:12px 10px;border:0;background:transparent;color:#ced7e2;border-radius:8px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;margin:3px 0;font-weight:700}
+.nav:hover,.nav.active{background:#173044;color:#fff}.nav.active{box-shadow:inset 3px 0 0 var(--accent2)}.ni{width:30px;text-align:center;font-size:18px}.nl{display:none;white-space:nowrap}.sidebar.expanded .nl{display:inline}
+.side-footer{position:absolute;left:8px;right:8px;bottom:10px}.nav.logout{color:#ffb5b1}.nav.logout:hover{background:#3b1d24}
+main{margin-left:72px;padding:92px 24px 35px;transition:.2s}.sidebar.expanded~main{margin-left:235px}
+.page{display:none}.page.active{display:block}.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:15px;margin-bottom:18px}.section-head h1{font-size:28px;margin:0}.section-head p{margin:5px 0 0;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:7px;padding:10px 14px;background:#1f8da0;color:#fff;font-weight:900;cursor:pointer}.btn:hover{filter:brightness(1.08)}
+.btn.dark{background:#233140}.btn.ghost{background:transparent;border:1px solid #3a4a5a;color:#dce7f2}.btn.gold{background:#b67c13}.btn.red{background:#b42318}.btn.green{background:#157f4f}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.metric{background:linear-gradient(145deg,#162230,#101822);border:1px solid #223142;border-radius:10px;padding:18px;min-height:135px;position:relative;overflow:hidden}
+.metric:after{content:"";position:absolute;width:90px;height:90px;border-radius:50%;right:-25px;top:-25px;background:rgba(42,200,220,.09)}
+.metric .label{color:#a8b9ca;font-size:12px}.metric b{display:block;font-size:31px;margin:10px 0 5px}.metric small{color:#71869a}
+.m1{box-shadow:inset 0 -3px 0 #7c3aed}.m2{box-shadow:inset 0 -3px 0 #22c55e}.m3{box-shadow:inset 0 -3px 0 #06b6d4}.m4{box-shadow:inset 0 -3px 0 #f59e0b}
+.panel{background:rgba(17,26,37,.94);border:1px solid #223142;border-radius:10px;margin-top:16px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:900px}th,td{padding:10px 10px;border-bottom:1px solid #233140;text-align:left;font-size:12px;vertical-align:middle}th{color:#98aabd;background:#111b26}td{color:#e3eaf2}tr:hover td{background:#101b27}
+.status{display:inline-block;border-radius:20px;padding:4px 8px;font-weight:900;font-size:11px}.ok{background:#103c2a;color:#77e2a9}.low{background:#4b2617;color:#ffc56c}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.toolbar input,.toolbar select,.inlineform input,.inlineform select{padding:10px;border-radius:7px;border:1px solid #304154;background:#0f1722;color:#eaf0f7;outline:none}.toolbar input::placeholder{color:#718398}
+.inline-section{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.field label{display:block;color:#8da1b4;font-size:11px;font-weight:900;margin-bottom:5px}.field input,.field select{width:100%}
+.formbox{background:#101a25;border:1px solid #263546;border-radius:9px;padding:14px}.formbox h3{margin:0 0 12px}.item-row{display:grid;grid-template-columns:1.5fr .7fr .9fr .9fr 40px;gap:7px;margin-top:8px;align-items:center}
+.item-row select,.item-row input{padding:9px;border:1px solid #304154;border-radius:6px;background:#0c141e;color:#f3f7fb;width:100%}.amt{font-weight:900;text-align:right}
+.totalbar{display:flex;justify-content:flex-end;gap:18px;align-items:center;margin-top:12px;font-weight:900;font-size:17px}.form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.subhead{display:flex;justify-content:space-between;align-items:center;gap:10px}.muted{color:var(--muted)}.empty{color:#72869a;text-align:center;padding:26px}
+.inventory-preview{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}.chip{background:#111d28;border:1px solid #2b3a4c;padding:9px;border-radius:8px}
+.kpi-note{font-size:11px;color:#73859a}.chartrow{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}.donutwrap{display:grid;grid-template-columns:160px 1fr;gap:18px;align-items:center}.donut{width:150px;height:150px;border-radius:50%;background:conic-gradient(#ef4444 0 15%,#f59e0b 15% 42%,#22c55e 42% 100%);position:relative;display:grid;place-items:center}.donut:after{content:"";position:absolute;inset:28px;background:#121b27;border-radius:50%}.donut span{z-index:1;font-weight:900;font-size:22px}
+.badge{padding:5px 8px;border-radius:6px;background:#1e2b3a;color:#cbd5e1;font-weight:800;font-size:11px}
+footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
+.modal{position:fixed;inset:0;background:rgba(2,8,15,.68);z-index:120;display:flex;align-items:center;justify-content:center;padding:18px}.modalbox{width:min(720px,100%);background:#131d29;border:1px solid #304154;border-radius:12px;box-shadow:var(--shadow);padding:18px;max-height:92vh;overflow:auto}.modalhead{display:flex;justify-content:space-between;align-items:center}.modalhead h2{margin:0}.close{border:0;background:#243140;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer}
+.msg{min-height:18px;font-size:12px;margin-top:8px}.msg.ok{color:#83e7b6}.msg.err{color:#ff9e99}
+@media(max-width:1000px){.grid{grid-template-columns:1fr 1fr}.chartrow{grid-template-columns:1fr}.inline-section{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.sidebar{width:0;padding:10px 0}.sidebar.open{width:235px;padding:10px 8px}.sidebar.expanded{width:235px}.sidebar.expanded~main,main{margin-left:0}.topbar{padding-left:62px}.grid{grid-template-columns:1fr}.form-grid,.inline-section,.inventory-preview{grid-template-columns:1fr}.item-row{grid-template-columns:1fr 80px 90px 90px 38px}.login-card{padding:26px 22px}}
+@media print{.sidebar,.topbar,.actions,.toolbar,footer,.no-print{display:none!important}main{margin:0;padding:0;background:#fff;color:#111}.page{display:block!important}.panel{box-shadow:none;border:1px solid #ccc;background:#fff;color:#111}.panel *{color:#111!important}table{min-width:0}th{background:#eee!important}}
 </style>
 </head>
 <body>
 
-<div id="loginView" class="login">
-  <div class="loginbox">
-    <h1>NCC CAMP MESSING</h1>
-    <h2>Inventory Management System</h2>
-    <p>Cloud-connected Blogger edition. Works from different networks when Supabase is configured.</p>
-    <label>Email / Username</label><input id="loginEmail" type="email" placeholder="admin@example.com">
-    <label>Password</label><input id="loginPassword" type="password">
-    <button class="btn" style="width:100%;margin-top:18px" onclick="signIn()">LOGIN</button>
-    <div id="loginMsg" class="msg"></div>
-    <p class="small">Configure Supabase URL and anon key in the script before publishing.</p>
+<div id="loginView" class="login-shell">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-logo" id="loginLogo">NC</div>
+      <div>
+        <div class="login-title">NCC CAMP MESSING</div>
+        <div class="login-sub">Inventory Management System</div>
+      </div>
+    </div>
+    <div class="login-sub">Secure cloud-connected inventory system for NCC camp messing stores.</div>
+    <label>Email / Username</label>
+    <input id="loginEmail" type="email" autocomplete="username" placeholder="username@gmail.com">
+    <label>Password</label>
+    <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
+    <button class="primary-login" onclick="signIn()">SIGN IN</button>
+    <div class="login-links">
+      <button class="linkbtn" onclick="sendReset()">Forgot Password?</button>
+      <span></span>
+    </div>
+    <div id="loginMsg" class="login-msg"></div>
+    <div class="dev">Developed by Vinayak Shanmukhanavar</div>
   </div>
 </div>
 
-<div id="appView" class="hidden">
-<header class="top"><div class="brand">NCC CAMP MESSING IMS</div><div class="userbox" id="userBox"></div></header>
+<div id="appView" class="app hidden">
+<header class="topbar">
+  <div class="brand">NCC CAMP MESSING IMS</div>
+  <div class="top-right"><span id="userBox"></span><div class="avatar" id="avatar">N</div></div>
+</header>
 
-<aside id="side" class="side">
+<aside id="side" class="sidebar">
   <button class="hamb" onclick="toggleMenu()">☰</button>
-  <div class="logo-wrap"><div class="nc-logo" id="ncLogo">NC</div><div class="logo-text">NCC CAMP<br>MESSING</div></div>
-  <button class="navbtn active" onclick="showPage('dashboard',this)"><span class="ico">▣</span><span class="label">Dashboard</span></button>
-  <button class="navbtn" onclick="showPage('inventory',this)"><span class="ico">▤</span><span class="label">Inventory Master</span></button>
-  <button class="navbtn write" onclick="openItemModal()"><span class="ico">＋</span><span class="label">Add Item</span></button>
-  <button class="navbtn write" onclick="openStockIn()"><span class="ico">↓</span><span class="label">Stock In / Purchase</span></button>
-  <button class="navbtn write" onclick="openStockOut()"><span class="ico">↑</span><span class="label">Stock Out / Issue</span></button>
-  <button class="navbtn" onclick="showPage('reports',this)"><span class="ico">▥</span><span class="label">Reports</span></button>
-  <button id="usersNav" class="navbtn adminonly" onclick="showPage('users',this)"><span class="ico">♟</span><span class="label">User Management</span></button>
-  <button class="navbtn logout" onclick="signOut()"><span class="ico">⇥</span><span class="label">Logout</span></button>
+  <div class="side-brand"><div class="nc" id="ncLogo">NC</div><div class="side-name">NCC CAMP<br>MESSING</div></div>
+  <button class="nav active" data-page="dashboard" onclick="showPage('dashboard',this)"><span class="ni">⌂</span><span class="nl">Home / Dashboard</span></button>
+  <button class="nav" data-page="inventory" onclick="showPage('inventory',this)"><span class="ni">▦</span><span class="nl">Inventory Master</span></button>
+  <button class="nav stockin-nav" data-page="stockin" onclick="showPage('stockin',this)"><span class="ni">↓</span><span class="nl">Stock In / Purchase</span></button>
+  <button class="nav stockout-nav" data-page="stockout" onclick="showPage('stockout',this)"><span class="ni">↑</span><span class="nl">Stock Out / Issue</span></button>
+  <button class="nav" data-page="reports" onclick="showPage('reports',this)"><span class="ni">▤</span><span class="nl">Reports</span></button>
+  <button class="nav adminonly" data-page="users" onclick="showPage('users',this)"><span class="ni">♟</span><span class="nl">User Management</span></button>
+  <div class="side-footer"><button class="nav logout" onclick="signOut()"><span class="ni">↪</span><span class="nl">Logout</span></button></div>
 </aside>
 
 <main>
 <section id="dashboard" class="page active">
-<div class="head"><div><h1>Dashboard</h1><p>Centralized inventory overview</p></div><button id="logoBtn" class="btn alt adminonly" onclick="openLogo()">Upload NC Logo</button></div>
-<div class="cards">
-<div class="card c1"><span>Total Stock In Amount</span><b id="dInAmt">0.00</b>Purchase amount</div>
-<div class="card c2"><span>Total Stock Out Amount</span><b id="dOutAmt">0.00</b>Issue amount</div>
-<div class="card c3"><span>Total Stock In Qty</span><b id="dInQty">0.00</b>Received quantity</div>
-<div class="card c4"><span>Total Stock Out Qty</span><b id="dOutQty">0.00</b>Issued quantity</div>
-</div>
-<div class="panel"><h2>Inventory Snapshot</h2><div class="tablewrap" id="dashTable"></div></div>
+  <div class="section-head">
+    <div><h1>Inventory</h1><p>Centralized inventory overview and camp store position</p></div>
+    <div class="actions"><button class="btn ghost adminonly" onclick="openLogo()">Upload NC Logo</button></div>
+  </div>
+  <div class="grid">
+    <div class="metric m1"><span class="label">STOCK IN VALUE</span><b id="dInAmt">₹0.00</b><small>Total purchase amount</small></div>
+    <div class="metric m2"><span class="label">STOCK OUT VALUE</span><b id="dOutAmt">₹0.00</b><small>Total issue amount</small></div>
+    <div class="metric m3"><span class="label">STOCK IN QTY</span><b id="dInQty">0.00</b><small>Total received quantity</small></div>
+    <div class="metric m4"><span class="label">STOCK OUT QTY</span><b id="dOutQty">0.00</b><small>Total issued quantity</small></div>
+  </div>
+  <div class="chartrow">
+    <div class="panel">
+      <div class="subhead"><div><h3 style="margin:0">Inventory Snapshot</h3><div class="kpi-note">Current balance and reorder status</div></div><span class="badge" id="dItemCount">0 items</span></div>
+      <div class="tablewrap" id="dashTable"></div>
+    </div>
+    <div class="panel">
+      <div class="subhead"><div><h3 style="margin:0">Risk Overview</h3><div class="kpi-note">Low-stock items requiring attention</div></div></div>
+      <div class="donutwrap" style="margin-top:14px">
+        <div class="donut"><span id="riskPct">0%</span></div>
+        <div id="riskLegend"></div>
+      </div>
+    </div>
+  </div>
 </section>
 
 <section id="inventory" class="page">
-<div class="head"><div><h1>Inventory Master</h1><p>Items and current balances</p></div><button class="btn write" onclick="openItemModal()">＋ ADD ITEM</button></div>
-<div class="panel"><div class="toolbar"><input id="invSearch" placeholder="Search item..." oninput="renderInventory()"></div><div class="tablewrap" id="inventoryTable"></div></div>
+  <div class="section-head">
+    <div><h1>Inventory Master</h1><p>Ledger, item master, units and current balance</p></div>
+    <div class="actions"><button id="addItemBtn" class="btn" onclick="openItemModal()">＋ ADD ITEM</button></div>
+  </div>
+  <div class="panel">
+    <div class="toolbar"><input id="invSearch" placeholder="Search item / category..." oninput="renderInventory()"><select id="unitFilter" onchange="renderInventory()"><option value="">All Units</option></select></div>
+    <div class="tablewrap" id="inventoryTable" style="margin-top:12px"></div>
+  </div>
+</section>
+
+<section id="stockin" class="page">
+  <div class="section-head">
+    <div><h1>Stock In / Purchase</h1><p>Enter one invoice with multiple items on the same screen</p></div>
+    <div class="actions"><button id="newInBtn" class="btn" onclick="resetStockInForm()">＋ NEW INVOICE</button></div>
+  </div>
+  <div id="stockInFormPanel" class="panel">
+    <div class="formbox">
+      <h3 id="stockInFormTitle">New Purchase Invoice</h3>
+      <input type="hidden" id="editInId">
+      <div class="form-grid">
+        <div class="field"><label>Invoice Number</label><input id="inInvoice" placeholder="INV-001"></div>
+        <div class="field"><label>Date</label><input id="inDate" type="date"></div>
+        <div class="field"><label>Supplier</label><input id="inSupplier" placeholder="Supplier name"></div>
+      </div>
+      <div class="subhead" style="margin-top:14px"><b>Invoice Items</b><button class="btn dark" onclick="addInRow()">＋ ADD ITEM</button></div>
+      <div class="item-row" style="margin-top:9px;font-weight:900;color:#91a3b5"><div>Item</div><div>Qty</div><div>Rate</div><div style="text-align:right">Amount</div><div></div></div>
+      <div id="inRows"></div>
+      <div class="totalbar"><span>Total Invoice Value</span><span>₹ <span id="inTotal">0.00</span></span></div>
+      <div class="actions" style="margin-top:12px">
+        <button id="saveInBtn" class="btn" onclick="saveStockIn()">SAVE INVOICE</button>
+        <button class="btn ghost" onclick="resetStockInForm()">CLEAR</button>
+      </div>
+      <div id="inMsg" class="msg"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="subhead"><div><h3 style="margin:0">Saved Purchase Invoices</h3><div class="kpi-note">Edit is available to ADMIN, MANAGER and STOREKEEPER. Delete is ADMIN/MANAGER.</div></div></div>
+    <div class="tablewrap" id="inList" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<section id="stockout" class="page">
+  <div class="section-head">
+    <div><h1>Stock Out / Issue</h1><p>Issue items against IV-1 to IV-10 vouchers with live balance</p></div>
+    <div class="actions"><button id="newOutBtn" class="btn" onclick="resetStockOutForm()">＋ NEW VOUCHER</button></div>
+  </div>
+  <div id="stockOutFormPanel" class="panel">
+    <div class="formbox">
+      <h3 id="stockOutFormTitle">New Issue Voucher</h3>
+      <input type="hidden" id="editOutId">
+      <div class="form-grid">
+        <div class="field"><label>Voucher Number</label><select id="outVoucher"></select></div>
+        <div class="field"><label>Date</label><input id="outDate" type="date"></div>
+        <div class="field"><label>Issued To</label><input id="outIssuedTo" placeholder="Issued to / section / authority"></div>
+      </div>
+      <div class="subhead" style="margin-top:14px"><b>Issue Items</b><button class="btn dark" onclick="addOutRow()">＋ ADD ITEM</button></div>
+      <div class="item-row" style="margin-top:9px;font-weight:900;color:#91a3b5"><div>Item</div><div>Balance</div><div>Qty</div><div style="text-align:right">Amount</div><div></div></div>
+      <div id="outRows"></div>
+      <div class="totalbar"><span>Total Issue Value</span><span>₹ <span id="outTotal">0.00</span></span></div>
+      <div class="actions" style="margin-top:12px">
+        <button id="saveOutBtn" class="btn" onclick="saveStockOut()">SAVE VOUCHER</button>
+        <button class="btn ghost" onclick="resetStockOutForm()">CLEAR</button>
+      </div>
+      <div id="outMsg" class="msg"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="subhead"><div><h3 style="margin:0">Saved Issue Vouchers</h3><div class="kpi-note">Edit is available to ADMIN, MANAGER and STOREKEEPER. Delete is ADMIN/MANAGER.</div></div></div>
+    <div class="tablewrap" id="outList" style="margin-top:10px"></div>
+  </div>
 </section>
 
 <section id="reports" class="page">
-<div class="head"><div><h1>Reports</h1><p>Filter and monitor transactions</p></div></div>
-<div class="panel"><div class="toolbar"><input id="fromDate" type="date"><input id="toDate" type="date"><button class="btn" onclick="renderReports()">FILTER</button><button class="btn alt" onclick="printReports()">PRINT / PDF</button></div><div id="reportsContent"></div></div>
+  <div class="section-head"><div><h1>Reports</h1><p>Day-wise summary, stock transactions and current stock</p></div><div class="actions"><button class="btn dark" onclick="exportCSV()">EXPORT CSV</button><button class="btn ghost" onclick="printPage()">PRINT / PDF</button></div></div>
+  <div class="panel no-print"><div class="toolbar"><input id="fromDate" type="date"><input id="toDate" type="date"><button class="btn" onclick="renderReports()">FILTER</button><button class="btn dark" onclick="clearReportFilter()">CLEAR</button></div></div>
+  <div id="reportCards" class="grid" style="margin-top:16px"></div>
+  <div class="panel" id="reportsContent"></div>
 </section>
 
 <section id="users" class="page">
-<div class="head"><div><h1>User Management</h1><p>Create users in Supabase Auth, then assign their role in the profiles table.</p></div></div>
-<div class="panel"><p><b>Recommended free setup:</b> create authentication users in Supabase Dashboard → Authentication → Users. Then set their profile role to <b>ADMIN</b>, <b>MANAGER</b>, <b>STOREKEEPER</b> or <b>VIEWER</b>. Database Row Level Security enforces permissions.</p><div class="tablewrap" id="usersTable"></div></div>
+  <div class="section-head"><div><h1>User Management</h1><p>ADMIN can manage profile roles. Create the Auth user first in Supabase Authentication.</p></div></div>
+  <div class="panel">
+    <div class="formbox">
+      <h3>Add / Update User Profile</h3>
+      <div class="form-grid">
+        <div class="field"><label>Auth User UUID</label><input id="uId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
+        <div class="field"><label>Display Name</label><input id="uName" placeholder="Storekeeper"></div>
+        <div class="field"><label>Role</label><select id="uRole"><option>ADMIN</option><option>MANAGER</option><option>STOREKEEPER</option><option>VIEWER</option></select></div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveUserProfile()">SAVE USER PROFILE</button></div>
+      <div id="userMsg" class="msg"></div>
+    </div>
+  </div>
+  <div class="panel"><div class="subhead"><h3 style="margin:0">Profiles</h3><span class="badge">ADMIN ONLY</span></div><div class="tablewrap" id="usersTable"></div></div>
 </section>
+<footer>Developed by Vinayak Shanmukhanavar</footer>
 </main>
 </div>
 
 <div id="modal" class="modal hidden"><div class="modalbox" id="modalBox"></div></div>
 
 <script>
-// ==============================
-// 1) SUPABASE CONFIGURATION
-// ==============================
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
-let sb = null;
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
+const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
-if(!SUPABASE_URL.startsWith("PASTE_") && !SUPABASE_ANON_KEY.startsWith("PASTE_")){
-  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-}
+let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
+const UNITS=["Nos","Kgs","Ltrs","Pcs","Gms","Mtrs","Boxes","Packets","Bottles","Cans","Sets","Units","Quintal","Ton","Bags","Dozens"];
+const VOUCHERS=["IV-1","IV-2","IV-3","IV-4","IV-5","IV-6","IV-7","IV-8","IV-9","IV-10"];
 
-// ==============================
-// 2) APP STATE
-// ==============================
-let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], logoPath=null;
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+const roleIs=(...r)=>!!profile&&r.includes(profile.role);
+const canStockCreate=()=>roleIs("ADMIN","STOREKEEPER");
+const canTxEdit=()=>roleIs("ADMIN","MANAGER","STOREKEEPER");
+const canDelete=()=>roleIs("ADMIN","MANAGER");
+const canWriteInventory=()=>roleIs("ADMIN","MANAGER","STOREKEEPER");
+const money=n=>"₹"+(+n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 
-function roleIs(...roles){ return profile && roles.includes(profile.role); }
-function canWrite(){return roleIs("ADMIN","MANAGER","STOREKEEPER")}
-function canEditDelete(){return roleIs("ADMIN","MANAGER")}
+function setMsg(id,text,ok=false){const e=document.getElementById(id);if(!e)return;e.textContent=text;e.className="msg "+(ok?"ok":"err")}
+function setLoginMsg(t){document.getElementById("loginMsg").textContent=t||""}
 
-function msg(id,text,ok=false){const el=document.getElementById(id); if(el){el.textContent=text;el.className="msg "+(ok?"okmsg":"errmsg")}}
 async function signIn(){
-  if(!sb){msg("loginMsg","Supabase is not configured. Open the HTML and set SUPABASE_URL and SUPABASE_ANON_KEY.");return}
   const email=document.getElementById("loginEmail").value.trim(), password=document.getElementById("loginPassword").value;
-  if(!email||!password){msg("loginMsg","Enter email and password.");return}
+  if(!email||!password){setLoginMsg("Enter email and password.");return}
+  setLoginMsg("Signing in...");
   const {data,error}=await sb.auth.signInWithPassword({email,password});
-  if(error){msg("loginMsg",error.message);return}
+  if(error){setLoginMsg(error.message);return}
   currentUser=data.user; await loadApp();
 }
-async function signOut(){if(sb) await sb.auth.signOut(); location.reload()}
-
+async function sendReset(){
+  const email=document.getElementById("loginEmail").value.trim();
+  if(!email){setLoginMsg("Enter your email first.");return}
+  const redirect=location.origin+location.pathname;
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:redirect});
+  setLoginMsg(error?error.message:"Password reset email sent. Check your inbox.");
+}
+async function signOut(){await sb.auth.signOut();location.reload()}
 async function loadApp(){
-  const {data:p,error:pe}=await sb.from("profiles").select("*").eq("id",currentUser.id).single();
-  if(pe){msg("loginMsg","Profile/role not found. Create a profile row for this user in Supabase.");return}
+  const {data:p,error}=await sb.from("profiles").select("*").eq("id",currentUser.id).maybeSingle();
+  if(error||!p){setLoginMsg("Login succeeded, but no profile/role is assigned to this Auth user.");await sb.auth.signOut();return}
   profile=p;
-  document.getElementById("loginView").classList.add("hidden");document.getElementById("appView").classList.remove("hidden");
+  document.getElementById("loginView").classList.add("hidden");
+  document.getElementById("appView").classList.remove("hidden");
   document.getElementById("userBox").textContent=(currentUser.email||"")+" | "+profile.role;
-  document.querySelectorAll(".write").forEach(e=>e.style.display=canWrite()?"flex":"none");
-  document.querySelectorAll(".adminonly").forEach(e=>e.style.display=roleIs("ADMIN")?"flex":"none");
+  document.getElementById("avatar").textContent=(profile.display_name||currentUser.email||"N").slice(0,1).toUpperCase();
+  applyRoleUI();
   await refreshAll();
+  showPage("dashboard",document.querySelector('[data-page="dashboard"]'));
+}
+function applyRoleUI(){
+  document.querySelectorAll(".adminonly").forEach(e=>e.style.display=roleIs("ADMIN")?"flex":"none");
+  document.querySelectorAll(".stockin-nav,.stockout-nav").forEach(e=>e.style.display=roleIs("ADMIN","MANAGER","STOREKEEPER")?"flex":"none");
+  document.getElementById("newInBtn").style.display=canStockCreate()?"inline-flex":"none";
+  document.getElementById("newOutBtn").style.display=canStockCreate()?"inline-flex":"none";
+  document.getElementById("saveInBtn").style.display=canTxEdit()?"inline-flex":"none";
+  document.getElementById("saveOutBtn").style.display=canTxEdit()?"inline-flex":"none";
+  const addBtn=document.getElementById("addItemBtn"); if(addBtn) addBtn.style.display=canWriteInventory()?"inline-flex":"none";
 }
 async function refreshAll(){
-  const [a,b,c,d]=await Promise.all([
-    sb.from("inventory_items").select("*").order("name"),
-    sb.from("stock_in_invoices").select("*, stock_in_items(*)").order("invoice_date",{ascending:false}),
-    sb.from("stock_out_vouchers").select("*, stock_out_items(*)").order("voucher_date",{ascending:false}),
+  const [a,b,c,p,l]=await Promise.all([
+    sb.from("inventory_items").select("*").order("ledger_page_no"),
+    sb.from("stock_in_invoices").select("*,stock_in_items(*)").order("invoice_date",{ascending:false}).order("created_at",{ascending:false}),
+    sb.from("stock_out_vouchers").select("*,stock_out_items(*)").order("voucher_date",{ascending:false}).order("created_at",{ascending:false}),
+    sb.from("profiles").select("id,display_name,role,created_at").order("display_name"),
     sb.from("app_settings").select("*").eq("key","nc_logo_path").maybeSingle()
   ]);
-  items=a.data||[];inInvoices=b.data||[];outVouchers=c.data||[];logoPath=d.data?.value||null;
-  renderDashboard();renderInventory();renderReports();renderUsers();
-  if(logoPath) document.getElementById("ncLogo").innerHTML=`<img src="${logoPath}" alt="NC">`;
+  if(a.error) console.error(a.error); if(b.error) console.error(b.error); if(c.error) console.error(c.error);
+  items=a.data||[];inInvoices=b.data||[];outVouchers=c.data||[];profiles=p.data||[];
+  if(l.data?.value) setLogo(l.data.value);
+  renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();
+  populateUnitFilter();populateVoucherSelects();
 }
-
-function showPage(id,btn){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".navbtn").forEach(b=>b.classList.remove("active"));btn?.classList.add("active");toggleMenu(false); if(id==="dashboard")renderDashboard(); if(id==="inventory")renderInventory();if(id==="reports")renderReports()}
-function toggleMenu(force){const s=document.getElementById("side"); if(force===false){s.classList.remove("expanded","open");return}s.classList.toggle("expanded");s.classList.toggle("open")}
+function setLogo(url){
+  document.getElementById("ncLogo").innerHTML=`<img src="${esc(url)}" alt="NC">`;
+  document.getElementById("loginLogo").innerHTML=`<img src="${esc(url)}" style="width:100%;height:100%;border-radius:15px;object-fit:cover" alt="NC">`;
+}
+function toggleMenu(force){
+  const s=document.getElementById("side");
+  if(force===false){s.classList.remove("expanded","open");return}
+  s.classList.toggle("expanded");s.classList.toggle("open");
+}
+function showPage(id,btn){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById(id)?.classList.add("active");
+  document.querySelectorAll(".nav").forEach(n=>n.classList.remove("active"));
+  btn?.classList.add("active");toggleMenu(false);
+}
 function openModal(html){document.getElementById("modalBox").innerHTML=html;document.getElementById("modal").classList.remove("hidden")}
 function closeModal(){document.getElementById("modal").classList.add("hidden")}
 
-// ==============================
-// 3) INVENTORY
-// ==============================
+// Inventory Master
 async function openItemModal(id=null){
   const item=id?items.find(x=>x.id===id):null;
+  let next="";
+  if(!item){
+    const {data,error}=await sb.rpc("next_ledger_page_no");
+    next=error?String(Math.max(0,...items.map(i=>+i.ledger_page_no||0))+1):String(data);
+  }else next=item.ledger_page_no||"";
+  const unitOpts=UNITS.map(u=>`<option ${item?.unit===u?"selected":""}>${u}</option>`).join("");
   openModal(`<div class="modalhead"><h2>${item?"Edit":"Add"} Inventory Item</h2><button class="close" onclick="closeModal()">×</button></div>
-  <div class="form">
-  <label>Ledger Page No.</label><input id="fLedger" value="${item?.ledger_page_no??""}">
-  <label>Item Name</label><input id="fName" value="${item?.name??""}">
-  <label>Category</label><input id="fCat" value="${item?.category??""}">
-  <label>Unit</label><input id="fUnit" value="${item?.unit??""}">
-  <label>Opening Stock</label><input id="fOpening" type="number" step="0.01" value="${item?.opening_stock??0}">
-  <label>Reorder Level</label><input id="fReorder" type="number" step="0.01" value="${item?.reorder_level??0}">
-  <button class="btn" style="margin-top:15px" onclick="saveItem('${item?.id||""}')">SAVE ITEM</button>
+  <div class="formbox" style="margin-top:12px">
+   <div class="form-grid">
+    <div class="field"><label>Ledger Page No. (Auto)</label><input id="fLedger" value="${esc(next)}" readonly></div>
+    <div class="field"><label>Item Name</label><input id="fName" value="${esc(item?.name||"")}" placeholder="Item name"></div>
+    <div class="field"><label>Category</label><input id="fCat" value="${esc(item?.category||"")}" placeholder="Category"></div>
+    <div class="field"><label>Unit</label><select id="fUnit">${unitOpts}</select></div>
+    <div class="field"><label>Opening Stock</label><input id="fOpening" type="number" step="0.01" min="0" value="${item?.opening_stock??0}"></div>
+    <div class="field"><label>Reorder Level</label><input id="fReorder" type="number" step="0.01" min="0" value="${item?.reorder_level??0}"></div>
+   </div>
+   <div class="actions" style="margin-top:14px"><button class="btn" onclick="saveItem('${item?.id||""}')">SAVE ITEM</button><button class="btn ghost" onclick="closeModal()">CANCEL</button></div>
   </div>`);
 }
 async function saveItem(id){
-  const payload={ledger_page_no:document.getElementById("fLedger").value.trim(),name:document.getElementById("fName").value.trim(),category:document.getElementById("fCat").value.trim(),unit:document.getElementById("fUnit").value.trim(),opening_stock:+document.getElementById("fOpening").value||0,reorder_level:+document.getElementById("fReorder").value||0};
-  if(!payload.name){alert("Item name is required");return}
-  let q=id?sb.from("inventory_items").update(payload).eq("id",id):sb.from("inventory_items").insert(payload);
-  const {error}=await q;if(error){alert(error.message);return}closeModal();await refreshAll()
+  if(!canWriteInventory()){alert("Read-only access.");return}
+  const payload={ledger_page_no:document.getElementById("fLedger").value.trim(),name:document.getElementById("fName").value.trim(),category:document.getElementById("fCat").value.trim(),unit:document.getElementById("fUnit").value,opening_stock:+document.getElementById("fOpening").value||0,reorder_level:+document.getElementById("fReorder").value||0};
+  if(!payload.name){alert("Item name is required.");return}
+  const q=id?sb.from("inventory_items").update(payload).eq("id",id):sb.from("inventory_items").insert(payload);
+  const {error}=await q;if(error){alert(error.message);return}
+  closeModal();await refreshAll();
 }
-async function deleteItem(id){if(!confirm("Delete this item?"))return;const {error}=await sb.from("inventory_items").delete().eq("id",id);if(error)alert(error.message);else await refreshAll()}
-function balance(i){return +i.opening_stock+(+i.stock_in_qty||0)-(+i.stock_out_qty||0)}
+async function deleteItem(id){
+  if(!canDelete())return alert("Only ADMIN/MANAGER can delete inventory items.");
+  if(!confirm("Delete this item? It cannot be deleted if transactions reference it."))return;
+  const {error}=await sb.from("inventory_items").delete().eq("id",id);if(error)alert(error.message);else await refreshAll();
+}
+function balance(i){return (+i.opening_stock||0)+(+i.stock_in_qty||0)-(+i.stock_out_qty||0)}
 function renderInventory(){
-  const q=(document.getElementById("invSearch")?.value||"").toLowerCase();
-  const list=items.filter(i=>i.name.toLowerCase().includes(q));
-  let h="<table><tr><th>Ledger</th><th>Item</th><th>Category</th><th>Unit</th><th>Opening</th><th>In</th><th>Out</th><th>Balance</th><th>Status</th><th>Action</th></tr>";
-  list.forEach(i=>{const b=balance(i);h+=`<tr><td>${i.ledger_page_no||""}</td><td><b>${esc(i.name)}</b></td><td>${esc(i.category||"")}</td><td>${esc(i.unit||"")}</td><td>${i.opening_stock}</td><td>${i.stock_in_qty||0}</td><td>${i.stock_out_qty||0}</td><td><b>${b.toFixed(2)}</b></td><td>${b<=+i.reorder_level?"LOW":"OK"}</td><td>${canWrite()?`<button class="btn alt" onclick="openItemModal('${i.id}')">Edit</button> ${canEditDelete()?`<button class="btn danger" onclick="deleteItem('${i.id}')">Delete</button>`:""}`:"Read only"}</td></tr>`});
-  h+="</table>";document.getElementById("inventoryTable").innerHTML=h
+  const q=(document.getElementById("invSearch")?.value||"").toLowerCase(),u=document.getElementById("unitFilter")?.value||"";
+  const list=items.filter(i=>(i.name+" "+(i.category||"")).toLowerCase().includes(q)&&(!u||i.unit===u));
+  let h=`<table><tr><th>Ledger Page</th><th>Item Name</th><th>Category</th><th>Unit</th><th>Opening</th><th>Stock In</th><th>Stock Out</th><th>Balance</th><th>Reorder</th><th>Status</th><th>Action</th></tr>`;
+  list.forEach(i=>{
+    const b=balance(i),low=b<=+i.reorder_level;
+    const actions=canWriteInventory()?`<button class="btn ghost" onclick="openItemModal('${i.id}')">Edit</button> ${canDelete()?`<button class="btn red" onclick="deleteItem('${i.id}')">Delete</button>`:""}`:"Read only";
+    h+=`<tr><td><b>${esc(i.ledger_page_no||"")}</b></td><td><b>${esc(i.name)}</b></td><td>${esc(i.category||"")}</td><td>${esc(i.unit||"")}</td><td>${(+i.opening_stock||0).toFixed(2)}</td><td>${(+i.stock_in_qty||0).toFixed(2)}</td><td>${(+i.stock_out_qty||0).toFixed(2)}</td><td><b>${b.toFixed(2)}</b></td><td>${(+i.reorder_level||0).toFixed(2)}</td><td><span class="status ${low?"low":"ok"}">${low?"LOW":"OK"}</span></td><td>${actions}</td></tr>`;
+  });
+  h+="</table>";document.getElementById("inventoryTable").innerHTML=list.length?h:"<div class='empty'>No inventory items found.</div>";
+}
+function populateUnitFilter(){
+  const el=document.getElementById("unitFilter");if(!el)return;const current=el.value;
+  el.innerHTML='<option value="">All Units</option>'+[...new Set([...UNITS,...items.map(i=>i.unit).filter(Boolean)])].map(u=>`<option ${u===current?"selected":""}>${esc(u)}</option>`).join("");
 }
 
-// ==============================
-// 4) STOCK IN
-// ==============================
-function openStockIn(){
- if(!canWrite())return;
- const row=()=>`<div class="row"><select class="in-item">${items.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join("")}</select><input class="in-qty" type="number" step="0.01" min="0"><input class="in-rate" type="number" step="0.01" min="0" oninput="calcInTotal()"><span class="in-amount">0.00</span><button class="btn danger" onclick="this.parentElement.remove();calcInTotal()">×</button></div>`;
- openModal(`<div class="modalhead"><h2>Stock In / Purchase</h2><button class="close" onclick="closeModal()">×</button></div>
- <div class="form"><label>Invoice Number</label><input id="inInvoice">
- <label>Date</label><input id="inDate" type="date" value="${today()}">
- <label>Supplier</label><input id="inSupplier">
- <div style="margin-top:12px"><button class="btn alt" onclick="document.getElementById('inRows').insertAdjacentHTML('beforeend',row())">＋ ADD ITEM</button></div>
- <div class="panel"><div class="row" style="font-weight:800"><div>Item</div><div>Qty</div><div>Rate</div><div>Amount</div><div></div></div><div id="inRows" class="rows">${row()}</div><div class="total">Total: ₹ <span id="inTotal">0.00</span></div></div>
- <button class="btn" style="margin-top:10px" onclick="saveStockIn()">SAVE INVOICE</button></div>`);
+// Stock In
+function inOptions(selected=""){return items.length?items.map(i=>`<option value="${i.id}" ${selected===i.id?"selected":""}>${esc(i.name)} (${esc(i.unit||"")})</option>`).join(""):"<option value=''>Add inventory items first</option>"}
+function addInRow(data={}) {
+  const wrap=document.getElementById("inRows"),row=document.createElement("div");row.className="item-row";
+  row.innerHTML=`<select class="in-item" onchange="calcInTotal()"><option value="">Select item</option>${inOptions(data.item_id||"")}</select>
+    <input class="in-qty" type="number" min="0" step="0.01" value="${data.quantity??""}" oninput="calcInTotal()">
+    <input class="in-rate" type="number" min="0" step="0.01" value="${data.rate??""}" oninput="calcInTotal()">
+    <div class="amt in-amt">0.00</div><button class="btn red" onclick="this.parentElement.remove();calcInTotal()">×</button>`;
+  wrap.appendChild(row);calcInTotal();
 }
-function calcInTotal(){let total=0;document.querySelectorAll("#inRows .row").forEach(r=>{const q=+r.querySelector(".in-qty").value||0,rate=+r.querySelector(".in-rate").value||0;const a=q*rate;r.querySelector(".in-amount").textContent=a.toFixed(2);total+=a});const t=document.getElementById("inTotal");if(t)t.textContent=total.toFixed(2)}
+function calcInTotal(){let t=0;document.querySelectorAll("#inRows .item-row").forEach(r=>{const q=+r.querySelector(".in-qty").value||0,rate=+r.querySelector(".in-rate").value||0,a=q*rate;r.querySelector(".in-amt").textContent=a.toFixed(2);t+=a});document.getElementById("inTotal").textContent=t.toFixed(2)}
+function resetStockInForm(){
+  if(!canStockCreate()&&!document.getElementById("editInId").value)return;
+  document.getElementById("editInId").value="";document.getElementById("inInvoice").value="";document.getElementById("inDate").value=today();document.getElementById("inSupplier").value="";
+  document.getElementById("stockInFormTitle").textContent="New Purchase Invoice";document.getElementById("inRows").innerHTML="";addInRow();setMsg("inMsg","");
+}
 async function saveStockIn(){
- const invoice=document.getElementById("inInvoice").value.trim(),date=document.getElementById("inDate").value,supplier=document.getElementById("inSupplier").value.trim();
- if(!invoice||!date){alert("Invoice number and date are required");return}
- const rows=[...document.querySelectorAll("#inRows .row")].map(r=>({item_id:r.querySelector(".in-item").value,quantity:+r.querySelector(".in-qty").value||0,rate:+r.querySelector(".in-rate").value||0})).filter(x=>x.quantity>0);
- if(!rows.length){alert("Add at least one item");return}
- const {data:h,error:he}=await sb.from("stock_in_invoices").insert({invoice_number:invoice,invoice_date:date,supplier,created_by:currentUser.id}).select().single();
- if(he){alert(he.message);return}
- const payload=rows.map(x=>({...x,invoice_id:h.id,amount:x.quantity*x.rate}));
- const {error:ie}=await sb.from("stock_in_items").insert(payload);if(ie){await sb.from("stock_in_invoices").delete().eq("id",h.id);alert(ie.message);return}
- closeModal();await refreshAll()
+  if(!canTxEdit())return;
+  const id=document.getElementById("editInId").value||null,invoice=document.getElementById("inInvoice").value.trim(),date=document.getElementById("inDate").value,supplier=document.getElementById("inSupplier").value.trim();
+  if(!id&&!canStockCreate()){setMsg("inMsg","Your role can edit existing invoices but cannot create new invoices.");return}
+  if(!invoice||!date){setMsg("inMsg","Invoice number and date are required.");return}
+  const rows=[...document.querySelectorAll("#inRows .item-row")].map(r=>({item_id:r.querySelector(".in-item").value,quantity:+r.querySelector(".in-qty").value||0,rate:+r.querySelector(".in-rate").value||0})).filter(x=>x.item_id&&x.quantity>0);
+  if(!rows.length){setMsg("inMsg","Add at least one item with quantity.");return}
+  const {data,error}=await sb.rpc("save_stock_in_invoice",{p_id:id,p_invoice_number:invoice,p_invoice_date:date,p_supplier:supplier,p_items:rows});
+  if(error){setMsg("inMsg",error.message);return}
+  setMsg("inMsg","Invoice saved successfully.",true);resetStockInForm();await refreshAll();
+  showPage("stockin",document.querySelector('[data-page="stockin"]'));
+}
+async function editStockIn(id){
+  if(!canTxEdit())return;
+  const h=inInvoices.find(x=>x.id===id);if(!h)return;
+  document.getElementById("editInId").value=h.id;document.getElementById("inInvoice").value=h.invoice_number;document.getElementById("inDate").value=h.invoice_date;document.getElementById("inSupplier").value=h.supplier||"";
+  document.getElementById("stockInFormTitle").textContent="Edit Purchase Invoice";document.getElementById("inRows").innerHTML="";
+  (h.stock_in_items||[]).forEach(r=>addInRow(r));if(!(h.stock_in_items||[]).length)addInRow();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+async function deleteStockIn(id){
+  if(!canDelete())return alert("Only ADMIN/MANAGER can delete invoices.");
+  if(!confirm("Delete this complete invoice and all its item rows?"))return;
+  const {error}=await sb.rpc("delete_stock_in_invoice",{p_id:id});if(error)alert(error.message);else await refreshAll();
+}
+function renderStockInList(){
+  let h=`<table><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th><th>Action</th></tr>`;
+  inInvoices.forEach(x=>{const total=(x.stock_in_items||[]).reduce((s,r)=>s+(+r.amount||(+r.quantity||0)*(+r.rate||0)),0);
+    let actions=canTxEdit()?`<button class="btn ghost" onclick="editStockIn('${x.id}')">Edit</button>`:"View";
+    if(canDelete())actions+=` <button class="btn red" onclick="deleteStockIn('${x.id}')">Delete</button>`;
+    h+=`<tr><td><b>${esc(x.invoice_number)}</b></td><td>${esc(x.invoice_date)}</td><td>${esc(x.supplier||"")}</td><td>${(x.stock_in_items||[]).length}</td><td>${money(total)}</td><td>${actions}</td></tr>`});
+  h+="</table>";document.getElementById("inList").innerHTML=inInvoices.length?h:"<div class='empty'>No purchase invoices saved yet.</div>";
 }
 
-// ==============================
-// 5) STOCK OUT
-// ==============================
-function openStockOut(){
- if(!canWrite())return;
- const opts=items.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join("");
- const row=()=>`<div class="row"><select class="out-item" onchange="updateOutRow(this)"><option value="">Select item</option>${opts}</select><span class="out-bal">0.00</span><input class="out-qty" type="number" step="0.01" min="0" oninput="calcOutTotal()"><span class="out-amt">0.00</span><button class="btn danger" onclick="this.parentElement.remove();calcOutTotal()">×</button></div>`;
- openModal(`<div class="modalhead"><h2>Stock Out / Issue</h2><button class="close" onclick="closeModal()">×</button></div>
- <div class="form"><label>Voucher Number</label><select id="outVoucher"><option>IV-1</option><option>IV-2</option><option>IV-3</option><option>IV-4</option><option>IV-5</option><option>IV-6</option><option>IV-7</option><option>IV-8</option><option>IV-9</option><option>IV-10</option></select>
- <label>Date</label><input id="outDate" type="date" value="${today()}">
- <div style="margin-top:12px"><button class="btn alt" onclick="document.getElementById('outRows').insertAdjacentHTML('beforeend',row())">＋ ADD ITEM</button></div>
- <div class="panel"><div class="row" style="font-weight:800"><div>Item</div><div>Balance</div><div>Qty</div><div>Amount</div><div></div></div><div id="outRows" class="rows">${row()}</div><div class="total">Total: ₹ <span id="outTotal">0.00</span></div></div>
- <button class="btn" style="margin-top:10px" onclick="saveStockOut()">SAVE VOUCHER</button></div>`);
+// Stock Out
+function populateVoucherSelects(){
+  const v=document.getElementById("outVoucher"),current=v.value;
+  if(v)v.innerHTML=VOUCHERS.map(x=>`<option ${x===current?"selected":""}>${x}</option>`).join("");
 }
-function updateOutRow(sel){const item=items.find(x=>x.id===sel.value),r=sel.parentElement;if(!item)return;r.querySelector(".out-bal").textContent=balance(item).toFixed(2);r.querySelector(".out-qty").max=Math.max(0,balance(item));calcOutTotal()}
-function calcOutTotal(){let total=0;document.querySelectorAll("#outRows .row").forEach(r=>{const item=items.find(x=>x.id===r.querySelector(".out-item").value);const qty=+r.querySelector(".out-qty").value||0;const a=qty*(+(item?.avg_rate||0));r.querySelector(".out-amt").textContent=a.toFixed(2);total+=a});const t=document.getElementById("outTotal");if(t)t.textContent=total.toFixed(2)}
+function addOutRow(data={}){
+  const wrap=document.getElementById("outRows"),row=document.createElement("div");row.className="item-row";
+  row.innerHTML=`<select class="out-item" onchange="updateOutRow(this)"><option value="">Select item</option>${items.map(i=>`<option value="${i.id}" ${data.item_id===i.id?"selected":""}>${esc(i.name)} (${esc(i.unit||"")})</option>`).join("")}</select>
+    <div class="out-bal badge">0.00</div><input class="out-qty" type="number" min="0" step="0.01" value="${data.quantity??""}" oninput="calcOutTotal()"><div class="amt out-amt">0.00</div>
+    <button class="btn red" onclick="this.parentElement.remove();calcOutTotal()">×</button>`;
+  wrap.appendChild(row);updateOutRow(row.querySelector(".out-item"));
+}
+function updateOutRow(sel){const r=sel.parentElement,i=items.find(x=>x.id===sel.value),b=i?balance(i):0;r.querySelector(".out-bal").textContent=b.toFixed(2);r.querySelector(".out-qty").max=Math.max(0,b);calcOutTotal()}
+function calcOutTotal(){let t=0;document.querySelectorAll("#outRows .item-row").forEach(r=>{const i=items.find(x=>x.id===r.querySelector(".out-item").value),q=+r.querySelector(".out-qty").value||0,a=q*(+(i?.avg_rate||0));r.querySelector(".out-amt").textContent=a.toFixed(2);t+=a});document.getElementById("outTotal").textContent=t.toFixed(2)}
+function resetStockOutForm(){
+  if(!canStockCreate()&&!document.getElementById("editOutId").value)return;
+  document.getElementById("editOutId").value="";document.getElementById("outVoucher").value="IV-1";document.getElementById("outDate").value=today();document.getElementById("outIssuedTo").value="";
+  document.getElementById("stockOutFormTitle").textContent="New Issue Voucher";document.getElementById("outRows").innerHTML="";addOutRow();setMsg("outMsg","");
+}
 async function saveStockOut(){
- const voucher=document.getElementById("outVoucher").value,date=document.getElementById("outDate").value;
- const rows=[...document.querySelectorAll("#outRows .row")].map(r=>({item_id:r.querySelector(".out-item").value,quantity:+r.querySelector(".out-qty").value||0})).filter(x=>x.item_id&&x.quantity>0);
- if(!date||!rows.length){alert("Date and at least one item are required");return}
- for(const r of rows){const i=items.find(x=>x.id===r.item_id);if(r.quantity>balance(i)){alert("Insufficient stock for "+i.name);return}}
- const {data:h,error:he}=await sb.from("stock_out_vouchers").insert({voucher_number:voucher,voucher_date:date,created_by:currentUser.id}).select().single();
- if(he){alert(he.message);return}
- const payload=rows.map(x=>{const i=items.find(y=>y.id===x.item_id);return {...x,voucher_id:h.id,rate:+(i.avg_rate||0),amount:x.quantity*+(i.avg_rate||0)}});
- const {error:ie}=await sb.from("stock_out_items").insert(payload);if(ie){await sb.from("stock_out_vouchers").delete().eq("id",h.id);alert(ie.message);return}
- closeModal();await refreshAll()
+  if(!canTxEdit())return;
+  const id=document.getElementById("editOutId").value||null,voucher=document.getElementById("outVoucher").value,date=document.getElementById("outDate").value,issued=document.getElementById("outIssuedTo").value.trim();
+  if(!id&&!canStockCreate()){setMsg("outMsg","Your role can edit existing vouchers but cannot create new vouchers.");return}
+  if(!date){setMsg("outMsg","Date is required.");return}
+  const rows=[...document.querySelectorAll("#outRows .item-row")].map(r=>({item_id:r.querySelector(".out-item").value,quantity:+r.querySelector(".out-qty").value||0})).filter(x=>x.item_id&&x.quantity>0);
+  if(!rows.length){setMsg("outMsg","Add at least one item with quantity.");return}
+  const {data,error}=await sb.rpc("save_stock_out_voucher",{p_id:id,p_voucher_number:voucher,p_voucher_date:date,p_issued_to:issued,p_items:rows});
+  if(error){setMsg("outMsg",error.message);return}
+  setMsg("outMsg","Voucher saved successfully.",true);resetStockOutForm();await refreshAll();
+  showPage("stockout",document.querySelector('[data-page="stockout"]'));
+}
+async function editStockOut(id){
+  if(!canTxEdit())return;
+  const h=outVouchers.find(x=>x.id===id);if(!h)return;
+  document.getElementById("editOutId").value=h.id;document.getElementById("outVoucher").value=h.voucher_number;document.getElementById("outDate").value=h.voucher_date;document.getElementById("outIssuedTo").value=h.issued_to||"";
+  document.getElementById("stockOutFormTitle").textContent="Edit Issue Voucher";document.getElementById("outRows").innerHTML="";
+  (h.stock_out_items||[]).forEach(r=>addOutRow(r));if(!(h.stock_out_items||[]).length)addOutRow();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+async function deleteStockOut(id){
+  if(!canDelete())return alert("Only ADMIN/MANAGER can delete vouchers.");
+  if(!confirm("Delete this complete voucher and all its item rows?"))return;
+  const {error}=await sb.rpc("delete_stock_out_voucher",{p_id:id});if(error)alert(error.message);else await refreshAll();
+}
+function renderStockOutList(){
+  let h=`<table><tr><th>Voucher</th><th>Date</th><th>Issued To</th><th>Items</th><th>Total</th><th>Action</th></tr>`;
+  outVouchers.forEach(x=>{const total=(x.stock_out_items||[]).reduce((s,r)=>s+(+r.amount||(+r.quantity||0)*(+r.rate||0)),0);
+    let actions=canTxEdit()?`<button class="btn ghost" onclick="editStockOut('${x.id}')">Edit</button>`:"View";
+    if(canDelete())actions+=` <button class="btn red" onclick="deleteStockOut('${x.id}')">Delete</button>`;
+    h+=`<tr><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.voucher_date)}</td><td>${esc(x.issued_to||"")}</td><td>${(x.stock_out_items||[]).length}</td><td>${money(total)}</td><td>${actions}</td></tr>`});
+  h+="</table>";document.getElementById("outList").innerHTML=outVouchers.length?h:"<div class='empty'>No issue vouchers saved yet.</div>";
 }
 
-// ==============================
-// 6) DASHBOARD / REPORTS
-// ==============================
+// Dashboard
 function renderDashboard(){
- const ia=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0);
- const iq=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0);
- const oa=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0);
- const oq=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0);
- dInAmt.textContent=ia.toFixed(2);dOutAmt.textContent=oa.toFixed(2);dInQty.textContent=iq.toFixed(2);dOutQty.textContent=oq.toFixed(2);
- let h="<table><tr><th>Item</th><th>Unit</th><th>Balance</th><th>Status</th></tr>";
- items.forEach(i=>{const b=balance(i);h+=`<tr><td>${esc(i.name)}</td><td>${esc(i.unit||"")}</td><td>${b.toFixed(2)}</td><td>${b<=+i.reorder_level?"LOW":"OK"}</td></tr>`});h+="</table>";
- dashTable.innerHTML=h
-}
-function renderReports(){
- const from=document.getElementById("fromDate")?.value,to=document.getElementById("toDate")?.value;
- const ins=inInvoices.filter(x=>(!from||x.invoice_date>=from)&&(!to||x.invoice_date<=to));
- const outs=outVouchers.filter(x=>(!from||x.voucher_date>=from)&&(!to||x.voucher_date<=to));
- let h="<h3>Stock In</h3><table><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Total</th></tr>";
- ins.forEach(x=>h+=`<tr><td>${esc(x.invoice_number)}</td><td>${x.invoice_date}</td><td>${esc(x.supplier||"")}</td><td>${(x.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0).toFixed(2)}</td></tr>`);
- h+="</table><h3>Stock Out</h3><table><tr><th>Voucher</th><th>Date</th><th>Total</th></tr>";
- outs.forEach(x=>h+=`<tr><td>${x.voucher_number}</td><td>${x.voucher_date}</td><td>${(x.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0).toFixed(2)}</td></tr>`);
- h+="</table>";reportsContent.innerHTML=h
-}
-function printReports(){window.print()}
-function renderUsers(){
- if(!roleIs("ADMIN"))return;
- sb.from("profiles").select("id,display_name,role").order("display_name").then(({data,error})=>{
-  usersTable.innerHTML=error?`<p>${error.message}</p>`:`<table><tr><th>Name</th><th>Role</th></tr>${(data||[]).map(u=>`<tr><td>${esc(u.display_name||u.id)}</td><td>${u.role}</td></tr>`).join("")}</table>`
- })
+  const ia=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0);
+  const iq=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0);
+  const oa=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0);
+  const oq=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0);
+  document.getElementById("dInAmt").textContent=money(ia);document.getElementById("dOutAmt").textContent=money(oa);document.getElementById("dInQty").textContent=iq.toFixed(2);document.getElementById("dOutQty").textContent=oq.toFixed(2);
+  document.getElementById("dItemCount").textContent=items.length+" items";
+  let low=0,h=`<table><tr><th>Ledger</th><th>Item</th><th>Unit</th><th>Balance</th><th>Reorder</th><th>Status</th></tr>`;
+  items.forEach(i=>{const b=balance(i),isLow=b<=+i.reorder_level;if(isLow)low++;h+=`<tr><td>${esc(i.ledger_page_no||"")}</td><td><b>${esc(i.name)}</b></td><td>${esc(i.unit||"")}</td><td>${b.toFixed(2)}</td><td>${(+i.reorder_level||0).toFixed(2)}</td><td><span class="status ${isLow?"low":"ok"}">${isLow?"LOW":"OK"}</span></td></tr>`});
+  h+="</table>";document.getElementById("dashTable").innerHTML=items.length?h:"<div class='empty'>No inventory items yet.</div>";
+  const pct=items.length?Math.round(low/items.length*100):0;document.getElementById("riskPct").textContent=pct+"%";
+  document.getElementById("riskLegend").innerHTML=`<div><span class="status low">${low} Low stock</span></div><div style="margin-top:8px"><span class="status ok">${Math.max(items.length-low,0)} OK</span></div><p class="kpi-note">Maintain reorder levels to reduce stock-outs.</p>`;
 }
 
-// ==============================
-// 7) LOGO
-// ==============================
+// Reports
+function dateOk(d,from,to){return (!from||d>=from)&&(!to||d<=to)}
+function renderReports(){
+  const from=document.getElementById("fromDate")?.value,to=document.getElementById("toDate")?.value;
+  const ins=inInvoices.filter(x=>dateOk(x.invoice_date,from,to)),outs=outVouchers.filter(x=>dateOk(x.voucher_date,from,to));
+  const inValue=ins.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0);
+  const outValue=outs.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0);
+  document.getElementById("reportCards").innerHTML=`<div class="metric m1"><span class="label">PURCHASE INVOICES</span><b>${ins.length}</b><small>Selected date range</small></div><div class="metric m2"><span class="label">ISSUE VOUCHERS</span><b>${outs.length}</b><small>Selected date range</small></div><div class="metric m3"><span class="label">PURCHASE VALUE</span><b>${money(inValue)}</b><small>Selected date range</small></div><div class="metric m4"><span class="label">ISSUE VALUE</span><b>${money(outValue)}</b><small>Selected date range</small></div>`;
+  let h=`<h3>Day-wise Summary</h3><table><tr><th>Date</th><th>Stock In Value</th><th>Stock Out Value</th><th>Net Value</th></tr>`;
+  const days={};ins.forEach(x=>{days[x.invoice_date]??={i:0,o:0};days[x.invoice_date].i+=(x.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0)});outs.forEach(x=>{days[x.voucher_date]??={i:0,o:0};days[x.voucher_date].o+=(x.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0)});
+  Object.keys(days).sort().reverse().forEach(d=>h+=`<tr><td>${d}</td><td>${money(days[d].i)}</td><td>${money(days[d].o)}</td><td>${money(days[d].i-days[d].o)}</td></tr>`);
+  h+=`</table><h3 style="margin-top:20px">Current Stock</h3><table><tr><th>Ledger</th><th>Item</th><th>Unit</th><th>Opening</th><th>In</th><th>Out</th><th>Balance</th><th>Status</th></tr>`;
+  items.forEach(i=>{const b=balance(i),low=b<=+i.reorder_level;h+=`<tr><td>${esc(i.ledger_page_no||"")}</td><td>${esc(i.name)}</td><td>${esc(i.unit||"")}</td><td>${(+i.opening_stock||0).toFixed(2)}</td><td>${(+i.stock_in_qty||0).toFixed(2)}</td><td>${(+i.stock_out_qty||0).toFixed(2)}</td><td><b>${b.toFixed(2)}</b></td><td>${low?"LOW":"OK"}</td></tr>`});
+  h+="</table><h3 style='margin-top:20px'>Stock In Details</h3><table><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th></tr>";
+  ins.forEach(x=>h+=`<tr><td>${esc(x.invoice_number)}</td><td>${x.invoice_date}</td><td>${esc(x.supplier||"")}</td><td>${(x.stock_in_items||[]).length}</td><td>${money((x.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0))}</td></tr>`);
+  h+="</table><h3 style='margin-top:20px'>Stock Out Details</h3><table><tr><th>Voucher</th><th>Date</th><th>Issued To</th><th>Items</th><th>Total</th></tr>";
+  outs.forEach(x=>h+=`<tr><td>${esc(x.voucher_number)}</td><td>${x.voucher_date}</td><td>${esc(x.issued_to||"")}</td><td>${(x.stock_out_items||[]).length}</td><td>${money((x.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0))}</td></tr>`);
+  h+="</table>";document.getElementById("reportsContent").innerHTML=h;
+}
+function clearReportFilter(){document.getElementById("fromDate").value="";document.getElementById("toDate").value="";renderReports()}
+function printPage(){window.print()}
+
+// Users
+async function saveUserProfile(){
+  if(!roleIs("ADMIN"))return;
+  const id=document.getElementById("uId").value.trim(),name=document.getElementById("uName").value.trim(),role=document.getElementById("uRole").value;
+  if(!id){setMsg("userMsg","Auth User UUID is required.");return}
+  const {error}=await sb.from("profiles").upsert({id,display_name:name||null,role},{onConflict:"id"});
+  if(error){setMsg("userMsg",error.message);return}
+  setMsg("userMsg","User profile saved.",true);document.getElementById("uId").value="";document.getElementById("uName").value="";await refreshAll();
+}
+function renderUsers(){
+  if(!roleIs("ADMIN"))return;
+  let h=`<table><tr><th>Display Name</th><th>Role</th><th>UUID</th><th>Created</th></tr>`;
+  profiles.forEach(u=>h+=`<tr><td>${esc(u.display_name||"")}</td><td><span class="badge">${esc(u.role)}</span></td><td>${esc(u.id)}</td><td>${esc(u.created_at||"")}</td></tr>`);
+  h+="</table>";document.getElementById("usersTable").innerHTML=profiles.length?h:"<div class='empty'>No profiles found.</div>";
+}
+
+// Logo
 function openLogo(){
- openModal(`<div class="modalhead"><h2>Upload NC Logo</h2><button class="close" onclick="closeModal()">×</button></div>
- <div class="form"><p>Use JPG/PNG up to 50 MB. The file is stored in Supabase Storage.</p><input id="logoFile" type="file" accept="image/png,image/jpeg"><button class="btn" style="margin-top:15px" onclick="uploadLogo()">UPLOAD</button></div>`)
+  if(!roleIs("ADMIN"))return;
+  openModal(`<div class="modalhead"><h2>Upload NC Logo</h2><button class="close" onclick="closeModal()">×</button></div><div class="formbox" style="margin-top:12px"><p class="muted">Choose JPG or PNG. The logo is stored in Supabase Storage.</p><input id="logoFile" type="file" accept="image/png,image/jpeg"><div class="actions" style="margin-top:12px"><button class="btn" onclick="uploadLogo()">UPLOAD</button></div></div>`)
 }
 async function uploadLogo(){
- const f=document.getElementById("logoFile").files[0];if(!f)return;
- const path=`logos/nc-${currentUser.id}-${Date.now()}.${f.name.split(".").pop()}`;
- const {error:e}=await sb.storage.from("ims-assets").upload(path,f,{upsert:true,contentType:f.type});
- if(e){alert(e.message);return}
- const {data}=sb.storage.from("ims-assets").getPublicUrl(path);
- await sb.from("app_settings").upsert({key:"nc_logo_path",value:data.publicUrl});
- closeModal();await refreshAll()
+  const f=document.getElementById("logoFile").files[0];if(!f)return;
+  const ext=(f.name.split(".").pop()||"png").toLowerCase(),path=`logos/nc-logo.${ext}`;
+  const {error}=await sb.storage.from("ims-assets").upload(path,f,{upsert:true,contentType:f.type});
+  if(error){alert(error.message);return}
+  const {data}=sb.storage.from("ims-assets").getPublicUrl(path);
+  const {error:e2}=await sb.from("app_settings").upsert({key:"nc_logo_path",value:data.publicUrl});
+  if(e2){alert(e2.message);return}closeModal();await refreshAll();
 }
 
-function today(){return new Date().toISOString().slice(0,10)}
-function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-
-if(sb){sb.auth.getSession().then(({data})=>{if(data.session){currentUser=data.session.user;loadApp()}})}
+function start(){
+  document.getElementById("inDate").value=today();document.getElementById("outDate").value=today();populateVoucherSelects();
+  document.getElementById("fromDate").value="";document.getElementById("toDate").value="";
+  if(sb)sb.auth.getSession().then(({data})=>{if(data.session){currentUser=data.session.user;loadApp()}});
+}
+start();
 </script>
 </body>
 </html>
