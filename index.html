@@ -47,7 +47,6 @@ body:before{content:"";position:fixed;inset:-10%;z-index:-2;background:
 .side-name{display:none;font-weight:900;font-size:12px;line-height:1.1;white-space:nowrap}.sidebar.expanded .side-name{display:block}
 .nav{width:100%;padding:12px 10px;border:0;background:transparent;color:#ced7e2;border-radius:8px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;margin:3px 0;font-weight:700}
 .nav:hover,.nav.active{background:#173044;color:#fff}.nav.active{box-shadow:inset 3px 0 0 var(--accent2)}.ni{width:30px;text-align:center;font-size:18px}.nl{display:none;white-space:nowrap}.sidebar.expanded .nl{display:inline}
-.nav-group{position:relative;width:100%}.nav-group>.nav-parent{position:relative}.nav-group>.nav-parent .nav-caret{margin-left:auto;display:none;font-size:12px;opacity:.8}.sidebar.expanded .nav-group>.nav-parent .nav-caret{display:inline}.nav-submenu{display:none;position:absolute;left:64px;top:0;min-width:235px;padding:7px;background:linear-gradient(180deg,#162332,#0e1721);border:1px solid #2a3b4e;border-radius:10px;box-shadow:0 12px 32px #0008;z-index:300}.nav-group:hover>.nav-submenu,.nav-group:focus-within>.nav-submenu,.nav-group.open>.nav-submenu{display:block}.sidebar.expanded .nav-submenu{position:static;left:auto;top:auto;min-width:0;margin:1px 0 6px;padding:4px;background:transparent;border:0;box-shadow:none}.nav-submenu .nav{font-size:12px;padding:9px 10px;margin:2px 0}.nav-submenu .nav:hover,.nav-submenu .nav.active{background:#12273a}.nav-submenu .ni{font-size:15px;width:26px}.nav-submenu .nl{display:inline}.nav-submenu .nav.camp-child,.nav-submenu .nav.pol-child,.nav-submenu .nav.incident-child,.nav-submenu .nav.cash-child,.nav-submenu .nav.admin-child{display:flex}
 .side-footer{position:absolute;left:8px;right:8px;bottom:10px}.nav.logout{color:#ffb5b1}.nav.logout:hover{background:#3b1d24}
 main{margin-left:72px;padding:92px 24px 35px;transition:.2s}.sidebar.expanded~main{margin-left:235px}
 .page{display:none}.page.active{display:block}.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:15px;margin-bottom:18px}.section-head h1{font-size:28px;margin:0}.section-head p{margin:5px 0 0;color:var(--muted)}
@@ -84,6 +83,42 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 @media(max-width:1100px){.module-grid{grid-template-columns:1fr 1fr}.pol-grid{grid-template-columns:1fr 1fr}.source-row{grid-template-columns:1fr 1fr 1fr}.cash-layout{grid-template-columns:1fr}}
 @media(max-width:700px){.camp-top{display:none}.module-grid,.pol-grid,.source-row{grid-template-columns:1fr}.small-kpi{grid-template-columns:1fr}.cash-layout{grid-template-columns:1fr}}
 @media print{.print-title{display:block}.no-print{display:none!important}}
+
+
+/* ===== FRESH RV/IV + DAY CASH BOOK AMENDMENT ===== */
+.rviv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.rviv-wide{grid-column:span 2}.rviv-full{grid-column:1/-1}
+.rviv-items{display:grid;gap:8px;margin-top:8px}
+.rviv-item{background:#0c141e;border:1px solid #2b3a4c;border-radius:8px;padding:10px}
+.rviv-item-grid{display:grid;grid-template-columns:2fr .8fr .95fr .9fr .9fr .9fr 1.3fr 1.4fr auto;gap:8px;align-items:end}
+.rviv-item input,.rviv-item select{padding:8px;border:1px solid #304154;border-radius:6px;background:#0b131d;color:#fff}
+.rviv-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.rviv-summary .chip{background:#111d28;border:1px solid #2b3a4c;padding:10px;border-radius:8px}
+.rviv-voucher-sheet{display:none;background:#fff;color:#000;width:210mm;min-height:297mm;margin:0 auto;padding:12mm;font-family:Arial,sans-serif}
+.rviv-voucher-sheet h1{text-align:center;font-size:15px;text-decoration:underline;margin:0 0 12px}
+.rviv-voucher-sheet .heads{display:grid;grid-template-columns:1fr 1fr;gap:28px;font-size:11px;line-height:1.65;margin-bottom:14px}
+.rviv-voucher-sheet table{min-width:0;color:#000;background:#fff;border-collapse:collapse;width:100%;font-size:10px}
+.rviv-voucher-sheet th,.rviv-voucher-sheet td{border:1px solid #666;padding:5px;color:#000}
+.cash-day-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.cash-day-grid .daybox{background:#101a25;border:1px solid #2b3a4c;border-radius:8px;padding:11px}
+.cash-day-grid .daybox span{display:block;color:#8da1b4;font-size:11px}.cash-day-grid .daybox b{display:block;font-size:18px;margin-top:5px}
+.cash-close-note{margin-top:10px;padding:10px;border:1px dashed #496077;border-radius:8px;color:#9fb1c2;font-size:12px}
+.cash-print-sheet{display:none;background:#fff;color:#000;width:210mm;min-height:297mm;margin:0 auto;padding:10mm;font-family:Arial,sans-serif}
+.cash-print-sheet h1,.cash-print-sheet h2{text-align:center;color:#000;margin:0}
+.cash-print-sheet .meta{font-size:11px;margin:8px 0 12px;text-align:center}
+.cash-print-sheet table{min-width:0;width:100%;border-collapse:collapse;color:#000;background:#fff;font-size:8px}
+.cash-print-sheet th,.cash-print-sheet td{border:1px solid #333;padding:4px;color:#000;vertical-align:top}
+.cash-print-sheet th{background:#eee;color:#000}
+.cash-print-sheet .num{text-align:right;white-space:nowrap}.cash-print-sheet .total{font-weight:700;background:#f6f6f6}
+@media(max-width:1100px){.rviv-grid{grid-template-columns:1fr 1fr}.rviv-item-grid{grid-template-columns:repeat(3,1fr)}.cash-day-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.rviv-grid,.cash-day-grid{grid-template-columns:1fr}.rviv-wide{grid-column:auto}.rviv-item-grid{grid-template-columns:1fr 1fr}.rviv-summary{grid-template-columns:1fr}}
+@media print{
+  body.print-rviv #appView,body.print-rviv #loginView{display:none!important}
+  body.print-rviv .rviv-voucher-sheet{display:block!important}
+  body.print-cash #appView,body.print-cash #loginView{display:none!important}
+  body.print-cash .cash-print-sheet{display:block!important}
+  .rviv-voucher-sheet,.cash-print-sheet{box-shadow:none!important}
+}
 
 </style>
 </head>
@@ -124,60 +159,16 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
   <button class="hamb" onclick="toggleMenu()">☰</button>
   <div class="side-brand"><div class="nc" id="ncLogo">NC</div><div class="side-name">NCC CAMP<br>MESSING</div></div>
   <button class="nav active" data-page="dashboard" onclick="showPage('dashboard',this)"><span class="ni">⌂</span><span class="nl">Home / Dashboard</span></button>
-
-  <div class="nav-group camp-group camp-nav">
-    <button class="nav nav-parent" data-page="camp" onclick="showPage('camp',this)"><span class="ni">🏕</span><span class="nl">Camp Details</span><span class="nav-caret">▸</span></button>
-    <div class="nav-submenu">
-      <button class="nav camp-child" onclick="openSection('camp','campStartPanel',this)"><span class="ni">＋</span><span class="nl">Start / Select Camp</span></button>
-      <button class="nav camp-child" onclick="openSection('camp','campRegisterPanel',this)"><span class="ni">▤</span><span class="nl">Camp Register</span></button>
-    </div>
-  </div>
-
-  <div class="nav-group messing-group messing-nav">
-    <button class="nav nav-parent" data-page="messing" onclick="showPage('messing',this)"><span class="ni">🍚</span><span class="nl">Messing</span><span class="nav-caret">▸</span></button>
-    <div class="nav-submenu">
-      <button class="nav messing-child" data-page="inventory" onclick="showPage('inventory',this)"><span class="ni">▦</span><span class="nl">Inventory Master</span></button>
-      <button class="nav messing-child stockin-nav" data-page="stockin" onclick="showPage('stockin',this)"><span class="ni">↓</span><span class="nl">Stock In / Purchase</span></button>
-      <button class="nav messing-child stockout-nav" data-page="stockout" onclick="showPage('stockout',this)"><span class="ni">↑</span><span class="nl">Stock Out / Issue</span></button>
-      <button class="nav messing-child reports-nav" data-page="reports" onclick="showPage('reports',this)"><span class="ni">▤</span><span class="nl">Reports</span></button>
-    </div>
-  </div>
-
-  <div class="nav-group pol-group pol-nav">
-    <button class="nav nav-parent" data-page="pol" onclick="showPage('pol',this)"><span class="ni">⛽</span><span class="nl">POL Drawn</span><span class="nav-caret">▸</span></button>
-    <div class="nav-submenu">
-      <button class="nav pol-child" onclick="openSection('pol','polVehiclePanel',this)"><span class="ni">🚙</span><span class="nl">Vehicle Attachments</span></button>
-      <button class="nav pol-child" onclick="openSection('pol','polEntryPanel',this)"><span class="ni">⛽</span><span class="nl">POL Drawn Entry</span></button>
-      <button class="nav pol-child" onclick="openSection('pol','polVehicleRegister',this)"><span class="ni">▤</span><span class="nl">Vehicle Register</span></button>
-      <button class="nav pol-child" onclick="openSection('pol','polEntryRegister',this)"><span class="ni">▤</span><span class="nl">POL Register</span></button>
-    </div>
-  </div>
-
-  <div class="nav-group incident-group incident-nav">
-    <button class="nav nav-parent" data-page="incidental" onclick="showPage('incidental',this)"><span class="ni">▣</span><span class="nl">Incidental RV / IV</span><span class="nav-caret">▸</span></button>
-    <div class="nav-submenu">
-      <button class="nav incident-child" onclick="openSection('incidental','incidentalEntryPanel',this);setIncidentalType('RV')"><span class="ni">↙</span><span class="nl">Receipt Voucher (RV)</span></button>
-      <button class="nav incident-child" onclick="openSection('incidental','incidentalEntryPanel',this);setIncidentalType('IV')"><span class="ni">↗</span><span class="nl">Issue Voucher (IV)</span></button>
-      <button class="nav incident-child" onclick="openSection('incidental','incidentalRegister',this)"><span class="ni">▤</span><span class="nl">Voucher Register</span></button>
-    </div>
-  </div>
-
-  <div class="nav-group cash-group cash-nav">
-    <button class="nav nav-parent" data-page="cashbook" onclick="showPage('cashbook',this)"><span class="ni">₹</span><span class="nl">Cash Book</span><span class="nav-caret">▸</span></button>
-    <div class="nav-submenu">
-      <button class="nav cash-child" onclick="openSection('cashbook','cashEntryBox',this);setCashType('RECEIPT')"><span class="ni">＋</span><span class="nl">Receipts</span></button>
-      <button class="nav cash-child" onclick="openSection('cashbook','cashEntryBox',this);setCashType('PAYMENT')"><span class="ni">−</span><span class="nl">Payments</span></button>
-      <button class="nav cash-child" onclick="openSection('cashbook','cashRegisterBox',this)"><span class="ni">▤</span><span class="nl">Day Cash Book / Register</span></button>
-    </div>
-  </div>
-
-  <div class="nav-group admin-group adminonly">
-    <button class="nav nav-parent" data-page="users" onclick="showPage('users',this)"><span class="ni">♟</span><span class="nl">User Management</span><span class="nav-caret">▸</span></button>
-    <div class="nav-submenu">
-      <button class="nav admin-child" onclick="openSection('users','userFormPanel',this)"><span class="ni">＋</span><span class="nl">Add / Update User</span></button>
-      <button class="nav admin-child" onclick="openSection('users','profilesPanel',this)"><span class="ni">▤</span><span class="nl">User Profiles</span></button>
-    </div>
-  </div>
+<button class="nav camp-nav" data-page="camp" onclick="showPage('camp',this)"><span class="ni">🏕</span><span class="nl">Camp Details</span></button>
+  <button class="nav messing-nav" data-page="messing" onclick="showPage('messing',this)"><span class="ni">🍚</span><span class="nl">Messing</span></button>
+  <button class="nav" data-page="inventory" onclick="showPage('inventory',this)"><span class="ni">▦</span><span class="nl">Inventory Master</span></button>
+  <button class="nav stockin-nav" data-page="stockin" onclick="showPage('stockin',this)"><span class="ni">↓</span><span class="nl">Stock In / Purchase</span></button>
+  <button class="nav stockout-nav" data-page="stockout" onclick="showPage('stockout',this)"><span class="ni">↑</span><span class="nl">Stock Out / Issue</span></button>
+  <button class="nav pol-nav" data-page="pol" onclick="showPage('pol',this)"><span class="ni">⛽</span><span class="nl">POL Drawn</span></button>
+  <button class="nav incident-nav" data-page="incidental" onclick="showPage('incidental',this)"><span class="ni">▣</span><span class="nl">Incidental RV / IV</span></button>
+  <button class="nav cash-nav" data-page="cashbook" onclick="showPage('cashbook',this)"><span class="ni">₹</span><span class="nl">Cash Book</span></button>
+  <button class="nav" data-page="reports" onclick="showPage('reports',this)"><span class="ni">▤</span><span class="nl">Reports</span></button>
+  <button class="nav adminonly" data-page="users" onclick="showPage('users',this)"><span class="ni">♟</span><span class="nl">User Management</span></button>
   <div class="side-footer"><button class="nav logout" onclick="signOut()"><span class="ni">↪</span><span class="nl">Logout</span></button></div>
 </aside>
 
@@ -291,7 +282,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <section id="camp" class="page">
   <div class="section-head"><div><h1>Camp Details</h1><p>Each camp has an independent inventory, messing, POL, incidental and cash book.</p></div><div class="actions"><span class="camp-active" id="campActiveLabel">No camp selected</span></div></div>
-  <div class="panel" id="campStartPanel">
+  <div class="panel">
     <div class="formbox">
       <h3>Start / Add New Camp</h3>
       <div class="form-grid">
@@ -306,7 +297,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div id="campMsg" class="msg"></div>
     </div>
   </div>
-  <div class="panel camp-list" id="campRegisterPanel"><div class="subhead"><div><h3 style="margin:0">Camp Register</h3><div class="kpi-note">Select a camp to work on its own fresh transaction set.</div></div></div><div class="tablewrap" id="campTable" style="margin-top:10px"></div></div>
+  <div class="panel camp-list"><div class="subhead"><div><h3 style="margin:0">Camp Register</h3><div class="kpi-note">Select a camp to work on its own fresh transaction set.</div></div></div><div class="tablewrap" id="campTable" style="margin-top:10px"></div></div>
 </section>
 
 <section id="messing" class="page">
@@ -320,7 +311,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <section id="pol" class="page">
   <div class="section-head"><div><h1>POL Drawn</h1><p>Vehicle attachment, petrol/diesel drawn, bunk details, previous and present fuel balance.</p></div><div class="actions"><button class="btn dark" onclick="exportPOLCSV()">EXPORT CSV</button><button class="btn ghost" onclick="window.print()">PRINT / PDF</button></div></div>
-  <div class="panel" id="polVehiclePanel"><div class="pol-form">
+  <div class="panel"><div class="pol-form">
     <h3>Vehicle Attachment</h3>
     <div class="pol-grid">
       <div class="field"><label>Vehicle Number *</label><input id="polVehNo" placeholder="KA-01-AB-1234"></div>
@@ -335,7 +326,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
     <div class="actions" style="margin-top:12px"><button class="btn" onclick="savePOLVehicle()">SAVE VEHICLE</button><button class="btn ghost" onclick="clearPOLVehicle()">CLEAR</button></div>
     <div id="polVehMsg" class="msg"></div>
   </div></div>
-  <div class="panel" id="polEntryPanel"><div class="pol-form">
+  <div class="panel"><div class="pol-form">
     <h3>POL Drawn Entry</h3>
     <div class="pol-grid">
       <div class="field"><label>Vehicle Number *</label><select id="polVehSelect" onchange="loadPOLVehicle()"><option value="">Select Vehicle</option></select></div>
@@ -353,60 +344,160 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
     <div class="actions" style="margin-top:12px"><button id="polSaveBtn" class="btn" onclick="savePOLEntry()">SAVE POL ENTRY</button><button class="btn ghost" onclick="clearPOLEntry()">CLEAR</button></div>
     <div id="polMsg" class="msg"></div>
   </div></div>
-  <div class="panel pol-list" id="polVehicleRegister"><div class="subhead"><h3 style="margin:0">Vehicle Register</h3></div><div class="tablewrap" id="polVehiclesTable"></div></div>
-  <div class="panel pol-list" id="polEntryRegister"><div class="subhead"><h3 style="margin:0">POL Drawn Register</h3></div><div class="tablewrap" id="polEntriesTable"></div></div>
+  <div class="panel pol-list"><div class="subhead"><h3 style="margin:0">Vehicle Register</h3></div><div class="tablewrap" id="polVehiclesTable"></div></div>
+  <div class="panel pol-list"><div class="subhead"><h3 style="margin:0">POL Drawn Register</h3></div><div class="tablewrap" id="polEntriesTable"></div></div>
 </section>
+
 
 <section id="incidental" class="page">
-  <div class="section-head"><div><h1>Incidental RV / IV</h1><p>Camp-wise incidental receipt and issue vouchers. Invoice/reference numbers are available to the Accounts cash book.</p></div></div>
-  <div class="panel" id="incidentalEntryPanel"><div class="formbox">
-    <h3>Incidental Voucher Entry</h3>
-    <div class="form-grid">
-      <div class="field"><label>Voucher Type</label><select id="incType" onchange="prepareIncidentalNo()"><option value="RV">RV - Receipt Voucher</option><option value="IV">IV - Issue Voucher</option></select></div>
+  <div class="section-head">
+    <div><h1>Incidental RV / IV</h1><p>Fresh camp-wise receipt / issue voucher entry and register.</p></div>
+  </div>
+
+  <div class="panel"><div class="formbox">
+    <h3>Receipt / RV / IV Entry</h3>
+    <div class="rviv-grid">
+      <div class="field"><label>Voucher Type</label><select id="incType" onchange="prepareIncidentalNo();toggleIncidentalForm()"><option value="RV">Receipt / RV</option><option value="IV">IV / Issue</option></select></div>
       <div class="field"><label>Voucher Number (Auto)</label><input id="incNo" class="auto-field" readonly></div>
-      <div class="field"><label>Date</label><input id="incDate" type="date"></div>
-      <div class="field"><label>Party / Vendor</label><input id="incParty"></div>
+      <div class="field"><label>Date *</label><input id="incDate" type="date"></div>
       <div class="field"><label>Invoice / Reference Number</label><input id="incInvoice" placeholder="Invoice / reference number"></div>
-      <div class="field"><label>Amount</label><input id="incAmount" type="number" min="0.01" step="0.01"></div>
+
+      <div class="field"><label>Vendor / Party *</label><input id="incParty"></div>
+      <div class="field"><label>Vendor Address</label><input id="incAddress"></div>
+      <div class="field"><label>Station</label><input id="incStation"></div>
+      <div class="field"><label>CRV No.</label><input id="incCrv"></div>
+
+      <div class="field"><label>Authority</label><input id="incAuthority"></div>
+      <div class="field"><label>Unit (IV)</label><input id="incUnit" placeholder="Unit / Receiving Unit"></div>
       <div class="field"><label>Mode</label><select id="incMode"><option>CASH</option><option>BANK</option></select></div>
       <div class="field"><label>Code Head</label><input id="incCodeHead" placeholder="Code head"></div>
-      <div class="field" style="grid-column:span 3"><label>Description / Purpose</label><input id="incDesc" placeholder="Purpose / article / expenditure details"></div>
+
+      <div class="rviv-full field"><label>Items</label><div id="incItems" class="rviv-items"></div><div class="actions" style="margin-top:8px"><button class="btn dark" type="button" onclick="addIncItem()">+ ADD ITEM</button></div></div>
+
+      <div class="field"><label>GST Mode</label><select id="incGstMode"><option value="inclusive">Inclusive GST</option><option value="exclusive">Exclusive GST</option></select></div>
+      <div class="field"><label>GST Rate (%)</label><input id="incGstRate" type="number" min="0" step="any" oninput="calcIncidental()"></div>
+      <div class="field"><label>Subtotal</label><input id="incSubtotal" class="calculated" readonly></div>
+      <div class="field"><label>GST Amount</label><input id="incGstAmount" class="calculated" readonly></div>
+      <div class="field"><label>Total Amount</label><input id="incAmount" class="calculated" readonly></div>
+      <div class="rviv-full field"><label>Description / Remarks</label><input id="incDesc" placeholder="Purpose / article / expenditure details"></div>
     </div>
-    <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveIncidental()">SAVE VOUCHER</button><button class="btn ghost" onclick="clearIncidental()">CLEAR</button></div>
+    <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveIncidental()">SAVE / UPDATE</button><button class="btn ghost" onclick="clearIncidental()">CLEAR</button></div>
     <div id="incMsg" class="msg"></div>
   </div></div>
-  <div class="panel incident-list" id="incidentalRegister"><div class="subhead"><h3 style="margin:0">Incidental Register</h3></div><div class="tablewrap" id="incidentalTable"></div></div>
+
+  <div class="panel incident-list"><div class="subhead"><div><h3 style="margin:0">Fresh RV / IV Register</h3><div class="kpi-note">Voucher number is generated for the incidental register. Accounts manually enters the RV/PV number in Cash Book.</div></div></div><div class="tablewrap" id="incidentalTable"></div></div>
 </section>
 
+
 <section id="cashbook" class="page">
-  <div class="section-head"><div><h1>Cash Book</h1><p>Accounts section entry. Source invoice/voucher number and amount are auto-fetched from camp transactions.</p></div></div>
-  <div class="panel"><div class="cash-layout"><div class="formbox" id="cashEntryBox">
-    <div class="cash-tabs"><button id="cashReceiptTab" class="cash-tab active" onclick="setCashType('RECEIPT')">RECEIPTS</button><button id="cashPaymentTab" class="cash-tab" onclick="setCashType('PAYMENT')">PAYMENTS</button></div>
-    <div id="cashAccountsNote" class="readonly-note hidden">Only the ACCOUNTS role and ADMIN can save receipt/payment voucher entries.</div>
-    <div class="form-grid">
-      <div class="field"><label>Date</label><input id="cashDate" type="date"></div>
-      <div class="field"><label>Voucher Number (Auto)</label><input id="cashVoucherNo" class="auto-field" readonly></div>
-      <div class="field"><label>Source Type</label><select id="cashSourceType" onchange="loadCashSources()"></select></div>
-      <div class="field" style="grid-column:span 2"><label>Source Invoice / Voucher</label><select id="cashSource" onchange="fillCashSource()"><option value="">Select source</option></select></div>
-      <div class="field"><label>Invoice / Reference No.</label><input id="cashInvoice" class="auto-field" readonly></div>
-      <div class="field"><label>Party / Vendor</label><input id="cashParty" class="auto-field" readonly></div>
-      <div class="field"><label>Amount</label><input id="cashAmount" class="calculated" readonly></div>
-      <div class="field"><label>Mode</label><select id="cashMode"><option>CASH</option><option>BANK</option></select></div>
-      <div class="field"><label>Code Head</label><input id="cashCodeHead"></div>
-      <div class="field" style="grid-column:span 3"><label>Narration</label><input id="cashNarration" placeholder="Receipt / payment narration"></div>
+  <div class="section-head"><div><h1>Cash Book</h1><p>Accounts entry. Payment source details auto-fetch from Messing / Incidental / POL. RV & PV numbers are entered manually.</p></div></div>
+
+  <div class="panel">
+    <div class="cash-tabs">
+      <button id="cashReceiptTab" class="cash-tab active" onclick="setCashType('RECEIPT')">RECEIPTS</button>
+      <button id="cashPaymentTab" class="cash-tab" onclick="setCashType('PAYMENT')">PAYMENTS</button>
+      <button id="cashDrawnTab" class="cash-tab" onclick="setCashType('CASH_DRAWN')">CASH DRAWN</button>
+      <button id="cashDayTab" class="cash-tab" onclick="setCashType('DAY')">DAY CASH BOOK / CLOSE</button>
     </div>
-    <div class="actions" style="margin-top:12px"><button id="cashSaveBtn" class="btn" onclick="saveCashbook()">SAVE VOUCHER</button><button class="btn ghost" onclick="clearCashbookForm()">CLEAR</button></div>
-    <div id="cashMsg" class="msg"></div>
-  </div><div class="formbox" id="cashRegisterBox">
-    <div class="small-kpi"><div class="chip"><span class="kpi-note">Receipts</span><b id="cashReceiptsTotal">₹0.00</b></div><div class="chip"><span class="kpi-note">Payments</span><b id="cashPaymentsTotal">₹0.00</b></div><div class="chip"><span class="kpi-note">Balance</span><b id="cashBalanceTotal">₹0.00</b></div></div>
-    <div class="readonly-note">The source record is linked by source type and source ID. This prevents manual re-entry of invoice numbers for the linked camp transactions.</div>
-    <div class="tablewrap" id="cashbookTable"></div>
-  </div></div>
+    <div id="cashAccountsNote" class="readonly-note hidden">Only ACCOUNTS and ADMIN can save Cash Book entries or close a day.</div>
+
+    <div id="cashReceiptFormWrap" class="formbox">
+      <h3>Receipt Entry / RV</h3>
+      <div class="form-grid">
+        <div class="field"><label>Date *</label><input id="cashDate" type="date"></div>
+        <div class="field"><label>RV No. *</label><input id="cashVoucherNo" placeholder="Enter RV No."></div>
+        <div class="field"><label>From Whom Received *</label><input id="cashParty" placeholder="Name / Office"></div>
+        <div class="field"><label>On What Account</label><input id="cashAccountText" placeholder="Purpose / account"></div>
+        <div class="field"><label>Receipt Mode *</label><select id="cashMode"><option value="CASH">CASH</option><option value="BANK">BANK</option></select></div>
+        <div class="field"><label>Amount *</label><input id="cashAmount" type="number" min="0.01" step="0.01"></div>
+        <div class="field"><label>Initial</label><input id="cashInitial"></div>
+        <div class="field" style="grid-column:span 3"><label>Narration</label><input id="cashNarration" placeholder="Receipt narration"></div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button id="cashSaveBtn" class="btn" onclick="saveCashbook()">SAVE RECEIPT</button><button class="btn ghost" onclick="clearCashbookForm()">CLEAR</button></div>
+      <div id="cashMsg" class="msg"></div>
+      <div id="receiptAllocationWrap" class="formbox hidden" style="margin-top:14px;border:1px solid #334155">
+        <h3>Receipt Amount Distribution</h3>
+        <div class="kpi-note" id="receiptAllocationInfo">Distribute the saved receipt amount across the applicable heads. The total allocation must equal the receipt amount.</div>
+        <div class="form-grid" style="margin-top:12px">
+          <div class="field"><label>Messing</label><input id="allocMessing" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>INC</label><input id="allocInc" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>POL</label><input id="allocPol" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>Rank Pay</label><input id="allocRankPay" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>TA Cadets</label><input id="allocTaCadets" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>TA/DA Civ Staff</label><input id="allocTaDaCiv" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>Rent</label><input id="allocRent" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>Others</label><input id="allocOthers" type="number" min="0" step="0.01" value="0"></div>
+        </div>
+        <div class="actions" style="margin-top:12px">
+          <button class="btn" onclick="saveReceiptAllocation()">SAVE DISTRIBUTION</button>
+          <button class="btn ghost" onclick="hideReceiptAllocation()">CLOSE</button>
+        </div>
+        <div id="receiptAllocationMsg" class="msg"></div>
+      </div>
+    </div>
+
+    <div id="cashPaymentFormWrap" class="formbox hidden">
+      <h3>Payment Entry / PV</h3>
+      <div class="form-grid">
+        <div class="field"><label>Date *</label><input id="payDate" type="date"></div>
+        <div class="field"><label>PV No. *</label><input id="payVoucherNo" placeholder="Enter PV No."></div>
+        <div class="field"><label>Code Head *</label><select id="cashPaymentCodeHead" onchange="paymentHeadChanged()"><option value="">Select code head</option><option>MESSING</option><option>INC</option><option>POL</option><option>RANK PAY</option><option>TA CADETS</option><option>TA/DA CIV STAFF</option><option>RENT</option><option>OTHERS</option></select></div>
+        <div class="field" id="cashSourceTypeWrap"><label>Source Type *</label><select id="cashSourceType" onchange="loadCashSources()"><option value="MESSING_RV">MESSING RV</option><option value="INCIDENTAL_RV">INCIDENTAL RV</option><option value="POL_DRAWN">POL DRAWN</option></select></div>
+        <div class="field" id="cashSourceWrap" style="grid-column:span 2"><label>Source Invoice / Voucher</label><select id="cashSource" onchange="fillCashSource()"><option value="">Select source</option></select></div>
+        <div class="field hidden" id="cashOtherHeadWrap"><label>Other Head *</label><select id="cashOtherHead"><option>RANK PAY</option><option>TA/DA CIV STAFF</option><option>RENT</option><option>OTHERS</option></select></div>
+        <div class="field"><label>Invoice / Reference No.</label><input id="cashInvoice" class="auto-field" readonly></div>
+        <div class="field"><label>Party / Vendor</label><input id="cashPaymentParty" class="auto-field" readonly></div>
+        <div class="field"><label>Amount *</label><input id="cashPaymentAmount" class="calculated" readonly></div>
+        <div class="field"><label>Payment Mode</label><select id="cashPaymentMode"><option>CASH</option><option>BANK</option></select></div>
+        <div class="field" style="grid-column:span 3"><label>Narration</label><input id="cashPaymentNarration" placeholder="Payment narration"></div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveCashbook()">SAVE PAYMENT</button><button class="btn ghost" onclick="clearCashbookForm()">CLEAR</button></div>
+      <div id="paymentMsg" class="msg"></div>
+    </div>
+
+    <div id="cashDrawnFormWrap" class="formbox hidden">
+      <h3>Cash Drawn from Bank</h3>
+      <div class="form-grid">
+        <div class="field"><label>Date *</label><input id="cdDate" type="date"></div>
+        <div class="field"><label>CD No. *</label><input id="cdNo" placeholder="Enter CD No."></div>
+        <div class="field"><label>Bank / Cheque Reference</label><input id="cdCheque"></div>
+        <div class="field"><label>Amount Drawn *</label><input id="cdAmount" type="number" min="0.01" step="0.01"></div>
+        <div class="field" style="grid-column:span 3"><label>Purpose</label><input id="cdPurpose" placeholder="Cash drawn for camp expenses"></div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveCashDrawn()">SAVE CASH DRAWN</button><button class="btn ghost" onclick="clearCashDrawn()">CLEAR</button></div>
+      <div id="cashDrawnMsg" class="msg"></div>
+    </div>
+
+    <div id="cashDayWrap" class="formbox hidden">
+      <h3>Day Cash Book / Day Close</h3>
+      <div class="form-grid">
+        <div class="field"><label>Cash Book Date *</label><input id="cashDayDate" type="date" onchange="renderDayClose()"></div>
+        <div class="field"><label>Status</label><input id="cashDayStatus" class="auto-field" readonly value="OPEN"></div>
+      </div>
+      <div class="cash-day-grid" style="margin-top:12px">
+        <div class="daybox"><span>Balance B/F – Cash</span><b id="bfCash">₹0.00</b></div>
+        <div class="daybox"><span>Balance B/F – Bank</span><b id="bfBank">₹0.00</b></div>
+        <div class="daybox"><span>Receipts – Cash</span><b id="dayReceiptCash">₹0.00</b></div>
+        <div class="daybox"><span>Receipts – Bank</span><b id="dayReceiptBank">₹0.00</b></div>
+        <div class="daybox"><span>Payments – Cash</span><b id="dayPaymentCash">₹0.00</b></div>
+        <div class="daybox"><span>Payments – Bank</span><b id="dayPaymentBank">₹0.00</b></div>
+        <div class="daybox"><span>Cash Drawn</span><b id="dayCashDrawn">₹0.00</b></div>
+        <div class="daybox"><span>Balance C/F – Cash</span><b id="cfCash">₹0.00</b></div>
+        <div class="daybox"><span>Balance C/F – Bank</span><b id="cfBank">₹0.00</b></div>
+        <div class="daybox"><span>Net Balance</span><b id="dayNet">₹0.00</b></div>
+      </div>
+      <div id="cashDayNote" class="cash-close-note">Close the day after all Accounts entries are complete. The next day's B/F is taken from the previous day's C/F.</div>
+      <div class="actions" style="margin-top:12px"><button class="btn" onclick="prepareDayCashbook()">PREPARE DAY</button><button class="btn gold" onclick="closeCashbookDay()">CLOSE DAY</button><button class="btn ghost" onclick="printDayCashbook()">PRINT / PDF</button></div>
+      <div class="tablewrap" style="margin-top:14px" id="dayEntriesTable"></div>
+    </div>
+  </div>
+
+  <div class="panel"><div class="subhead"><div><h3 style="margin:0">Cash Book Register</h3><div class="kpi-note">Receipts and payments are shown against the active camp.</div></div></div><div class="tablewrap" id="cashbookTable"></div></div>
 </section>
 
 <section id="users" class="page">
   <div class="section-head"><div><h1>User Management</h1><p>ADMIN can manage profile roles. Create the Auth user first in Supabase Authentication.</p></div></div>
-  <div class="panel" id="userFormPanel">
+  <div class="panel">
     <div class="formbox">
       <h3>Add / Update User Profile</h3>
       <div class="form-grid">
@@ -418,8 +509,11 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div id="userMsg" class="msg"></div>
     </div>
   </div>
-  <div class="panel" id="profilesPanel"><div class="subhead"><h3 style="margin:0">Profiles</h3><span class="badge">ADMIN ONLY</span></div><div class="tablewrap" id="usersTable"></div></div>
+  <div class="panel"><div class="subhead"><h3 style="margin:0">Profiles</h3><span class="badge">ADMIN ONLY</span></div><div class="tablewrap" id="usersTable"></div></div>
 </section>
+
+<div id="incidentalPrintSheet" class="rviv-voucher-sheet"></div>
+<div id="cashPrintSheet" class="cash-print-sheet"></div>
 <footer>Developed by Vinayak Shanmukhanavar</footer>
 </main>
 </div>
@@ -428,7 +522,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -511,21 +605,7 @@ function showPage(id,btn){
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.getElementById(id)?.classList.add("active");
   document.querySelectorAll(".nav").forEach(n=>n.classList.remove("active"));
-  btn?.classList.add("active");
-  const group=btn?.closest('.nav-group');
-  group?.querySelector('.nav-parent')?.classList.add('active');
-  if(group) group.classList.add('open');
-  document.querySelectorAll('.nav-group').forEach(g=>{if(g!==group)g.classList.remove('open')});
-  toggleMenu(false);
-}
-function openSection(pageId,sectionId,btn){
-  showPage(pageId,btn);
-  setTimeout(()=>{const el=document.getElementById(sectionId);if(el)el.scrollIntoView({behavior:'smooth',block:'start'});},40);
-}
-function setIncidentalType(type){
-  const sel=document.getElementById('incType');
-  if(!sel)return;sel.value=type;
-  if(typeof prepareIncidentalNo==='function')prepareIncidentalNo();
+  btn?.classList.add("active");toggleMenu(false);
 }
 function openModal(html){document.getElementById("modalBox").innerHTML=html;document.getElementById("modal").classList.remove("hidden")}
 function closeModal(){document.getElementById("modal").classList.add("hidden")}
@@ -760,7 +840,7 @@ function start(){
 }
 
 /* ================= CAMP + Q SEC + ACCOUNTS EXTENSION ================= */
-let camps=[], activeCamp=null, polVehicles=[], polEntries=[], incidentals=[], cashbookEntries=[], cashType='RECEIPT';
+let camps=[], activeCamp=null, polVehicles=[], polEntries=[], incidentals=[], cashbookEntries=[], cashbookClosures=[], cashType='RECEIPT', pendingReceiptAllocationId=null, pendingReceiptAllocationAmount=0;
 
 function canQsecEntry(){return roleIs('ADMIN','MANAGER','Q_SEC')}
 function canAccountsEntry(){return roleIs('ADMIN','ACCOUNTS')}
@@ -797,40 +877,70 @@ async function renderCamps(){
 }
 
 function applyRoleUI(){
+  const allNav=document.querySelectorAll('.sidebar .nav[data-page]');
   const role=(profile&&profile.role)||'VIEWER';
-  const show=(selector,visible)=>document.querySelectorAll(selector).forEach(e=>e.style.display=visible?'flex':'none');
-  const showGroup=(selector,visible)=>document.querySelectorAll(selector).forEach(e=>e.style.display=visible?'block':'none');
-  const showSub=(selector,visible)=>document.querySelectorAll(selector).forEach(e=>e.style.display=visible?'flex':'none');
+  let allowed=new Set(['dashboard','inventory','reports']);
 
-  // Top-level modules
-  showGroup('.camp-nav',['ADMIN','MANAGER'].includes(role));
-  showGroup('.pol-nav',['ADMIN','MANAGER','Q_SEC'].includes(role));
-  showGroup('.incident-nav',['ADMIN','MANAGER','Q_SEC','ACCOUNTS'].includes(role));
-  showGroup('.cash-nav',['ADMIN','MANAGER','ACCOUNTS'].includes(role));
-  showGroup('.adminonly',role==='ADMIN');
+  if(['ADMIN','MANAGER'].includes(role)){
+    ['camp','messing','stockin','stockout','pol','incidental','cashbook','users'].forEach(x=>allowed.add(x));
+  }else if(role==='Q_SEC'){
+    ['messing','stockin','stockout','pol','incidental'].forEach(x=>allowed.add(x));
+  }else if(role==='ACCOUNTS'){
+    ['cashbook','incidental'].forEach(x=>allowed.add(x));
+  }
 
-  document.querySelectorAll('.nav-group').forEach(g=>g.classList.remove('open'));
-  // Messing parent + child screens
-  const canMessing=['ADMIN','MANAGER','Q_SEC','ACCOUNTS','VIEWER'].includes(role);
-  showGroup('.messing-nav',canMessing);
-  showSub('.inventory-nav',['ADMIN','MANAGER','Q_SEC','VIEWER','ACCOUNTS'].includes(role));
-  showSub('.stockin-nav',['ADMIN','MANAGER','Q_SEC'].includes(role));
-  showSub('.stockout-nav',['ADMIN','MANAGER','Q_SEC'].includes(role));
-  showSub('.reports-nav',['ADMIN','MANAGER','Q_SEC','VIEWER','ACCOUNTS'].includes(role));
+  // Explicitly set every navigation item so stale/legacy CSS cannot hide modules.
+  allNav.forEach(n=>{
+    const page=n.dataset.page;
+    n.style.display=allowed.has(page)?'flex':'none';
+  });
 
-  // Landing page Messing only where at least one child is available.
-  const landing=document.querySelector('.messing-nav');
-  if(landing) landing.dataset.enabled=canMessing?'1':'0';
+  // Admin-only user management and logo controls.
+  document.querySelectorAll('.adminonly').forEach(e=>{
+    e.style.display=role==='ADMIN'?'flex':'none';
+  });
 
-  // Buttons inside pages
+  const showStock=['ADMIN','MANAGER','Q_SEC'].includes(role);
+  document.querySelectorAll('.stockin-nav,.stockout-nav').forEach(e=>{
+    e.style.display=showStock?'flex':'none';
+  });
+
+  const showPOL=['ADMIN','MANAGER','Q_SEC'].includes(role);
+  document.querySelectorAll('.pol-nav').forEach(e=>{
+    e.style.display=showPOL?'flex':'none';
+  });
+
+  const showInc=['ADMIN','MANAGER','Q_SEC','ACCOUNTS'].includes(role);
+  document.querySelectorAll('.incident-nav').forEach(e=>{
+    e.style.display=showInc?'flex':'none';
+  });
+
+  const showCash=['ADMIN','MANAGER','ACCOUNTS'].includes(role);
+  document.querySelectorAll('.cash-nav').forEach(e=>{
+    e.style.display=showCash?'flex':'none';
+  });
+
+  const showCamp=['ADMIN','MANAGER'].includes(role);
+  document.querySelectorAll('.camp-nav').forEach(e=>{
+    e.style.display=showCamp?'flex':'none';
+  });
+
+  const showMess=['ADMIN','MANAGER','Q_SEC'].includes(role);
+  document.querySelectorAll('.messing-nav').forEach(e=>{
+    e.style.display=showMess?'flex':'none';
+  });
+
   const add=document.getElementById('addItemBtn');
   if(add)add.style.display=canWriteInventory()?'inline-flex':'none';
+
   ['newInBtn','newOutBtn'].forEach(id=>{
     const e=document.getElementById(id);
     if(e)e.style.display=canStockCreate()?'inline-flex':'none';
   });
+
   const cashSave=document.getElementById('cashSaveBtn');
   if(cashSave)cashSave.style.display=canAccountsEntry()?'inline-flex':'none';
+
   const note=document.getElementById('cashAccountsNote');
   if(note)note.classList.toggle('hidden',canAccountsEntry());
 }
@@ -859,7 +969,7 @@ async function loadApp(){
 
 async function refreshAll(){
   if(!activeCamp){renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidental();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();return}
-  const [a,b,c,p,l,cv,pv,iv,cb]=await Promise.all([
+  const [a,b,c,p,l,cv,pv,iv,cb,cc]=await Promise.all([
     sb.from('inventory_items').select('*').eq('camp_id',activeCamp.id).order('ledger_page_no'),
     sb.from('stock_in_invoices').select('*,stock_in_items(*)').eq('camp_id',activeCamp.id).order('invoice_date',{ascending:false}).order('created_at',{ascending:false}),
     sb.from('stock_out_vouchers').select('*,stock_out_items(*)').eq('camp_id',activeCamp.id).order('voucher_date',{ascending:false}).order('created_at',{ascending:false}),
@@ -868,11 +978,12 @@ async function refreshAll(){
     sb.from('pol_vehicles').select('*').eq('camp_id',activeCamp.id).order('vehicle_no'),
     sb.from('pol_drawn_entries').select('*').eq('camp_id',activeCamp.id).order('entry_date',{ascending:false}).order('created_at',{ascending:false}),
     sb.from('incidental_vouchers').select('*').eq('camp_id',activeCamp.id).order('voucher_date',{ascending:false}).order('created_at',{ascending:false}),
-    sb.from('cashbook_entries').select('*').eq('camp_id',activeCamp.id).order('entry_date',{ascending:false}).order('created_at',{ascending:false})
+    sb.from('cashbook_entries').select('*').eq('camp_id',activeCamp.id).order('entry_date',{ascending:false}).order('created_at',{ascending:false}),
+    sb.from('cashbook_day_closures').select('*').eq('camp_id',activeCamp.id).order('close_date',{ascending:false})
   ]);
-  items=a.data||[];inInvoices=b.data||[];outVouchers=c.data||[];profiles=p.data||[];polVehicles=cv.data||[];polEntries=pv.data||[];incidentals=iv.data||[];cashbookEntries=cb.data||[];
+  items=a.data||[];inInvoices=b.data||[];outVouchers=c.data||[];profiles=p.data||[];polVehicles=cv.data||[];polEntries=pv.data||[];incidentals=iv.data||[];cashbookEntries=cb.data||[];cashbookClosures=cc.data||[];
   if(l.data?.value)setLogo(l.data.value);
-  renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidental();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();renderCashSources();
+  renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidental();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();if(cashType==='PAYMENT')loadCashSources();if(cashType==='DAY')renderDayClose();
 }
 
 async function saveItem(id){
@@ -907,28 +1018,219 @@ function editPOLEntry(id){const x=polEntries.find(v=>v.id===id);if(!x)return;doc
 async function deletePOLEntry(id){if(!canDelete())return alert('Only ADMIN/MANAGER can delete POL entries.');if(!confirm('Delete this POL drawn entry? Vehicle balance will be restored.'))return;const {error}=await sb.rpc('delete_pol_drawn_entry',{p_id:id});if(error)alert(error.message);else await refreshAll()}
 function exportPOLCSV(){const rows=[['Date','Vehicle No','Fuel Type','Invoice','Petrol Bunk','Previous Fuel','Drawn Ltr','Present Fuel','Rate','Total Amount'],...polEntries.map(x=>[x.entry_date,x.vehicle_no,x.fuel_type,x.invoice_number,x.petrol_bunk,x.previous_fuel,x.litres,x.present_fuel,x.rate,x.total_amount])];const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='POL_Drawn_Register.csv';a.click()}
 
-/* Incidental RV/IV */
-async function prepareIncidentalNo(){const type=document.getElementById('incType').value;if(!activeCamp)return;const {data,error}=await sb.rpc('next_incidental_voucher_no',{p_type:type});document.getElementById('incNo').value=error?'':data}
-function clearIncidental(){document.getElementById('incType').value='RV';document.getElementById('incDate').value=today();document.getElementById('incParty').value='';document.getElementById('incInvoice').value='';document.getElementById('incAmount').value='';document.getElementById('incMode').value='CASH';document.getElementById('incCodeHead').value='';document.getElementById('incDesc').value='';setMsg('incMsg','');prepareIncidentalNo()}
-async function saveIncidental(){if(!canQsecEntry()){setMsg('incMsg','Only ADMIN, MANAGER or Q SEC can enter incidental RV/IV.');return}if(!activeCamp){setMsg('incMsg','Select a camp first.');return}const type=document.getElementById('incType').value,date=document.getElementById('incDate').value||today(),party=document.getElementById('incParty').value.trim(),invoice=document.getElementById('incInvoice').value.trim(),amount=+document.getElementById('incAmount').value||0,mode=document.getElementById('incMode').value,head=document.getElementById('incCodeHead').value.trim(),desc=document.getElementById('incDesc').value.trim(),no=document.getElementById('incNo').value;if(!party||amount<=0||!no){setMsg('incMsg','Party and positive amount are required.');return}const {error}=await sb.from('incidental_vouchers').insert({camp_id:activeCamp.id,voucher_type:type,voucher_no:no,voucher_date:date,party,invoice_number:invoice||null,description:desc||null,amount,mode,code_head:head||null,created_by:currentUser.id});if(error){setMsg('incMsg',error.message);return}setMsg('incMsg','Incidental voucher saved.',true);clearIncidental();await refreshAll()}
-function renderIncidental(){const el=document.getElementById('incidentalTable');if(!el)return;let h='<table><tr><th>Type</th><th>Voucher No</th><th>Date</th><th>Party</th><th>Invoice / Ref</th><th>Mode</th><th>Code Head</th><th>Amount</th><th>Description</th><th>Action</th></tr>';incidentals.forEach(x=>{h+=`<tr><td>${esc(x.voucher_type)}</td><td><b>${esc(x.voucher_no)}</b></td><td>${esc(x.voucher_date)}</td><td>${esc(x.party||'')}</td><td>${esc(x.invoice_number||'')}</td><td>${esc(x.mode||'')}</td><td>${esc(x.code_head||'')}</td><td>${money(x.amount)}</td><td>${esc(x.description||'')}</td><td>${canDelete()?`<button class="btn red" onclick="deleteIncidental('${x.id}')">Delete</button>`:'View'}</td></tr>`});h+='</table>';el.innerHTML=incidentals.length?h:'<div class="empty">No incidental RV/IV entries for this camp.</div>'}
+/* ===== Fresh Incidental RV / IV ===== */
+let incidentalEditingId=null;
+const incUnits=['Nos','Pcs','Ltr','Reams','Kg','Kgs','Ltrs','Sets','Boxes','Packets','Meters','Dozens','Other'];
+function incUnitOptions(v='Nos'){return incUnits.map(u=>`<option ${u===v?'selected':''}>${u}</option>`).join('')}
+function addIncItem(item={}){
+  const box=document.getElementById('incItems');
+  const wrap=document.createElement('div');wrap.className='rviv-item';
+  wrap.innerHTML=`<div class="rviv-item-grid">
+    <div class="field"><label>Nomenclature *</label><input class="ix-desc" value="${esc(item.desc||'')}" required></div>
+    <div class="field"><label>A/u</label><select class="ix-unit">${incUnitOptions(item.unit||'Nos')}</select></div>
+    <div class="field"><label>Exp / N-Exp</label><select class="ix-type"><option ${item.type==='Expendable'||!item.type?'selected':''}>Expendable</option><option ${item.type==='Non-Expendable'?'selected':''}>Non-Expendable</option></select></div>
+    <div class="field"><label>Qty *</label><input class="ix-qty" type="number" min="0.01" step="any" value="${item.qty??''}" oninput="calcIncidental()" required></div>
+    <div class="field"><label>Rate *</label><input class="ix-rate" type="number" min="0" step="any" value="${item.rate??''}" oninput="calcIncidental()" required></div>
+    <div class="field"><label>Page No.</label><input class="ix-page" value="${esc(item.page||'')}"></div>
+    <div class="field"><label>Authorised Units</label><input class="ix-authorised" value="${esc(item.authorised||'')}"></div>
+    <div class="field"><label>Remarks</label><input class="ix-remarks" value="${esc(item.remarks||'')}"></div>
+    <button type="button" class="btn red" onclick="this.closest('.rviv-item').remove();calcIncidental()">Remove</button>
+  </div>`;
+  box.appendChild(wrap);calcIncidental();
+}
+function getIncItems(){return [...document.querySelectorAll('#incItems .rviv-item')].map(row=>({
+  desc:row.querySelector('.ix-desc').value.trim(),unit:row.querySelector('.ix-unit').value,type:row.querySelector('.ix-type').value,
+  qty:+row.querySelector('.ix-qty').value||0,rate:+row.querySelector('.ix-rate').value||0,page:row.querySelector('.ix-page').value.trim(),
+  authorised:row.querySelector('.ix-authorised').value.trim(),remarks:row.querySelector('.ix-remarks').value.trim()
+})).filter(x=>x.desc&&x.qty>0)}
+function calcIncidental(){
+  const items=getIncItems();const base=items.reduce((s,x)=>s+x.qty*x.rate,0);const rate=+document.getElementById('incGstRate').value||0;let gst=0,total=base;
+  if(document.getElementById('incGstMode').value==='inclusive'){gst=rate?base*rate/(100+rate):0}else{gst=base*rate/100;total=base+gst}
+  document.getElementById('incSubtotal').value=money(base);document.getElementById('incGstAmount').value=money(gst);document.getElementById('incAmount').value=money(total);
+}
+async function prepareIncidentalNo(){if(!activeCamp)return;const t=document.getElementById('incType').value;const {data,error}=await sb.rpc('next_incidental_voucher_no',{p_type:t});document.getElementById('incNo').value=error?'':data}
+function toggleIncidentalForm(){const iv=document.getElementById('incType').value==='IV';document.getElementById('incCrv').disabled=iv;document.getElementById('incVendorAddress').disabled=false;}
+function clearIncidental(){incidentalEditingId=null;document.getElementById('incType').value='RV';document.getElementById('incDate').value=today();['incParty','incAddress','incStation','incCrv','incAuthority','incUnit','incInvoice','incCodeHead','incDesc'].forEach(id=>document.getElementById(id).value='');document.getElementById('incMode').value='CASH';document.getElementById('incGstMode').value='inclusive';document.getElementById('incGstRate').value='';document.getElementById('incItems').innerHTML='';document.getElementById('incSubtotal').value='₹0.00';document.getElementById('incGstAmount').value='₹0.00';document.getElementById('incAmount').value='₹0.00';setMsg('incMsg','');addIncItem({});prepareIncidentalNo()}
+async function saveIncidental(){
+  if(!canQsecEntry()){setMsg('incMsg','Only ADMIN, MANAGER or Q SEC can enter incidental RV/IV.');return}
+  if(!activeCamp){setMsg('incMsg','Select a camp first.');return}
+  const items=getIncItems(); if(!items.length){setMsg('incMsg','Add at least one item with quantity and rate.');return}
+  calcIncidental();
+  const type=document.getElementById('incType').value,date=document.getElementById('incDate').value||today(),party=document.getElementById('incParty').value.trim(),address=document.getElementById('incAddress').value.trim(),station=document.getElementById('incStation').value.trim(),invoice=document.getElementById('incInvoice').value.trim(),crv=document.getElementById('incCrv').value.trim(),authority=document.getElementById('incAuthority').value.trim(),unit=document.getElementById('incUnit').value.trim(),mode=document.getElementById('incMode').value,head=document.getElementById('incCodeHead').value.trim(),desc=document.getElementById('incDesc').value.trim(),gstMode=document.getElementById('incGstMode').value,gstRate=+document.getElementById('incGstRate').value||0,subtotal=+(document.getElementById('incSubtotal').value.replace(/[^0-9.]/g,''))||0,gstAmount=+(document.getElementById('incGstAmount').value.replace(/[^0-9.]/g,''))||0,total=+(document.getElementById('incAmount').value.replace(/[^0-9.]/g,''))||0,no=document.getElementById('incNo').value;
+  if(!party||!no||!authority&&type==='IV'){setMsg('incMsg','Party, voucher number and authority are required.');return}
+  const {data,error}=await sb.rpc('save_incidental_voucher',{p_id:incidentalEditingId,p_type:type,p_voucher_no:no,p_voucher_date:date,p_party:party,p_invoice_number:invoice||null,p_vendor_address:address||null,p_station:station||null,p_crv_no:crv||null,p_authority:authority||null,p_unit:unit||null,p_items:items,p_subtotal:subtotal,p_gst_mode:gstMode,p_gst_rate:gstRate,p_gst_amount:gstAmount,p_amount:total,p_mode:mode,p_code_head:head||null,p_description:desc||null});
+  if(error){setMsg('incMsg',error.message);return}
+  setMsg('incMsg',(incidentalEditingId?'RV/IV updated successfully.':'RV/IV saved successfully.'),true);clearIncidental();await refreshAll();
+}
+function renderIncidental(){
+  const el=document.getElementById('incidentalTable');if(!el)return;
+  let h='<table><tr><th>Type</th><th>Voucher No</th><th>Date</th><th>Party</th><th>Invoice / Ref</th><th>Items</th><th>Mode</th><th>Amount</th><th>Action</th></tr>';
+  incidentals.forEach(x=>{const n=Array.isArray(x.items)?x.items.length:0;h+=`<tr><td>${esc(x.voucher_type)}</td><td><b>${esc(x.voucher_no)}</b></td><td>${esc(x.voucher_date)}</td><td>${esc(x.party||'')}</td><td>${esc(x.invoice_number||'')}</td><td>${n}</td><td>${esc(x.mode||'')}</td><td>${money(x.amount)}</td><td><button class="btn" onclick="printIncidental('${x.id}')">Generate</button> <button class="btn ghost" onclick="editIncidental('${x.id}')">Edit</button> ${canDelete()?`<button class="btn red" onclick="deleteIncidental('${x.id}')">Delete</button>`:''}</td></tr>`});
+  h+='</table>';el.innerHTML=incidentals.length?h:'<div class="empty">No incidental RV/IV entries for this camp.</div>';
+}
+function editIncidental(id){const x=incidentals.find(a=>a.id===id);if(!x)return;incidentalEditingId=id;for(const [id,val] of Object.entries({incType:x.voucher_type,incNo:x.voucher_no,incDate:x.voucher_date,incInvoice:x.invoice_number||'',incParty:x.party||'',incAddress:x.vendor_address||'',incStation:x.station||'',incCrv:x.crv_no||'',incAuthority:x.authority||'',incUnit:x.unit||'',incMode:x.mode||'CASH',incCodeHead:x.code_head||'',incDesc:x.description||''}))document.getElementById(id).value=val;document.getElementById('incItems').innerHTML='';(x.items||[]).forEach(addIncItem);document.getElementById('incGstMode').value=x.gst_mode||'inclusive';document.getElementById('incGstRate').value=x.gst_rate||'';calcIncidental();setMsg('incMsg','Editing existing RV/IV. Save / Update to commit.',true);showPage('incidental',document.querySelector('[data-page="incidental"]'))}
 async function deleteIncidental(id){if(!canDelete())return alert('Only ADMIN/MANAGER can delete incidental vouchers.');if(!confirm('Delete this incidental voucher?'))return;const {error}=await sb.from('incidental_vouchers').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await refreshAll()}
+function incidentalVoucherSheet(r){const iv=r.voucher_type==='IV';const items=r.items||[];const rows=items.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.desc)}</td><td>${esc(x.unit||'')}</td><td>${x.qty}</td><td>${money(x.rate)}</td><td>${esc(x.page||'')}</td><td>${esc(x.remarks||'')}</td></tr>`).join('');return `<div style="font-size:10px;text-align:right;text-decoration:underline">In lieu of IAFZ- 2076</div><h1>RECEIPT/ISSUE EXPENSE VOUCHER</h1><div class="heads"><div><b>To be completed by Issuing Officer</b><br>${iv?'Issue (a) IV No- ':'Receipt (a) RV No- '}${esc(r.voucher_no)}<br>${esc(r.party||'')}<br>Address: ${esc(r.vendor_address||'')}<br>Stn: ${esc(r.station||'')}<br>Dated: ${esc(r.voucher_date||'')}<br>Authority: ${esc(r.authority||'')}</div><div><b>To be completed by Receiving Officer</b><br>Invoice/Ref: ${esc(r.invoice_number||'')}<br>CRV No: ${esc(r.crv_no||'')}<br>Unit: ${esc(r.unit||'39 Kar Bn NCC')}<br>Stn: ${esc(r.station||'')}<br>Dated: ${esc(r.voucher_date||'')}</div></div><table><tr><th>Sl No</th><th>Nomenclature</th><th>A/u</th><th>Qty</th><th>Rate</th><th>Page No</th><th>Remarks</th></tr>${rows}</table><div style="text-align:right;margin-top:12px"><b>Subtotal: ${money(r.subtotal)}</b><br>GST: ${money(r.gst_amount)}<br><b>Total: ${money(r.amount)}</b></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;margin-top:70px;font-size:11px;text-decoration:underline"><div>ISSUED BY</div><div>COLLECTED BY</div><div>RECEIVED BY</div></div>`}
+function printIncidental(id){const r=incidentals.find(a=>a.id===id);if(!r)return;document.getElementById('incidentalPrintSheet').innerHTML=incidentalVoucherSheet(r);document.body.classList.add('print-rviv');window.print();setTimeout(()=>document.body.classList.remove('print-rviv'),300)}
 
-/* Cash Book */
-function setCashType(type){cashType=type;document.getElementById('cashReceiptTab').classList.toggle('active',type==='RECEIPT');document.getElementById('cashPaymentTab').classList.toggle('active',type==='PAYMENT');document.getElementById('cashSaveBtn').textContent='SAVE '+type+' VOUCHER';loadCashSources();prepareCashVoucherNo()}
-async function prepareCashVoucherNo(){if(!activeCamp){document.getElementById('cashVoucherNo').value='';return}const {data,error}=await sb.rpc('next_cashbook_voucher_no',{p_type:cashType});document.getElementById('cashVoucherNo').value=error?'':data}
-function cashSourceTypes(){return ['MESSING','INCIDENTAL_RV','INCIDENTAL_IV','POL_DRAWN','OTHER']}
-function renderCashSources(){const st=document.getElementById('cashSourceType');if(!st)return;const current=st.value||'MESSING';st.innerHTML=cashSourceTypes().map(x=>`<option value="${x}" ${x===current?'selected':''}>${x.replaceAll('_',' ')}</option>`).join('');loadCashSources()}
-function availableCashSources(type){if(type==='MESSING')return inInvoices.map(x=>({id:x.id,label:`${x.invoice_number} | ${x.invoice_date} | ${x.supplier||''}`,ref:x.invoice_number,party:x.supplier||'',amount:(x.stock_in_items||[]).reduce((s,r)=>s+(+r.amount||0),0)}));if(type==='INCIDENTAL_RV'||type==='INCIDENTAL_IV')return incidentals.filter(x=>x.voucher_type===type.split('_')[1]).map(x=>({id:x.id,label:`${x.voucher_no} | ${x.invoice_number||'-'} | ${x.party||''}`,ref:x.invoice_number||x.voucher_no,party:x.party||'',amount:+x.amount||0}));if(type==='POL_DRAWN')return polEntries.map(x=>({id:x.id,label:`${x.invoice_number} | ${x.entry_date} | ${x.petrol_bunk||''}`,ref:x.invoice_number,party:x.petrol_bunk||'',amount:+x.total_amount||0}));return []}
-function loadCashSources(){const type=document.getElementById('cashSourceType').value, sel=document.getElementById('cashSource'),list=availableCashSources(type);const inv=document.getElementById('cashInvoice'),party=document.getElementById('cashParty'),amt=document.getElementById('cashAmount');inv.value='';party.value='';amt.value='';inv.readOnly=true;party.readOnly=true;amt.readOnly=true;inv.classList.add('auto-field');party.classList.add('auto-field');amt.classList.add('calculated');sel.innerHTML='<option value="">Select source</option>'+list.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join('')+(type==='OTHER'?'<option value="OTHER">Manual / Other</option>':'');prepareCashVoucherNo()}
-function fillCashSource(){const type=document.getElementById('cashSourceType').value,id=document.getElementById('cashSource').value;if(type==='OTHER'){document.getElementById('cashInvoice').readOnly=false;document.getElementById('cashInvoice').classList.remove('auto-field');document.getElementById('cashParty').readOnly=false;document.getElementById('cashParty').classList.remove('auto-field');document.getElementById('cashAmount').readOnly=false;document.getElementById('cashAmount').classList.remove('calculated');document.getElementById('cashAmount').placeholder='Amount';return}const x=availableCashSources(type).find(a=>a.id===id);document.getElementById('cashInvoice').value=x?.ref||'';document.getElementById('cashParty').value=x?.party||'';document.getElementById('cashAmount').value=x?money(x.amount):''}
-async function saveCashbook(){if(!canAccountsEntry()){setMsg('cashMsg','Cash book receipt/payment entries are restricted to ACCOUNTS and ADMIN.');return}if(!activeCamp){setMsg('cashMsg','Select a camp first.');return}const sourceType=document.getElementById('cashSourceType').value,sourceId=document.getElementById('cashSource').value||null,sourceRef=document.getElementById('cashInvoice').value.trim(),party=document.getElementById('cashParty').value.trim(),amountRaw=document.getElementById('cashAmount').value.replace(/[^0-9.]/g,''),amount=+amountRaw||0;const date=document.getElementById('cashDate').value||today(),mode=document.getElementById('cashMode').value,head=document.getElementById('cashCodeHead').value.trim(),narr=document.getElementById('cashNarration').value.trim();if(amount<=0){setMsg('cashMsg','Valid amount is required.');return}const {error}=await sb.rpc('create_cashbook_entry',{p_entry_type:cashType,p_entry_date:date,p_source_type:sourceType,p_source_id:sourceId,p_reference_no:sourceRef||null,p_party:party||null,p_amount:amount,p_mode:mode,p_code_head:head||null,p_narration:narr||null});if(error){setMsg('cashMsg',error.message);return}setMsg('cashMsg',cashType+' voucher saved.',true);clearCashbookForm();await refreshAll()}
-function clearCashbookForm(){document.getElementById('cashDate').value=today();document.getElementById('cashSource').value='';document.getElementById('cashInvoice').value='';document.getElementById('cashParty').value='';document.getElementById('cashAmount').value='';document.getElementById('cashCodeHead').value='';document.getElementById('cashNarration').value='';setMsg('cashMsg','');prepareCashVoucherNo();loadCashSources()}
-function renderCashbook(){const el=document.getElementById('cashbookTable');if(!el)return;const r=cashbookEntries.filter(x=>x.entry_type==='RECEIPT').reduce((s,x)=>s+(+x.amount||0),0),p=cashbookEntries.filter(x=>x.entry_type==='PAYMENT').reduce((s,x)=>s+(+x.amount||0),0);document.getElementById('cashReceiptsTotal').textContent=money(r);document.getElementById('cashPaymentsTotal').textContent=money(p);document.getElementById('cashBalanceTotal').textContent=money(r-p);let h='<table><tr><th>Date</th><th>Type</th><th>Voucher No</th><th>Source</th><th>Invoice / Ref</th><th>Party</th><th>Mode</th><th>Code Head</th><th>Amount</th><th>Narration</th><th>Action</th></tr>';cashbookEntries.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.source_type)}</td><td>${esc(x.reference_no||'')}</td><td>${esc(x.party||'')}</td><td>${esc(x.mode||'')}</td><td>${esc(x.code_head||'')}</td><td>${money(x.amount)}</td><td>${esc(x.narration||'')}</td><td>${canAccountsEntry()?`<button class="btn red" onclick="deleteCashbook('${x.id}')">Delete</button>`:'View'}</td></tr>`);h+='</table>';el.innerHTML=cashbookEntries.length?h:'<div class="empty">No cash book receipt/payment entries for this camp.</div>'}
-async function deleteCashbook(id){if(!canAccountsEntry())return;if(!confirm('Delete this cash book entry?'))return;const {error}=await sb.from('cashbook_entries').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await refreshAll()}
+/* ===== Cash Book / Manual RV-PV + Payment Auto Fetch + Day Close ===== */
+function setCashType(type){
+  cashType=type;
+  document.getElementById('cashReceiptTab').classList.toggle('active',type==='RECEIPT');
+  document.getElementById('cashPaymentTab').classList.toggle('active',type==='PAYMENT');
+  document.getElementById('cashDrawnTab').classList.toggle('active',type==='CASH_DRAWN');
+  document.getElementById('cashDayTab').classList.toggle('active',type==='DAY');
+  document.getElementById('cashReceiptFormWrap').classList.toggle('hidden',type!=='RECEIPT');
+  document.getElementById('cashPaymentFormWrap').classList.toggle('hidden',type!=='PAYMENT');
+  document.getElementById('cashDrawnFormWrap').classList.toggle('hidden',type!=='CASH_DRAWN');
+  document.getElementById('cashDayWrap').classList.toggle('hidden',type!=='DAY');
+  if(type==='PAYMENT')loadCashSources();
+  if(type==='DAY')renderDayClose();
+}
+function cashPaymentSourceTypes(){return ['MESSING_RV','INCIDENTAL_RV','POL_DRAWN']}
+function availablePaymentSources(type){
+  if(type==='MESSING_RV')return inInvoices.map(x=>({id:x.id,label:`${x.invoice_number} | ${x.invoice_date} | ${x.supplier||''}`,ref:x.invoice_number,party:x.supplier||'',amount:(x.stock_in_items||[]).reduce((s,r)=>s+(+r.amount||(+r.quantity||0)*(+r.rate||0)),0)}));
+  if(type==='INCIDENTAL_RV')return incidentals.filter(x=>x.voucher_type==='RV').map(x=>({id:x.id,label:`${x.voucher_no} | ${x.invoice_number||'-'} | ${x.party||''}`,ref:x.invoice_number||x.voucher_no,party:x.party||'',amount:+x.amount||0}));
+  if(type==='POL_DRAWN')return polEntries.map(x=>({id:x.id,label:`${x.invoice_number} | ${x.entry_date} | ${x.petrol_bunk||''}`,ref:x.invoice_number,party:x.petrol_bunk||'',amount:+x.total_amount||0}));
+  return [];
+}
+function paymentHeadChanged(){
+  const code=document.getElementById('cashPaymentCodeHead').value;
+  const linked=['MESSING','INC','POL'].includes(code);
+  const sourceWrap=document.getElementById('cashSourceWrap');
+  const sourceTypeWrap=document.getElementById('cashSourceTypeWrap');
+  const ref=document.getElementById('cashInvoice');
+  const party=document.getElementById('cashPaymentParty');
+  const amount=document.getElementById('cashPaymentAmount');
+  if(linked){
+    sourceTypeWrap.classList.remove('hidden');
+    sourceWrap.classList.remove('hidden');
+    ref.readOnly=true; party.readOnly=true; amount.readOnly=true;
+    ref.classList.add('auto-field'); party.classList.add('auto-field'); amount.classList.add('calculated');
+    const desired=code==='MESSING'?'MESSING_RV':(code==='INC'?'INCIDENTAL_RV':'POL_DRAWN');
+    const st=document.getElementById('cashSourceType');
+    if(st.value!==desired)st.value=desired;
+    loadCashSources();
+  }else{
+    sourceTypeWrap.classList.add('hidden');
+    sourceWrap.classList.add('hidden');
+    ref.readOnly=false; party.readOnly=false; amount.readOnly=false;
+    ref.classList.remove('auto-field'); party.classList.remove('auto-field'); amount.classList.remove('calculated');
+    ref.value=''; party.value='';
+  }
+}
+function loadCashSources(){
+  if(cashType!=='PAYMENT')return;
+  const code=document.getElementById('cashPaymentCodeHead').value;
+  if(!['MESSING','INC','POL'].includes(code)){ paymentHeadChangedNoLoop(); return; }
+  const type=document.getElementById('cashSourceType').value;
+  const sel=document.getElementById('cashSource');
+  const list=availablePaymentSources(type);
+  document.getElementById('cashInvoice').value='';
+  document.getElementById('cashPaymentParty').value='';
+  document.getElementById('cashPaymentAmount').value='';
+  sel.innerHTML='<option value="">Select source</option>'+list.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join('');
+  document.getElementById('cashInvoice').readOnly=true;
+  document.getElementById('cashPaymentParty').readOnly=true;
+  document.getElementById('cashPaymentAmount').readOnly=true;
+  document.getElementById('cashInvoice').classList.add('auto-field');
+  document.getElementById('cashPaymentParty').classList.add('auto-field');
+  document.getElementById('cashPaymentAmount').classList.add('calculated');
+}
+function paymentHeadChangedNoLoop(){
+  document.getElementById('cashSourceTypeWrap').classList.add('hidden');
+  document.getElementById('cashSourceWrap').classList.add('hidden');
+  const ref=document.getElementById('cashInvoice'),party=document.getElementById('cashPaymentParty'),amount=document.getElementById('cashPaymentAmount');
+  ref.readOnly=false;party.readOnly=false;amount.readOnly=false;ref.classList.remove('auto-field');party.classList.remove('auto-field');amount.classList.remove('calculated');
+}
+function fillCashSource(){
+  const type=document.getElementById('cashSourceType').value,id=document.getElementById('cashSource').value;
+  const x=availablePaymentSources(type).find(a=>a.id===id);
+  document.getElementById('cashInvoice').value=x?.ref||'';
+  document.getElementById('cashPaymentParty').value=x?.party||'';
+  document.getElementById('cashPaymentAmount').value=x?money(x.amount):'';
+}
+function showReceiptAllocation(id,amount){
+  pendingReceiptAllocationId=id;pendingReceiptAllocationAmount=Number(amount||0);
+  document.getElementById('receiptAllocationInfo').textContent=`Receipt saved for ${money(amount)}. Distribute the full amount across Messing, INC, POL, Rank Pay, TA Cadets, TA/DA Civ Staff, Rent or Others.`;
+  ['allocMessing','allocInc','allocPol','allocRankPay','allocTaCadets','allocTaDaCiv','allocRent','allocOthers'].forEach(x=>document.getElementById(x).value='0');
+  document.getElementById('receiptAllocationWrap').classList.remove('hidden');
+  updateReceiptAllocationTotal();
+}
+function hideReceiptAllocation(){pendingReceiptAllocationId=null;pendingReceiptAllocationAmount=0;document.getElementById('receiptAllocationWrap').classList.add('hidden');setMsg('receiptAllocationMsg','')}
+function receiptAllocationValues(){return {"Messing":+document.getElementById('allocMessing').value||0,"INC":+document.getElementById('allocInc').value||0,"POL":+document.getElementById('allocPol').value||0,"Rank Pay":+document.getElementById('allocRankPay').value||0,"TA Cadets":+document.getElementById('allocTaCadets').value||0,"TA/DA Civ":+document.getElementById('allocTaDaCiv').value||0,"Rent":+document.getElementById('allocRent').value||0,"Others":+document.getElementById('allocOthers').value||0};}
+function updateReceiptAllocationTotal(){
+  const a=receiptAllocationValues();const total=Object.values(a).reduce((s,v)=>s+v,0);const diff=pendingReceiptAllocationAmount-total;
+  document.getElementById('receiptAllocationInfo').textContent=`Receipt amount: ${money(pendingReceiptAllocationAmount)} | Allocated: ${money(total)} | Remaining: ${money(diff)}`;
+}
+['allocMessing','allocInc','allocPol','allocRankPay','allocTaCadets','allocTaDaCiv','allocRent','allocOthers'].forEach(id=>document.getElementById(id)?.addEventListener('input',updateReceiptAllocationTotal));
+
+async function saveCashbook(){
+  if(!canAccountsEntry()){setMsg('cashMsg','Cash Book entry is restricted to ACCOUNTS and ADMIN.');setMsg('paymentMsg','Cash Book entry is restricted to ACCOUNTS and ADMIN.');return}
+  if(!activeCamp){setMsg('cashMsg','Select a camp first.');return}
+  if(cashType==='PAYMENT'){
+    const date=document.getElementById('payDate').value||today(),voucher=document.getElementById('payVoucherNo').value.trim(),sourceType=document.getElementById('cashSourceType').value,sourceId=['MESSING_RV','INCIDENTAL_RV','POL_DRAWN'].includes(sourceType)?(document.getElementById('cashSource').value||null):null,ref=document.getElementById('cashInvoice').value.trim(),party=document.getElementById('cashPaymentParty').value.trim(),amt=+(document.getElementById('cashPaymentAmount').value.replace(/[^0-9.]/g,''))||0,mode=document.getElementById('cashPaymentMode').value,head=document.getElementById('cashPaymentCodeHead').value,narr=document.getElementById('cashPaymentNarration').value.trim();
+    if(!voucher||!date||!head||amt<=0){setMsg('paymentMsg','Enter PV No., date, code head and valid amount.');return}
+    const {error}=await sb.rpc('save_cashbook_entry_manual',{p_entry_type:'PAYMENT',p_voucher_number:voucher,p_entry_date:date,p_source_type:sourceType,p_source_id:sourceId,p_reference_no:ref||null,p_party:party||null,p_amount:amt,p_mode:mode,p_code_head:head,p_narration:narr||null});
+    if(error){setMsg('paymentMsg',error.message);return}
+    setMsg('paymentMsg','Payment voucher saved successfully.',true);clearCashbookForm();await refreshAll();return;
+  }
+  if(cashType==='RECEIPT'){
+    const date=document.getElementById('cashDate').value||today(),voucher=document.getElementById('cashVoucherNo').value.trim(),party=document.getElementById('cashParty').value.trim(),account=document.getElementById('cashAccountText').value.trim(),amount=+document.getElementById('cashAmount').value||0,mode=document.getElementById('cashMode').value,init=document.getElementById('cashInitial').value.trim(),narr=document.getElementById('cashNarration').value.trim();
+    if(!voucher||!party||amount<=0){setMsg('cashMsg','Enter Date, RV No., To Whom Received and a valid Amount.');return}
+    const finalNarr=init?(narr?`${narr} | Initial: ${init}`:`Initial: ${init}`):narr;
+    const {data,error}=await sb.rpc('save_cashbook_entry_manual',{p_entry_type:'RECEIPT',p_voucher_number:voucher,p_entry_date:date,p_source_type:'OTHER',p_source_id:null,p_reference_no:account||null,p_party:party,p_amount:amount,p_mode:mode,p_code_head:null,p_narration:finalNarr||null});
+    if(error){setMsg('cashMsg',error.message);return}
+    setMsg('cashMsg','Receipt voucher saved. Now distribute the receipt amount.',true);clearReceiptEntryOnly();showReceiptAllocation(data,amount);await refreshAll();return;
+  }
+}
+async function saveReceiptAllocation(){
+  if(!canAccountsEntry()){setMsg('receiptAllocationMsg','Only ACCOUNTS/ADMIN can distribute a receipt.');return}
+  if(!pendingReceiptAllocationId)return setMsg('receiptAllocationMsg','Save a receipt first.');
+  const allocations=receiptAllocationValues();const total=Object.values(allocations).reduce((s,v)=>s+v,0);
+  if(Math.abs(total-pendingReceiptAllocationAmount)>0.01){setMsg('receiptAllocationMsg',`Allocation must equal the receipt amount. Remaining: ${money(pendingReceiptAllocationAmount-total)}`);return}
+  const {error}=await sb.rpc('save_cashbook_receipt_allocation',{p_entry_id:pendingReceiptAllocationId,p_allocations:allocations});
+  if(error){setMsg('receiptAllocationMsg',error.message);return}
+  setMsg('receiptAllocationMsg','Distribution saved successfully.',true);hideReceiptAllocation();await refreshAll();
+}
+function clearReceiptEntryOnly(){document.getElementById('cashDate').value=today();document.getElementById('cashVoucherNo').value='';document.getElementById('cashParty').value='';document.getElementById('cashAccountText').value='';document.getElementById('cashAmount').value='';document.getElementById('cashInitial').value='';document.getElementById('cashNarration').value='';setMsg('cashMsg','');}
+
+async function saveCashDrawn(){
+  if(!canAccountsEntry()){setMsg('cashDrawnMsg','Only ACCOUNTS/ADMIN can save Cash Drawn.');return}
+  if(!activeCamp)return setMsg('cashDrawnMsg','Select a camp first.');
+  const date=document.getElementById('cdDate').value||today(),no=document.getElementById('cdNo').value.trim(),ref=document.getElementById('cdCheque').value.trim(),amount=+document.getElementById('cdAmount').value||0,purpose=document.getElementById('cdPurpose').value.trim();
+  if(!no||amount<=0){setMsg('cashDrawnMsg','Enter CD No. and valid amount.');return}
+  const {error}=await sb.rpc('save_cash_drawn_entry',{p_voucher_number:no,p_entry_date:date,p_reference_no:ref||null,p_amount:amount,p_narration:purpose||null});if(error){setMsg('cashDrawnMsg',error.message);return}setMsg('cashDrawnMsg','Cash Drawn saved successfully.',true);clearCashDrawn();await refreshAll();
+}
+function clearCashDrawn(){document.getElementById('cdDate').value=today();document.getElementById('cdNo').value='';document.getElementById('cdCheque').value='';document.getElementById('cdAmount').value='';document.getElementById('cdPurpose').value='';setMsg('cashDrawnMsg','')}
+function clearCashbookForm(){
+  clearReceiptEntryOnly();
+  document.getElementById('payDate').value=today();document.getElementById('payVoucherNo').value='';document.getElementById('cashPaymentCodeHead').value='';document.getElementById('cashSource').value='';document.getElementById('cashInvoice').value='';document.getElementById('cashPaymentParty').value='';document.getElementById('cashPaymentAmount').value='';document.getElementById('cashPaymentNarration').value='';document.getElementById('cashSourceType').value='MESSING_RV';
+  setMsg('paymentMsg','');hideReceiptAllocation();loadCashSources();
+}
+function allocationSummary(x){
+  if(x.head_allocations){let a=typeof x.head_allocations==='string'?JSON.parse(x.head_allocations):x.head_allocations;const labels=[];Object.entries(a||{}).forEach(([k,v])=>{if(Number(v)>0)labels.push(`${k}: ${money(v)}`)});if(labels.length)return labels.join(' | ')}
+  return x.code_head||'';
+}
+function renderCashbook(){
+  const el=document.getElementById('cashbookTable');if(!el)return;
+  let h='<table><tr><th>Date</th><th>Type</th><th>RV / PV No.</th><th>Source Type</th><th>Invoice / Ref</th><th>From Whom / Party</th><th>Mode</th><th>Code Head / Distribution</th><th>Amount</th><th>Narration</th></tr>';
+  cashbookEntries.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.source_type||'')}</td><td>${esc(x.reference_no||'')}</td><td>${esc(x.party||'')}</td><td>${esc(x.mode||'')}</td><td>${esc(allocationSummary(x))}</td><td>${money(x.amount)}</td><td>${esc(x.narration||'')}</td></tr>`);h+='</table>';
+  el.innerHTML=cashbookEntries.length?h:'<div class="empty">No Cash Book entries for this camp.</div>';
+}
+function latestClosureBefore(date){return [...cashbookClosures].filter(x=>x.close_date<date).sort((a,b)=>b.close_date.localeCompare(a.close_date))[0]||null}
+function calculateDay(date){
+  const prev=latestClosureBefore(date);let bfCash=prev?+prev.closing_cash:0,bfBank=prev?+prev.closing_bank:0;let rc=0,rb=0,pc=0,pb=0,draw=0;const rows=cashbookEntries.filter(x=>x.entry_date===date);
+  rows.forEach(e=>{const amt=+e.amount||0;if(e.entry_type==='RECEIPT'){if(e.mode==='CASH')rc+=amt;else rb+=amt}else if(e.entry_type==='PAYMENT'){if(e.mode==='CASH')pc+=amt;else pb+=amt}else if(e.entry_type==='CASH_DRAWN'){draw+=amt}});
+  const cfCash=bfCash+rc-pc+draw,cfBank=bfBank+rb-pb-draw;return {bfCash,bfBank,rc,rb,pc,pb,draw,cfCash,cfBank,net:cfCash+cfBank,rows,closed:!!cashbookClosures.find(x=>x.close_date===date)};
+}
+function renderDayClose(){const d=document.getElementById('cashDayDate')?.value||today();if(!document.getElementById('cashDayDate'))return;const s=calculateDay(d);['bfCash','bfBank','dayReceiptCash','dayReceiptBank','dayPaymentCash','dayPaymentBank','dayCashDrawn','cfCash','cfBank','dayNet'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).textContent=money({bfCash:s.bfCash,bfBank:s.bfBank,dayReceiptCash:s.rc,dayReceiptBank:s.rb,dayPaymentCash:s.pc,dayPaymentBank:s.pb,dayCashDrawn:s.draw,cfCash:s.cfCash,cfBank:s.cfBank,dayNet:s.net}[id])});document.getElementById('cashDayStatus').value=s.closed?'CLOSED':'OPEN';document.getElementById('cashDayNote').textContent=s.closed?'Day closed. Next day B/F will carry forward this day\'s C/F.':'Close the day after all Accounts entries are complete. The next day B/F is taken from the previous day C/F.';let h='<table><tr><th>Date</th><th>Type</th><th>Voucher No</th><th>Ref</th><th>Party</th><th>Mode</th><th>Amount</th></tr>';s.rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td>${esc(x.voucher_number)}</td><td>${esc(x.reference_no||'')}</td><td>${esc(x.party||'')}</td><td>${esc(x.mode||'')}</td><td>${money(x.amount)}</td></tr>`);h+='</table>';document.getElementById('dayEntriesTable').innerHTML=h;}
+function prepareDayCashbook(){document.getElementById('cashDayDate').value=document.getElementById('cashDayDate').value||today();renderDayClose()}
+async function closeCashbookDay(){if(!canAccountsEntry()){alert('Only ACCOUNTS/ADMIN can close the Cash Book day.');return}const d=document.getElementById('cashDayDate').value||today();if(calculateDay(d).closed){alert('This day is already closed.');return}if(!confirm(`Close Cash Book for ${d}? No further entries will be allowed for this date.`))return;const {data,error}=await sb.rpc('close_cashbook_day',{p_close_date:d});if(error){alert(error.message);return}await refreshAll();renderDayClose();alert(`Day closed. Closing Cash: ${money(data.closing_cash)} | Closing Bank: ${money(data.closing_bank)}`)}
+function printDayCashbook(){const d=document.getElementById('cashDayDate').value||today();const s=calculateDay(d);const camp=activeCamp||{};const rows=s.rows;let html=`<h1>CAMP CASH BOOK</h1><h2 style="font-size:12px;margin-top:4px">RECEIPTS AND PAYMENTS</h2><div class="meta"><b>Camp:</b> ${esc(camp.camp_name||'')} &nbsp; | &nbsp; <b>Code:</b> ${esc(camp.camp_code||'')} &nbsp; | &nbsp; <b>Station:</b> ${esc(camp.station||'')} &nbsp; | &nbsp; <b>Date:</b> ${d}</div><table><tr><th colspan="6">RECEIPTS</th><th colspan="8">PAYMENTS</th></tr><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Date</th><th>PV No.</th><th>Source</th><th>Invoice / Ref</th><th>From Whom Paid</th><th>Code Head</th><th>Cash</th><th>Bank</th></tr>`;const receipts=rows.filter(x=>x.entry_type==='RECEIPT'),payments=rows.filter(x=>x.entry_type==='PAYMENT');const n=Math.max(receipts.length,payments.length,1);for(let i=0;i<n;i++){const r=receipts[i],p=payments[i];html+=`<tr><td>${r?esc(r.entry_date):''}</td><td>${r?esc(r.voucher_number):''}</td><td>${r?esc(r.party||''):''}</td><td>${r?esc((r.reference_no||'')+(allocationSummary(r)?' | '+allocationSummary(r):'')):''}</td><td class="num">${r&&r.mode==='CASH'?money(r.amount):''}</td><td class="num">${r&&r.mode==='BANK'?money(r.amount):''}</td><td>${p?esc(p.entry_date):''}</td><td>${p?esc(p.voucher_number):''}</td><td>${p?esc(p.source_type||''):''}</td><td>${p?esc(p.reference_no||''):''}</td><td>${p?esc(p.party||''):''}</td><td>${p?esc(allocationSummary(p)):''}</td><td class="num">${p&&p.mode==='CASH'?money(p.amount):''}</td><td class="num">${p&&p.mode==='BANK'?money(p.amount):''}</td></tr>`}html+=`<tr class="total"><td colspan="3">BALANCE B/F</td><td class="num">${money(s.bfCash)}</td><td class="num">${money(s.bfBank)}</td><td colspan="3">TOTALS</td><td class="num">${money(s.pc)}</td><td class="num">${money(s.pb)}</td></tr><tr class="total"><td colspan="3">TOTAL RECEIPTS</td><td class="num">${money(s.rc)}</td><td class="num">${money(s.rb)}</td><td colspan="3">CASH DRAWN</td><td class="num">${money(s.draw)}</td><td class="num">${money(0)}</td></tr><tr class="total"><td colspan="3">BALANCE C/F</td><td class="num">${money(s.cfCash)}</td><td class="num">${money(s.cfBank)}</td><td colspan="3">DAY STATUS</td><td colspan="2">${s.closed?'CLOSED':'OPEN'}</td></tr></table><div style="margin-top:26px;font-size:10px">Prepared by Accounts. Balance C/F becomes the next day's Balance B/F.</div>`;document.getElementById('cashPrintSheet').innerHTML=html;document.body.classList.add('print-cash');window.print();setTimeout(()=>document.body.classList.remove('print-cash'),300)}
 
 function initExtension(){
-  const d=document.getElementById('polDate');if(d)d.value=today();const cd=document.getElementById('cashDate');if(cd)cd.value=today();const id=document.getElementById('incDate');if(id)id.value=today();
+  const d=document.getElementById('polDate');if(d)d.value=today();const cd=document.getElementById('cashDate');if(cd)cd.value=today();const pd=document.getElementById('payDate');if(pd)pd.value=today();const cdd=document.getElementById('cdDate');if(cdd)cdd.value=today();const day=document.getElementById('cashDayDate');if(day)day.value=today();const id=document.getElementById('incDate');if(id)id.value=today();const items=document.getElementById('incItems');if(items&&!items.children.length)addIncItem({});setCashType('RECEIPT');
 }
 
 async function start(){
