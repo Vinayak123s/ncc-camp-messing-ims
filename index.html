@@ -551,7 +551,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -564,6 +564,9 @@ const roleIs=(...r)=>!!profile&&r.includes(profile.role);
 const canStockCreate=()=>roleIs('ADMIN','MANAGER','Q_SEC');
 const canTxEdit=()=>roleIs('ADMIN','MANAGER','Q_SEC');
 const canDelete=()=>roleIs('ADMIN','MANAGER');
+const canAccountsEntry=()=>roleIs('ADMIN','ACCOUNTS');
+const canQsecEntry=()=>roleIs('ADMIN','MANAGER','Q_SEC');
+const canCampManage=()=>roleIs('ADMIN','MANAGER');
 const canWriteInventory=()=>roleIs('ADMIN','MANAGER','Q_SEC');
 const money=n=>"₹"+(+n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 
@@ -586,18 +589,6 @@ async function sendReset(){
   setLoginMsg(error?error.message:"Password reset email sent. Check your inbox.");
 }
 async function signOut(){await sb.auth.signOut();location.reload()}
-async function loadApp(){
-  const {data:p,error}=await sb.from("profiles").select("*").eq("id",currentUser.id).maybeSingle();
-  if(error||!p){setLoginMsg("Login succeeded, but no profile/role is assigned to this Auth user.");await sb.auth.signOut();return}
-  profile=p;
-  document.getElementById("loginView").classList.add("hidden");
-  document.getElementById("appView").classList.remove("hidden");
-  document.getElementById("userBox").textContent=(currentUser.email||"")+" | "+profile.role;
-  document.getElementById("avatar").textContent=(profile.display_name||currentUser.email||"N").slice(0,1).toUpperCase();
-  applyRoleUI();
-  await refreshAll();
-  showPage("dashboard",document.querySelector('[data-page="dashboard"]'));
-}
 function applyRoleUI(){
   const allNav=document.querySelectorAll('.sidebar .nav[data-page]'), role=(profile&&profile.role)||'VIEWER'; let allowed;
   if(role==='ACCOUNTS') allowed=new Set(['dashboard','cashbook','reports']);
@@ -878,9 +869,8 @@ async function start(){
 }
 
 start();
-</script>
-</body>
-</html>function showPage(id,btn){
+
+function showPage(id,btn){
   if(profile?.role==='ACCOUNTS' && !['dashboard','cashbook','reports'].includes(id)) return;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id)?.classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));btn?.classList.add('active');toggleMenu(false);if(id==='dashboard')renderDashboard();if(id==='reports')renderReports();
 }
@@ -893,4 +883,6 @@ function renderDashboard(){
 function renderAccountsReports(){if(profile?.role!=='ACCOUNTS')return;const d=document.getElementById('accReportDate')?.value||today(),s=calculateDay(d),set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};set('accRepCash',s.cfCash);set('accRepBank',s.cfBank);set('accRepReceipts',s.rc+s.rb);set('accRepPayments',s.pc+s.pb);const receipts=s.rows.filter(x=>x.entry_type==='RECEIPT'),payments=s.rows.filter(x=>x.entry_type==='PAYMENT');let h=`<div class="cash-report-head"><h2 style="margin:0">CAMP CASH BOOK</h2><p style="margin:4px 0">RECEIPTS AND PAYMENTS | DATE: ${esc(d)}</p></div>`;h+=`<table><tr><th colspan="7" class="receipt-head">RECEIPT</th><th colspan="9" class="payment-head">PAYMENTS</th></tr><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Distribution</th><th>Date</th><th>PV No.</th><th>Source Type</th><th>Invoice / Ref</th><th>To Whom Paid</th><th>On What Account</th><th>Particulars / Items</th><th>Mode</th><th>Amount</th></tr>`;const n=Math.max(receipts.length,payments.length,1);for(let i=0;i<n;i++){const r=receipts[i],p=payments[i],pd=sourceDetailObject(p);h+=`<tr><td>${r?esc(r.entry_date):''}</td><td>${r?esc(r.voucher_number):''}</td><td>${r?esc(r.party||''):''}</td><td>${r?esc(r.reference_no||''):''}</td><td class="num">${r&&r.mode==='CASH'?money(r.amount):''}</td><td class="num">${r&&r.mode==='BANK'?money(r.amount):''}</td><td>${r?esc(allocationSummary(r)):''}</td><td>${p?esc(p.entry_date):''}</td><td>${p?esc(p.voucher_number):''}</td><td>${p?esc(p.source_type||''):''}</td><td>${p?esc(p.reference_no||''):''}</td><td>${p?esc(pd.to_whom_paid||p.party||''):''}</td><td>${p?esc(pd.on_account||p.code_head||''):''}</td><td>${p?esc(itemSummary(p)):''}</td><td>${p?esc(p.mode||''):''}</td><td class="num">${p?money(p.amount):''}</td></tr>`}h+='</table><div class="report-total-grid"><div><b>Balance B/F - Cash</b><span>'+money(s.bfCash)+'</span></div><div><b>Balance B/F - Bank</b><span>'+money(s.bfBank)+'</span></div><div><b>Total Receipts</b><span>'+money(s.rc+s.rb)+'</span></div><div><b>Total Payments</b><span>'+money(s.pc+s.pb)+'</span></div><div><b>Cash Drawn</b><span>'+money(s.draw)+'</span></div><div><b>Balance C/F - Cash</b><span>'+money(s.cfCash)+'</span></div><div><b>Balance C/F - Bank</b><span>'+money(s.cfBank)+'</span></div></div><h3 style="margin-top:18px">Code Head Allotment / Balance</h3><table><tr><th>Code Head</th><th>B/F</th><th>Day Allotment</th><th>Day Payments</th><th>C/F</th></tr>';CASH_HEADS.forEach(head=>h+=`<tr><td>${esc(head)}</td><td>${money(s.bfHeads[head])}</td><td>${money(s.headReceipts[head])}</td><td>${money(s.headPayments[head])}</td><td><b>${money(s.cfHeads[head])}</b></td></tr>`);h+='</table><p style="margin-top:12px">Status: <b>'+(s.closed?'CLOSED':'OPEN')+'</b></p>';const el=document.getElementById('accountsReportContent');if(el)el.innerHTML=h;}
 function clearAccountsReport(){const e=document.getElementById('accReportDate');if(e)e.value=today();renderAccountsReports()}function printAccountsReport(){renderAccountsReports();window.print()}function renderReports(){if(profile?.role==='ACCOUNTS'){renderAccountsReports();return;}
 }
-
+</script>
+</body>
+</html>
