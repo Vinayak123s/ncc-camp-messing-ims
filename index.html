@@ -120,6 +120,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
   .rviv-voucher-sheet,.cash-print-sheet{box-shadow:none!important}
 }
 
+.accounts-dash .metric b,.accounts-report .metric b{font-size:28px}.report-total-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}.report-total-grid>div{background:#101a25;border:1px solid #2b3d50;border-radius:8px;padding:10px;color:#dce8f3}.report-total-grid span{display:block;color:#8ea2b6;margin-top:4px;font-weight:800}.accounts-report table td,.accounts-report table th{white-space:nowrap}.accounts-report .cash-report-head{text-align:center;margin-bottom:12px}@media(max-width:900px){.report-total-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 <style id="cashbook-final-css">
 .source-details{margin-top:12px;padding:12px;border:1px solid #334155;border-radius:8px;background:#0f1925}.source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.source-items{margin-top:12px;overflow:auto}.source-items table{width:100%;border-collapse:collapse;font-size:12px}.source-items th,.source-items td{border:1px solid #334155;padding:7px;text-align:left;white-space:nowrap}.source-items th{background:#1a2939;color:#e8f0f8}.balance-preview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}.balance-card{padding:10px;border:1px solid #334155;border-radius:8px;background:#0b1420}.balance-card span{display:block;font-size:11px;color:#8fa4b8}.balance-card b{display:block;margin-top:4px;font-size:14px}.balance-good{color:#64d68f}.balance-bad{color:#ff7b86}.head-balance-wrap{margin-top:15px;overflow:auto}.head-balance-wrap table{width:100%;border-collapse:collapse;font-size:12px}.head-balance-wrap th,.head-balance-wrap td{border:1px solid #334155;padding:7px;white-space:nowrap}.head-balance-wrap th{background:#163042;color:#fff}@media(max-width:900px){.source-grid,.balance-preview{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.source-grid,.balance-preview{grid-template-columns:1fr}}</style>
@@ -176,7 +177,13 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <main>
 <section id="dashboard" class="page active">
-  <div class="section-head">
+  <div id="accountsDashboard" class="accounts-dash hidden">
+    <div class="section-head"><div><h1>CASH / BANK POSITION</h1><p>Accounts dashboard for the active camp</p></div></div>
+    <div class="grid"><div class="metric m1"><span class="label">CASH IN HAND</span><b id="accCashInHand">₹0.00</b><small>Current available cash</small></div><div class="metric m2"><span class="label">CASH AT BANK</span><b id="accCashAtBank">₹0.00</b><small>Current available bank balance</small></div></div>
+    <div class="panel" style="margin-top:16px"><div class="subhead"><div><h3 style="margin:0">Code Head Allotments &amp; Balance</h3><div class="kpi-note">Allotment less payments/remittances</div></div></div><div class="tablewrap" id="accountsHeadDashboard"></div></div>
+  </div>
+  <div id="inventoryDashboard">
+<div class="section-head">
     <div><h1>Inventory</h1><p>Centralized inventory overview and camp store position</p></div>
     <div class="actions"><button class="btn ghost adminonly" onclick="openLogo()">Upload NC Logo</button></div>
   </div>
@@ -198,6 +205,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
         <div id="riskLegend"></div>
       </div>
     </div>
+  </div>
   </div>
 </section>
 
@@ -275,12 +283,17 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 </section>
 
 <section id="reports" class="page">
-  <div class="section-head"><div><h1>Reports</h1><p>Day-wise summary, stock transactions and current stock</p></div><div class="actions"><button class="btn dark" onclick="exportCSV()">EXPORT CSV</button><button class="btn ghost" onclick="printPage()">PRINT / PDF</button></div></div>
-  <div class="panel no-print"><div class="toolbar"><input id="fromDate" type="date"><input id="toDate" type="date"><button class="btn" onclick="renderReports()">FILTER</button><button class="btn dark" onclick="clearReportFilter()">CLEAR</button></div></div>
-  <div id="reportCards" class="grid" style="margin-top:16px"></div>
-  <div class="panel" id="reportsContent"></div>
+  <div id="accountsReports" class="accounts-report hidden">
+    <div class="section-head"><div><h1>Cash Book Reports</h1><p>Accounts day report and carry-forward position</p></div><div class="actions"><button class="btn dark" onclick="printAccountsReport()">PRINT / PDF</button></div></div>
+    <div class="panel no-print"><div class="toolbar"><input id="accReportDate" type="date"><button class="btn" onclick="renderAccountsReports()">VIEW DAY</button><button class="btn dark" onclick="clearAccountsReport()">TODAY</button></div></div>
+    <div class="grid" style="margin-top:16px"><div class="metric m1"><span class="label">CASH IN HAND</span><b id="accRepCash">₹0.00</b><small>Closing balance</small></div><div class="metric m2"><span class="label">CASH AT BANK</span><b id="accRepBank">₹0.00</b><small>Closing balance</small></div><div class="metric m3"><span class="label">TOTAL RECEIPTS</span><b id="accRepReceipts">₹0.00</b><small>Selected day</small></div><div class="metric m4"><span class="label">TOTAL PAYMENTS</span><b id="accRepPayments">₹0.00</b><small>Selected day</small></div></div>
+    <div class="panel" id="accountsReportContent" style="margin-top:16px"></div>
+  </div>
+  <div id="inventoryReports">
+    <div class="section-head"><div><h1>Reports</h1><p>Day-wise summary, stock transactions and current stock</p></div><div class="actions"><button class="btn dark" onclick="exportCSV()">EXPORT CSV</button><button class="btn ghost" onclick="printPage()">PRINT / PDF</button></div></div>
+    <div class="panel no-print"><div class="toolbar"><input id="fromDate" type="date"><input id="toDate" type="date"><button class="btn" onclick="renderReports()">FILTER</button><button class="btn dark" onclick="clearReportFilter()">CLEAR</button></div></div><div id="reportCards" class="grid" style="margin-top:16px"></div><div class="panel" id="reportsContent"></div>
+  </div>
 </section>
-
 
 <section id="camp" class="page">
   <div class="section-head"><div><h1>Camp Details</h1><p>Each camp has an independent inventory, messing, POL, incidental and cash book.</p></div><div class="actions"><span class="camp-active" id="campActiveLabel">No camp selected</span></div></div>
@@ -538,7 +551,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -586,379 +599,24 @@ async function loadApp(){
   showPage("dashboard",document.querySelector('[data-page="dashboard"]'));
 }
 function applyRoleUI(){
-  document.querySelectorAll(".adminonly").forEach(e=>e.style.display=roleIs("ADMIN")?"flex":"none");
-  document.querySelectorAll(".stockin-nav,.stockout-nav").forEach(e=>e.style.display=roleIs("ADMIN","MANAGER","Q_SEC")?"flex":"none");
-  document.getElementById("newInBtn").style.display=canStockCreate()?"inline-flex":"none";
-  document.getElementById("newOutBtn").style.display=canStockCreate()?"inline-flex":"none";
-  document.getElementById("saveInBtn").style.display=canTxEdit()?"inline-flex":"none";
-  document.getElementById("saveOutBtn").style.display=canTxEdit()?"inline-flex":"none";
-  const addBtn=document.getElementById("addItemBtn"); if(addBtn) addBtn.style.display=canWriteInventory()?"inline-flex":"none";
-}
-async function refreshAll(){
-  const [a,b,c,p,l]=await Promise.all([
-    sb.from("inventory_items").select("*").order("ledger_page_no"),
-    sb.from("stock_in_invoices").select("*,stock_in_items(*)").order("invoice_date",{ascending:false}).order("created_at",{ascending:false}),
-    sb.from("stock_out_vouchers").select("*,stock_out_items(*)").order("voucher_date",{ascending:false}).order("created_at",{ascending:false}),
-    sb.from("profiles").select("id,display_name,role,created_at").order("display_name"),
-    sb.from("app_settings").select("*").eq("key","nc_logo_path").maybeSingle()
-  ]);
-  if(a.error) console.error(a.error); if(b.error) console.error(b.error); if(c.error) console.error(c.error);
-  items=a.data||[];inInvoices=b.data||[];outVouchers=c.data||[];profiles=p.data||[];
-  if(l.data?.value) setLogo(l.data.value);
-  renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();
-  populateUnitFilter();populateVoucherSelects();
-}
-function setLogo(url){
-  document.getElementById("ncLogo").innerHTML=`<img src="${esc(url)}" alt="NC">`;
-  document.getElementById("loginLogo").innerHTML=`<img src="${esc(url)}" style="width:100%;height:100%;border-radius:15px;object-fit:cover" alt="NC">`;
-}
-function toggleMenu(force){
-  const s=document.getElementById("side");
-  if(force===false){s.classList.remove("expanded","open");return}
-  s.classList.toggle("expanded");s.classList.toggle("open");
-}
-function showPage(id,btn){
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
-  document.getElementById(id)?.classList.add("active");
-  document.querySelectorAll(".nav").forEach(n=>n.classList.remove("active"));
-  btn?.classList.add("active");toggleMenu(false);
-}
-function openModal(html){document.getElementById("modalBox").innerHTML=html;document.getElementById("modal").classList.remove("hidden")}
-function closeModal(){document.getElementById("modal").classList.add("hidden")}
-
-// Inventory Master
-async function openItemModal(id=null){
-  const item=id?items.find(x=>x.id===id):null;
-  let next="";
-  if(!item){
-    const {data,error}=await sb.rpc("next_ledger_page_no");
-    next=error?String(Math.max(0,...items.map(i=>+i.ledger_page_no||0))+1):String(data);
-  }else next=item.ledger_page_no||"";
-  const unitOpts=UNITS.map(u=>`<option ${item?.unit===u?"selected":""}>${u}</option>`).join("");
-  openModal(`<div class="modalhead"><h2>${item?"Edit":"Add"} Inventory Item</h2><button class="close" onclick="closeModal()">×</button></div>
-  <div class="formbox" style="margin-top:12px">
-   <div class="form-grid">
-    <div class="field"><label>Ledger Page No. (Auto)</label><input id="fLedger" value="${esc(next)}" readonly></div>
-    <div class="field"><label>Item Name</label><input id="fName" value="${esc(item?.name||"")}" placeholder="Item name"></div>
-    <div class="field"><label>Category</label><input id="fCat" value="${esc(item?.category||"")}" placeholder="Category"></div>
-    <div class="field"><label>Unit</label><select id="fUnit">${unitOpts}</select></div>
-    <div class="field"><label>Opening Stock</label><input id="fOpening" type="number" step="0.01" min="0" value="${item?.opening_stock??0}"></div>
-    <div class="field"><label>Reorder Level</label><input id="fReorder" type="number" step="0.01" min="0" value="${item?.reorder_level??0}"></div>
-   </div>
-   <div class="actions" style="margin-top:14px"><button class="btn" onclick="saveItem('${item?.id||""}')">SAVE ITEM</button><button class="btn ghost" onclick="closeModal()">CANCEL</button></div>
-  </div>`);
-}
-async function saveItem(id){
-  if(!canWriteInventory()){alert("Read-only access.");return}
-  const payload={ledger_page_no:document.getElementById("fLedger").value.trim(),name:document.getElementById("fName").value.trim(),category:document.getElementById("fCat").value.trim(),unit:document.getElementById("fUnit").value,opening_stock:+document.getElementById("fOpening").value||0,reorder_level:+document.getElementById("fReorder").value||0};
-  if(!payload.name){alert("Item name is required.");return}
-  const q=id?sb.from("inventory_items").update(payload).eq("id",id):sb.from("inventory_items").insert(payload);
-  const {error}=await q;if(error){alert(error.message);return}
-  closeModal();await refreshAll();
-}
-async function deleteItem(id){
-  if(!canDelete())return alert("Only ADMIN/MANAGER can delete inventory items.");
-  if(!confirm("Delete this item? It cannot be deleted if transactions reference it."))return;
-  const {error}=await sb.from("inventory_items").delete().eq("id",id);if(error)alert(error.message);else await refreshAll();
-}
-function balance(i){return (+i.opening_stock||0)+(+i.stock_in_qty||0)-(+i.stock_out_qty||0)}
-function renderInventory(){
-  const q=(document.getElementById("invSearch")?.value||"").toLowerCase(),u=document.getElementById("unitFilter")?.value||"";
-  const list=items.filter(i=>(i.name+" "+(i.category||"")).toLowerCase().includes(q)&&(!u||i.unit===u));
-  let h=`<table><tr><th>Ledger Page</th><th>Item Name</th><th>Category</th><th>Unit</th><th>Opening</th><th>Stock In</th><th>Stock Out</th><th>Balance</th><th>Reorder</th><th>Status</th><th>Action</th></tr>`;
-  list.forEach(i=>{
-    const b=balance(i),low=b<=+i.reorder_level;
-    const actions=canWriteInventory()?`<button class="btn ghost" onclick="openItemModal('${i.id}')">Edit</button> ${canDelete()?`<button class="btn red" onclick="deleteItem('${i.id}')">Delete</button>`:""}`:"Read only";
-    h+=`<tr><td><b>${esc(i.ledger_page_no||"")}</b></td><td><b>${esc(i.name)}</b></td><td>${esc(i.category||"")}</td><td>${esc(i.unit||"")}</td><td>${(+i.opening_stock||0).toFixed(2)}</td><td>${(+i.stock_in_qty||0).toFixed(2)}</td><td>${(+i.stock_out_qty||0).toFixed(2)}</td><td><b>${b.toFixed(2)}</b></td><td>${(+i.reorder_level||0).toFixed(2)}</td><td><span class="status ${low?"low":"ok"}">${low?"LOW":"OK"}</span></td><td>${actions}</td></tr>`;
-  });
-  h+="</table>";document.getElementById("inventoryTable").innerHTML=list.length?h:"<div class='empty'>No inventory items found.</div>";
-}
-function populateUnitFilter(){
-  const el=document.getElementById("unitFilter");if(!el)return;const current=el.value;
-  el.innerHTML='<option value="">All Units</option>'+[...new Set([...UNITS,...items.map(i=>i.unit).filter(Boolean)])].map(u=>`<option ${u===current?"selected":""}>${esc(u)}</option>`).join("");
-}
-
-// Stock In
-function inOptions(selected=""){return items.length?items.map(i=>`<option value="${i.id}" ${selected===i.id?"selected":""}>${esc(i.name)} (${esc(i.unit||"")})</option>`).join(""):"<option value=''>Add inventory items first</option>"}
-function addInRow(data={}) {
-  const wrap=document.getElementById("inRows"),row=document.createElement("div");row.className="item-row";
-  row.innerHTML=`<select class="in-item" onchange="calcInTotal()"><option value="">Select item</option>${inOptions(data.item_id||"")}</select>
-    <input class="in-qty" type="number" min="0" step="0.01" value="${data.quantity??""}" oninput="calcInTotal()">
-    <input class="in-rate" type="number" min="0" step="0.01" value="${data.rate??""}" oninput="calcInTotal()">
-    <div class="amt in-amt">0.00</div><button class="btn red" onclick="this.parentElement.remove();calcInTotal()">×</button>`;
-  wrap.appendChild(row);calcInTotal();
-}
-function calcInTotal(){let t=0;document.querySelectorAll("#inRows .item-row").forEach(r=>{const q=+r.querySelector(".in-qty").value||0,rate=+r.querySelector(".in-rate").value||0,a=q*rate;r.querySelector(".in-amt").textContent=a.toFixed(2);t+=a});document.getElementById("inTotal").textContent=t.toFixed(2)}
-function resetStockInForm(){
-  if(!canStockCreate()&&!document.getElementById("editInId").value)return;
-  document.getElementById("editInId").value="";document.getElementById("inInvoice").value="";document.getElementById("inDate").value=today();document.getElementById("inSupplier").value="";
-  document.getElementById("stockInFormTitle").textContent="New Purchase Invoice";document.getElementById("inRows").innerHTML="";addInRow();setMsg("inMsg","");
-}
-async function saveStockIn(){
-  if(!canTxEdit())return;
-  const id=document.getElementById("editInId").value||null,invoice=document.getElementById("inInvoice").value.trim(),date=document.getElementById("inDate").value,supplier=document.getElementById("inSupplier").value.trim();
-  if(!id&&!canStockCreate()){setMsg("inMsg","Your role can edit existing invoices but cannot create new invoices.");return}
-  if(!invoice||!date){setMsg("inMsg","Invoice number and date are required.");return}
-  const rows=[...document.querySelectorAll("#inRows .item-row")].map(r=>({item_id:r.querySelector(".in-item").value,quantity:+r.querySelector(".in-qty").value||0,rate:+r.querySelector(".in-rate").value||0})).filter(x=>x.item_id&&x.quantity>0);
-  if(!rows.length){setMsg("inMsg","Add at least one item with quantity.");return}
-  const {data,error}=await sb.rpc("save_stock_in_invoice",{p_id:id,p_invoice_number:invoice,p_invoice_date:date,p_supplier:supplier,p_items:rows});
-  if(error){setMsg("inMsg",error.message);return}
-  setMsg("inMsg","Invoice saved successfully.",true);resetStockInForm();await refreshAll();
-  showPage("stockin",document.querySelector('[data-page="stockin"]'));
-}
-async function editStockIn(id){
-  if(!canTxEdit())return;
-  const h=inInvoices.find(x=>x.id===id);if(!h)return;
-  document.getElementById("editInId").value=h.id;document.getElementById("inInvoice").value=h.invoice_number;document.getElementById("inDate").value=h.invoice_date;document.getElementById("inSupplier").value=h.supplier||"";
-  document.getElementById("stockInFormTitle").textContent="Edit Purchase Invoice";document.getElementById("inRows").innerHTML="";
-  (h.stock_in_items||[]).forEach(r=>addInRow(r));if(!(h.stock_in_items||[]).length)addInRow();
-  window.scrollTo({top:0,behavior:"smooth"});
-}
-async function deleteStockIn(id){
-  if(!canDelete())return alert("Only ADMIN/MANAGER can delete invoices.");
-  if(!confirm("Delete this complete invoice and all its item rows?"))return;
-  const {error}=await sb.rpc("delete_stock_in_invoice",{p_id:id});if(error)alert(error.message);else await refreshAll();
-}
-function renderStockInList(){
-  let h=`<table><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th><th>Action</th></tr>`;
-  inInvoices.forEach(x=>{const total=(x.stock_in_items||[]).reduce((s,r)=>s+(+r.amount||(+r.quantity||0)*(+r.rate||0)),0);
-    let actions=canTxEdit()?`<button class="btn ghost" onclick="editStockIn('${x.id}')">Edit</button>`:"View";
-    if(canDelete())actions+=` <button class="btn red" onclick="deleteStockIn('${x.id}')">Delete</button>`;
-    h+=`<tr><td><b>${esc(x.invoice_number)}</b></td><td>${esc(x.invoice_date)}</td><td>${esc(x.supplier||"")}</td><td>${(x.stock_in_items||[]).length}</td><td>${money(total)}</td><td>${actions}</td></tr>`});
-  h+="</table>";document.getElementById("inList").innerHTML=inInvoices.length?h:"<div class='empty'>No purchase invoices saved yet.</div>";
-}
-
-// Stock Out
-function populateVoucherSelects(){
-  const v=document.getElementById("outVoucher"),current=v.value;
-  if(v)v.innerHTML=VOUCHERS.map(x=>`<option ${x===current?"selected":""}>${x}</option>`).join("");
-}
-function addOutRow(data={}){
-  const wrap=document.getElementById("outRows"),row=document.createElement("div");row.className="item-row";
-  row.innerHTML=`<select class="out-item" onchange="updateOutRow(this)"><option value="">Select item</option>${items.map(i=>`<option value="${i.id}" ${data.item_id===i.id?"selected":""}>${esc(i.name)} (${esc(i.unit||"")})</option>`).join("")}</select>
-    <div class="out-bal badge">0.00</div><input class="out-qty" type="number" min="0" step="0.01" value="${data.quantity??""}" oninput="calcOutTotal()"><div class="amt out-amt">0.00</div>
-    <button class="btn red" onclick="this.parentElement.remove();calcOutTotal()">×</button>`;
-  wrap.appendChild(row);updateOutRow(row.querySelector(".out-item"));
-}
-function updateOutRow(sel){const r=sel.parentElement,i=items.find(x=>x.id===sel.value),b=i?balance(i):0;r.querySelector(".out-bal").textContent=b.toFixed(2);r.querySelector(".out-qty").max=Math.max(0,b);calcOutTotal()}
-function calcOutTotal(){let t=0;document.querySelectorAll("#outRows .item-row").forEach(r=>{const i=items.find(x=>x.id===r.querySelector(".out-item").value),q=+r.querySelector(".out-qty").value||0,a=q*(+(i?.avg_rate||0));r.querySelector(".out-amt").textContent=a.toFixed(2);t+=a});document.getElementById("outTotal").textContent=t.toFixed(2)}
-function resetStockOutForm(){
-  if(!canStockCreate()&&!document.getElementById("editOutId").value)return;
-  document.getElementById("editOutId").value="";document.getElementById("outVoucher").value="IV-1";document.getElementById("outDate").value=today();document.getElementById("outIssuedTo").value="";
-  document.getElementById("stockOutFormTitle").textContent="New Issue Voucher";document.getElementById("outRows").innerHTML="";addOutRow();setMsg("outMsg","");
-}
-async function saveStockOut(){
-  if(!canTxEdit())return;
-  const id=document.getElementById("editOutId").value||null,voucher=document.getElementById("outVoucher").value,date=document.getElementById("outDate").value,issued=document.getElementById("outIssuedTo").value.trim();
-  if(!id&&!canStockCreate()){setMsg("outMsg","Your role can edit existing vouchers but cannot create new vouchers.");return}
-  if(!date){setMsg("outMsg","Date is required.");return}
-  const rows=[...document.querySelectorAll("#outRows .item-row")].map(r=>({item_id:r.querySelector(".out-item").value,quantity:+r.querySelector(".out-qty").value||0})).filter(x=>x.item_id&&x.quantity>0);
-  if(!rows.length){setMsg("outMsg","Add at least one item with quantity.");return}
-  const {data,error}=await sb.rpc("save_stock_out_voucher",{p_id:id,p_voucher_number:voucher,p_voucher_date:date,p_issued_to:issued,p_items:rows});
-  if(error){setMsg("outMsg",error.message);return}
-  setMsg("outMsg","Voucher saved successfully.",true);resetStockOutForm();await refreshAll();
-  showPage("stockout",document.querySelector('[data-page="stockout"]'));
-}
-async function editStockOut(id){
-  if(!canTxEdit())return;
-  const h=outVouchers.find(x=>x.id===id);if(!h)return;
-  document.getElementById("editOutId").value=h.id;document.getElementById("outVoucher").value=h.voucher_number;document.getElementById("outDate").value=h.voucher_date;document.getElementById("outIssuedTo").value=h.issued_to||"";
-  document.getElementById("stockOutFormTitle").textContent="Edit Issue Voucher";document.getElementById("outRows").innerHTML="";
-  (h.stock_out_items||[]).forEach(r=>addOutRow(r));if(!(h.stock_out_items||[]).length)addOutRow();
-  window.scrollTo({top:0,behavior:"smooth"});
-}
-async function deleteStockOut(id){
-  if(!canDelete())return alert("Only ADMIN/MANAGER can delete vouchers.");
-  if(!confirm("Delete this complete voucher and all its item rows?"))return;
-  const {error}=await sb.rpc("delete_stock_out_voucher",{p_id:id});if(error)alert(error.message);else await refreshAll();
-}
-function renderStockOutList(){
-  let h=`<table><tr><th>Voucher</th><th>Date</th><th>Issued To</th><th>Items</th><th>Total</th><th>Action</th></tr>`;
-  outVouchers.forEach(x=>{const total=(x.stock_out_items||[]).reduce((s,r)=>s+(+r.amount||(+r.quantity||0)*(+r.rate||0)),0);
-    let actions=canTxEdit()?`<button class="btn ghost" onclick="editStockOut('${x.id}')">Edit</button>`:"View";
-    if(canDelete())actions+=` <button class="btn red" onclick="deleteStockOut('${x.id}')">Delete</button>`;
-    h+=`<tr><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.voucher_date)}</td><td>${esc(x.issued_to||"")}</td><td>${(x.stock_out_items||[]).length}</td><td>${money(total)}</td><td>${actions}</td></tr>`});
-  h+="</table>";document.getElementById("outList").innerHTML=outVouchers.length?h:"<div class='empty'>No issue vouchers saved yet.</div>";
-}
-
-// Dashboard
-function renderDashboard(){
-  const ia=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0);
-  const iq=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0);
-  const oa=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0);
-  const oq=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0);
-  document.getElementById("dInAmt").textContent=money(ia);document.getElementById("dOutAmt").textContent=money(oa);document.getElementById("dInQty").textContent=iq.toFixed(2);document.getElementById("dOutQty").textContent=oq.toFixed(2);
-  document.getElementById("dItemCount").textContent=items.length+" items";
-  let low=0,h=`<table><tr><th>Ledger</th><th>Item</th><th>Unit</th><th>Balance</th><th>Reorder</th><th>Status</th></tr>`;
-  items.forEach(i=>{const b=balance(i),isLow=b<=+i.reorder_level;if(isLow)low++;h+=`<tr><td>${esc(i.ledger_page_no||"")}</td><td><b>${esc(i.name)}</b></td><td>${esc(i.unit||"")}</td><td>${b.toFixed(2)}</td><td>${(+i.reorder_level||0).toFixed(2)}</td><td><span class="status ${isLow?"low":"ok"}">${isLow?"LOW":"OK"}</span></td></tr>`});
-  h+="</table>";document.getElementById("dashTable").innerHTML=items.length?h:"<div class='empty'>No inventory items yet.</div>";
-  const pct=items.length?Math.round(low/items.length*100):0;document.getElementById("riskPct").textContent=pct+"%";
-  document.getElementById("riskLegend").innerHTML=`<div><span class="status low">${low} Low stock</span></div><div style="margin-top:8px"><span class="status ok">${Math.max(items.length-low,0)} OK</span></div><p class="kpi-note">Maintain reorder levels to reduce stock-outs.</p>`;
-}
-
-// Reports
-function dateOk(d,from,to){return (!from||d>=from)&&(!to||d<=to)}
-function renderReports(){
-  const from=document.getElementById("fromDate")?.value,to=document.getElementById("toDate")?.value;
-  const ins=inInvoices.filter(x=>dateOk(x.invoice_date,from,to)),outs=outVouchers.filter(x=>dateOk(x.voucher_date,from,to));
-  const inValue=ins.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0);
-  const outValue=outs.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0);
-  document.getElementById("reportCards").innerHTML=`<div class="metric m1"><span class="label">PURCHASE INVOICES</span><b>${ins.length}</b><small>Selected date range</small></div><div class="metric m2"><span class="label">ISSUE VOUCHERS</span><b>${outs.length}</b><small>Selected date range</small></div><div class="metric m3"><span class="label">PURCHASE VALUE</span><b>${money(inValue)}</b><small>Selected date range</small></div><div class="metric m4"><span class="label">ISSUE VALUE</span><b>${money(outValue)}</b><small>Selected date range</small></div>`;
-  let h=`<h3>Day-wise Summary</h3><table><tr><th>Date</th><th>Stock In Value</th><th>Stock Out Value</th><th>Net Value</th></tr>`;
-  const days={};ins.forEach(x=>{days[x.invoice_date]??={i:0,o:0};days[x.invoice_date].i+=(x.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0)});outs.forEach(x=>{days[x.voucher_date]??={i:0,o:0};days[x.voucher_date].o+=(x.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0)});
-  Object.keys(days).sort().reverse().forEach(d=>h+=`<tr><td>${d}</td><td>${money(days[d].i)}</td><td>${money(days[d].o)}</td><td>${money(days[d].i-days[d].o)}</td></tr>`);
-  h+=`</table><h3 style="margin-top:20px">Current Stock</h3><table><tr><th>Ledger</th><th>Item</th><th>Unit</th><th>Opening</th><th>In</th><th>Out</th><th>Balance</th><th>Status</th></tr>`;
-  items.forEach(i=>{const b=balance(i),low=b<=+i.reorder_level;h+=`<tr><td>${esc(i.ledger_page_no||"")}</td><td>${esc(i.name)}</td><td>${esc(i.unit||"")}</td><td>${(+i.opening_stock||0).toFixed(2)}</td><td>${(+i.stock_in_qty||0).toFixed(2)}</td><td>${(+i.stock_out_qty||0).toFixed(2)}</td><td><b>${b.toFixed(2)}</b></td><td>${low?"LOW":"OK"}</td></tr>`});
-  h+="</table><h3 style='margin-top:20px'>Stock In Details</h3><table><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th></tr>";
-  ins.forEach(x=>h+=`<tr><td>${esc(x.invoice_number)}</td><td>${x.invoice_date}</td><td>${esc(x.supplier||"")}</td><td>${(x.stock_in_items||[]).length}</td><td>${money((x.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0))}</td></tr>`);
-  h+="</table><h3 style='margin-top:20px'>Stock Out Details</h3><table><tr><th>Voucher</th><th>Date</th><th>Issued To</th><th>Items</th><th>Total</th></tr>";
-  outs.forEach(x=>h+=`<tr><td>${esc(x.voucher_number)}</td><td>${x.voucher_date}</td><td>${esc(x.issued_to||"")}</td><td>${(x.stock_out_items||[]).length}</td><td>${money((x.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0))}</td></tr>`);
-  h+="</table>";document.getElementById("reportsContent").innerHTML=h;
-}
-function clearReportFilter(){document.getElementById("fromDate").value="";document.getElementById("toDate").value="";renderReports()}
-function printPage(){window.print()}
-
-// Users
-async function saveUserProfile(){
-  if(!roleIs("ADMIN"))return;
-  const id=document.getElementById("uId").value.trim(),name=document.getElementById("uName").value.trim(),role=document.getElementById("uRole").value;
-  if(!id){setMsg("userMsg","Auth User UUID is required.");return}
-  const {error}=await sb.from("profiles").upsert({id,display_name:name||null,role},{onConflict:"id"});
-  if(error){setMsg("userMsg",error.message);return}
-  setMsg("userMsg","User profile saved.",true);document.getElementById("uId").value="";document.getElementById("uName").value="";await refreshAll();
-}
-function renderUsers(){
-  if(!roleIs("ADMIN"))return;
-  let h=`<table><tr><th>Display Name</th><th>Role</th><th>UUID</th><th>Created</th></tr>`;
-  profiles.forEach(u=>h+=`<tr><td>${esc(u.display_name||"")}</td><td><span class="badge">${esc(u.role)}</span></td><td>${esc(u.id)}</td><td>${esc(u.created_at||"")}</td></tr>`);
-  h+="</table>";document.getElementById("usersTable").innerHTML=profiles.length?h:"<div class='empty'>No profiles found.</div>";
-}
-
-// Logo
-function openLogo(){
-  if(!roleIs("ADMIN"))return;
-  openModal(`<div class="modalhead"><h2>Upload NC Logo</h2><button class="close" onclick="closeModal()">×</button></div><div class="formbox" style="margin-top:12px"><p class="muted">Choose JPG or PNG. The logo is stored in Supabase Storage.</p><input id="logoFile" type="file" accept="image/png,image/jpeg"><div class="actions" style="margin-top:12px"><button class="btn" onclick="uploadLogo()">UPLOAD</button></div></div>`)
-}
-async function uploadLogo(){
-  const f=document.getElementById("logoFile").files[0];if(!f)return;
-  const ext=(f.name.split(".").pop()||"png").toLowerCase(),path=`logos/nc-logo.${ext}`;
-  const {error}=await sb.storage.from("ims-assets").upload(path,f,{upsert:true,contentType:f.type});
-  if(error){alert(error.message);return}
-  const {data}=sb.storage.from("ims-assets").getPublicUrl(path);
-  const {error:e2}=await sb.from("app_settings").upsert({key:"nc_logo_path",value:data.publicUrl});
-  if(e2){alert(e2.message);return}closeModal();await refreshAll();
-}
-
-function start(){
-  document.getElementById("inDate").value=today();document.getElementById("outDate").value=today();populateVoucherSelects();
-  document.getElementById("fromDate").value="";document.getElementById("toDate").value="";
-  if(sb)sb.auth.getSession().then(({data})=>{if(data.session){currentUser=data.session.user;loadApp()}});
-}
-
-/* ================= CAMP + Q SEC + ACCOUNTS EXTENSION ================= */
-let camps=[], activeCamp=null, polVehicles=[], polEntries=[], incidentals=[], cashbookEntries=[], cashbookClosures=[], cashType='RECEIPT', pendingReceiptAllocationId=null, pendingReceiptAllocationAmount=0;
-
-function canQsecEntry(){return roleIs('ADMIN','MANAGER','Q_SEC')}
-function canAccountsEntry(){return roleIs('ADMIN','ACCOUNTS')}
-function canCampManage(){return roleIs('ADMIN','MANAGER')}
-
-function populateCampTop(){
-  const el=document.getElementById('campSelectTop'); if(!el)return;
-  const current=activeCamp?.id||'';
-  el.innerHTML='<option value="">Select Camp</option>'+camps.map(c=>`<option value="${esc(c.id)}" ${c.id===current?'selected':''}>${esc(c.camp_code)} - ${esc(c.camp_name)}</option>`).join('');
-  const lbl=document.getElementById('campActiveLabel'); if(lbl) lbl.textContent=activeCamp?`${activeCamp.camp_code} | ${activeCamp.camp_name}`:'No camp selected';
-}
-async function switchCamp(id){
-  if(!id)return;
-  const c=camps.find(x=>x.id===id); if(!c)return;
-  const {error}=await sb.from('profiles').update({current_camp_id:id}).eq('id',currentUser.id);
-  if(error){alert(error.message);return}
-  profile.current_camp_id=id; activeCamp=c; populateCampTop(); await refreshAll();
-  showPage('dashboard',document.querySelector('[data-page="dashboard"]'));
-}
-function clearCampForm(){['campCode','campName','campStation','campFrom','campTo','campRemarks'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});setMsg('campMsg','')}
-async function saveCamp(){
-  if(!canCampManage()){setMsg('campMsg','Only ADMIN or MANAGER can create a camp.');return}
-  const code=document.getElementById('campCode').value.trim().toUpperCase(), name=document.getElementById('campName').value.trim(), station=document.getElementById('campStation').value.trim(), from=document.getElementById('campFrom').value, to=document.getElementById('campTo').value||null, remarks=document.getElementById('campRemarks').value.trim();
-  if(!code||!name||!from){setMsg('campMsg','Camp code, camp name and from date are required.');return}
-  const {data,error}=await sb.from('camps').insert({camp_code:code,camp_name:name,station:station||null,from_date:from,to_date:to,remarks:remarks||null,created_by:currentUser.id}).select().single();
-  if(error){setMsg('campMsg',error.message);return}
-  camps=[data,...camps]; profile.current_camp_id=data.id; activeCamp=data; await sb.from('profiles').update({current_camp_id:data.id}).eq('id',currentUser.id); clearCampForm(); setMsg('campMsg','New camp started successfully.',true); populateCampTop(); renderCamps(); await refreshAll(); showPage('dashboard',document.querySelector('[data-page="dashboard"]'));
-}
-async function renderCamps(){
-  const el=document.getElementById('campTable'); if(!el)return;
-  let h='<table><tr><th>Code</th><th>Camp Name</th><th>Station</th><th>From</th><th>To</th><th>Status</th><th>Action</th></tr>';
-  camps.forEach(c=>{const active=activeCamp?.id===c.id; h+=`<tr><td><b>${esc(c.camp_code)}</b></td><td>${esc(c.camp_name)}</td><td>${esc(c.station||'')}</td><td>${esc(c.from_date||'')}</td><td>${esc(c.to_date||'')}</td><td><span class="status ${active?'ok':'low'}">${active?'ACTIVE':'AVAILABLE'}</span></td><td>${active?'Current':`<button class="btn" onclick="switchCamp('${c.id}')">SELECT</button>`}</td></tr>`});
-  h+='</table>'; el.innerHTML=camps.length?h:'<div class="empty">No camp found. ADMIN/MANAGER must start a new camp.</div>';
-}
-
-function applyRoleUI(){
-  const allNav=document.querySelectorAll('.sidebar .nav[data-page]');
-  const role=(profile&&profile.role)||'VIEWER';
-  let allowed=new Set(['dashboard','inventory','reports']);
-
-  if(['ADMIN','MANAGER'].includes(role)){
-    ['camp','messing','stockin','stockout','pol','incidental','cashbook','users'].forEach(x=>allowed.add(x));
-  }else if(role==='Q_SEC'){
-    ['messing','stockin','stockout','pol','incidental'].forEach(x=>allowed.add(x));
-  }else if(role==='ACCOUNTS'){
-    ['cashbook','incidental'].forEach(x=>allowed.add(x));
-  }
-
-  // Explicitly set every navigation item so stale/legacy CSS cannot hide modules.
-  allNav.forEach(n=>{
-    const page=n.dataset.page;
-    n.style.display=allowed.has(page)?'flex':'none';
-  });
-
-  // Admin-only user management and logo controls.
-  document.querySelectorAll('.adminonly').forEach(e=>{
-    e.style.display=role==='ADMIN'?'flex':'none';
-  });
-
-  const showStock=['ADMIN','MANAGER','Q_SEC'].includes(role);
-  document.querySelectorAll('.stockin-nav,.stockout-nav').forEach(e=>{
-    e.style.display=showStock?'flex':'none';
-  });
-
-  const showPOL=['ADMIN','MANAGER','Q_SEC'].includes(role);
-  document.querySelectorAll('.pol-nav').forEach(e=>{
-    e.style.display=showPOL?'flex':'none';
-  });
-
-  const showInc=['ADMIN','MANAGER','Q_SEC','ACCOUNTS'].includes(role);
-  document.querySelectorAll('.incident-nav').forEach(e=>{
-    e.style.display=showInc?'flex':'none';
-  });
-
-  const showCash=['ADMIN','ACCOUNTS'].includes(role);
-  document.querySelectorAll('.cash-nav').forEach(e=>{
-    e.style.display=showCash?'flex':'none';
-  });
-
-  const showCamp=['ADMIN','MANAGER'].includes(role);
-  document.querySelectorAll('.camp-nav').forEach(e=>{
-    e.style.display=showCamp?'flex':'none';
-  });
-
-  const showMess=['ADMIN','MANAGER','Q_SEC'].includes(role);
-  document.querySelectorAll('.messing-nav').forEach(e=>{
-    e.style.display=showMess?'flex':'none';
-  });
-
-  const add=document.getElementById('addItemBtn');
-  if(add)add.style.display=canWriteInventory()?'inline-flex':'none';
-
-  ['newInBtn','newOutBtn'].forEach(id=>{
-    const e=document.getElementById(id);
-    if(e)e.style.display=canStockCreate()?'inline-flex':'none';
-  });
-
-  const cashSave=document.getElementById('cashSaveBtn');
-  if(cashSave)cashSave.style.display=canAccountsEntry()?'inline-flex':'none';
-
-  const note=document.getElementById('cashAccountsNote');
-  if(note)note.classList.toggle('hidden',canAccountsEntry());
+  const allNav=document.querySelectorAll('.sidebar .nav[data-page]'), role=(profile&&profile.role)||'VIEWER'; let allowed;
+  if(role==='ACCOUNTS') allowed=new Set(['dashboard','cashbook','reports']);
+  else if(role==='Q_SEC') allowed=new Set(['dashboard','messing','inventory','stockin','stockout','pol','incidental','reports']);
+  else if(role==='MANAGER') allowed=new Set(['dashboard','camp','messing','inventory','stockin','stockout','pol','incidental','cashbook','reports']);
+  else if(role==='ADMIN') allowed=new Set(['dashboard','camp','messing','inventory','stockin','stockout','pol','incidental','cashbook','reports','users']);
+  else allowed=new Set(['dashboard','inventory','reports']);
+  allNav.forEach(n=>n.style.display=allowed.has(n.dataset.page)?'flex':'none');
+  document.querySelectorAll('.adminonly').forEach(e=>e.style.display=role==='ADMIN'?'flex':'none');
+  const showStock=['ADMIN','MANAGER','Q_SEC'].includes(role); document.querySelectorAll('.stockin-nav,.stockout-nav,.pol-nav').forEach(e=>e.style.display=showStock?'flex':'none');
+  document.querySelectorAll('.incident-nav').forEach(e=>e.style.display=['ADMIN','MANAGER','Q_SEC'].includes(role)?'flex':'none');
+  document.querySelectorAll('.cash-nav').forEach(e=>e.style.display=['ADMIN','MANAGER','ACCOUNTS'].includes(role)?'flex':'none');
+  document.querySelectorAll('.camp-nav').forEach(e=>e.style.display=['ADMIN','MANAGER'].includes(role)?'flex':'none');
+  document.querySelectorAll('.messing-nav').forEach(e=>e.style.display=['ADMIN','MANAGER','Q_SEC'].includes(role)?'flex':'none');
+  const add=document.getElementById('addItemBtn');if(add)add.style.display=canWriteInventory()?'inline-flex':'none';
+  ['newInBtn','newOutBtn'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display=canStockCreate()?'inline-flex':'none'});
+  const cashSave=document.getElementById('cashSaveBtn');if(cashSave)cashSave.style.display=canAccountsEntry()?'inline-flex':'none';
+  const note=document.getElementById('cashAccountsNote');if(note)note.classList.toggle('hidden',canAccountsEntry());
+  const accountOnly=role==='ACCOUNTS'; document.getElementById('accountsDashboard')?.classList.toggle('hidden',!accountOnly);document.getElementById('inventoryDashboard')?.classList.toggle('hidden',accountOnly);document.getElementById('accountsReports')?.classList.toggle('hidden',!accountOnly);document.getElementById('inventoryReports')?.classList.toggle('hidden',accountOnly);
 }
 
 async function ensureCampContext(){
@@ -1177,7 +835,7 @@ function allocationSummary(x){
   if(x.head_allocations){let a=typeof x.head_allocations==='string'?JSON.parse(x.head_allocations):x.head_allocations;const labels=[];Object.entries(a||{}).forEach(([k,v])=>{if(Number(v)>0)labels.push(`${k}: ${money(v)}`)});if(labels.length)return labels.join(' | ')}
   return x.code_head||'';
 }
-function sourceDetailObject(x){let d=x?.source_details||{};if(typeof d==='string'){try{d=JSON.parse(d)}catch(_){d={}}}return d||{}}
+function sourceDetailObject(x){let d=x?.source_details||{};if(typeof d==='string'){try{d=JSON.parse(d)}catch(_){d={}}}d=d||{};if(!d.to_whom_paid&&x?.party)d.to_whom_paid=x.party;if(!d.on_account&&x?.code_head)d.on_account=x.code_head;if(!d.source_reference&&x?.reference_no)d.source_reference=x.reference_no;return d}
 function itemSummary(x){const d=sourceDetailObject(x),items=Array.isArray(d.items)?d.items:[];return items.map(it=>`${it.name||it.item||it.desc||''}${it.qty!=null?` (${it.qty} ${it.unit||''})`:''}`).filter(Boolean).join(', ')}
 function renderCashbook(){const el=document.getElementById('cashbookTable');if(!el)return;let h='<table><tr><th>Date</th><th>Type</th><th>RV / PV No.</th><th>Source Type</th><th>Invoice / Ref</th><th>To Whom / Party</th><th>On What Account</th><th>Mode</th><th>Code Head / Distribution</th><th>Purchased Items / Particulars</th><th>Amount</th></tr>';cashbookEntries.forEach(x=>{const d=sourceDetailObject(x);h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.source_type||'')}</td><td>${esc(x.reference_no||'')}</td><td>${esc(d.to_whom_paid||x.party||'')}</td><td>${esc(d.on_account||x.code_head||x.reference_no||'')}</td><td>${esc(x.mode||'')}</td><td>${esc(allocationSummary(x))}</td><td>${esc(itemSummary(x))}</td><td>${money(x.amount)}</td></tr>`});h+='</table>';el.innerHTML=cashbookEntries.length?h:'<div class="empty">No Cash Book entries for this camp.</div>'}
 function latestClosureBefore(date){return [...cashbookClosures].filter(x=>x.close_date<date).sort((a,b)=>b.close_date.localeCompare(a.close_date))[0]||null}
@@ -1188,14 +846,30 @@ function dayHeadValues(rows){const receipts=headZero(),payments=headZero();rows.
 function calculateDay(date){const prev=latestClosureBefore(date);let bfCash=prev?+prev.closing_cash:0,bfBank=prev?+prev.closing_bank:0,bfHeads=jsonObj(prev?.closing_heads);CASH_HEADS.forEach(h=>{if(bfHeads[h]==null)bfHeads[h]=0});let rc=0,rb=0,pc=0,pb=0,draw=0;const rows=cashbookEntries.filter(x=>x.entry_date===date);rows.forEach(e=>{const a=+e.amount||0;if(e.entry_type==='RECEIPT'){if(e.mode==='CASH')rc+=a;else rb+=a}else if(e.entry_type==='PAYMENT'){if(e.mode==='CASH')pc+=a;else pb+=a}else if(e.entry_type==='CASH_DRAWN')draw+=a});const hv=dayHeadValues(rows),cfHeads=headZero();CASH_HEADS.forEach(h=>cfHeads[h]=(Number(bfHeads[h])||0)+(Number(hv.receipts[h])||0)-(Number(hv.payments[h])||0));const cfCash=bfCash+rc-pc+draw,cfBank=bfBank+rb-pb-draw;return{bfCash,bfBank,rc,rb,pc,pb,draw,cfCash,cfBank,net:cfCash+cfBank,rows,closed:!!cashbookClosures.find(x=>x.close_date===date),bfHeads,headReceipts:hv.receipts,headPayments:hv.payments,cfHeads}}
 function currentHeadBalance(head,date=today()){let total=0;cashbookEntries.filter(e=>e.entry_date<=date).forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);total+=Number(a[head]||0)}else if(e.entry_type==='PAYMENT'&&e.code_head===head)total-=Number(e.amount||0)});return total}
 function currentSourceBalance(mode){let total=0;cashbookEntries.forEach(e=>{const a=Number(e.amount)||0;if(e.entry_type==='RECEIPT'&&e.mode===mode)total+=a;if(e.entry_type==='PAYMENT'&&e.mode===mode)total-=a;if(e.entry_type==='CASH_DRAWN'){if(mode==='CASH')total+=a;if(mode==='BANK')total-=a}});return total}
-function updatePaymentBalancePreview(){const mode=document.getElementById('cashPaymentMode')?.value||'CASH',head=document.getElementById('cashPaymentCodeHead')?.value||'',amt=+(document.getElementById('cashPaymentAmount')?.value||0)||0,bank=currentSourceBalance('BANK'),headBal=head?currentHeadBalance(head):0;document.getElementById('payBankCurrent').textContent=money(bank);document.getElementById('payHeadCurrent').textContent=money(headBal);document.getElementById('payBankAfter').textContent=money(mode==='BANK'?bank-amt:bank);document.getElementById('payHeadAfter').textContent=money(headBal-amt);['payBankAfter','payHeadAfter'].forEach(id=>{const el=document.getElementById(id);el.classList.remove('balance-good','balance-bad');if(Number(el.textContent.replace(/[^0-9.-]/g,''))<0)el.classList.add('balance-bad');else el.classList.add('balance-good')})}
+function updatePaymentBalancePreview(){
+  const mode=document.getElementById('cashPaymentMode')?.value||'CASH';
+  const head=document.getElementById('cashPaymentCodeHead')?.value||'';
+  const rawAmt=String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,'');
+  const amt=Number(rawAmt)||0;
+  const cash=currentSourceBalance('CASH'),bank=currentSourceBalance('BANK');
+  const sourceType=document.getElementById('cashSourceType')?.value||'';
+  const sourceId=document.getElementById('cashSource')?.value||'';
+  const src=(sourceType&&sourceId)?availablePaymentSources(sourceType).find(x=>String(x.id)===String(sourceId)):null;
+  const headBal=head?currentHeadBalance(head):0;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=money(v)};
+  set('payBankCurrent',bank);set('payHeadCurrent',headBal);set('payBankAfter',mode==='BANK'?bank-amt:bank);set('payHeadAfter',headBal-amt);
+  const srcBox=document.getElementById('cashSourceTotal');if(srcBox&&src)srcBox.value=money(Number(src.amount)||0);
+  ['payBankAfter','payHeadAfter'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.classList.remove('balance-good','balance-bad');const n=Number(el.textContent.replace(/[^0-9.-]/g,''));if(n<0)el.classList.add('balance-bad');else el.classList.add('balance-good')});
+  const note=document.getElementById('paymentBalanceNote');if(note)note.textContent='Cash in Hand: '+money(cash)+' | Bank Balance: '+money(bank)+' | '+(head||'Head')+' Balance: '+money(headBal)+(src?' | Source Remaining: '+money(src.amount):'');
+}
+
 function renderDayClose(){const d=document.getElementById('cashDayDate')?.value||today();if(!document.getElementById('cashDayDate'))return;const s=calculateDay(d);['bfCash','bfBank','dayReceiptCash','dayReceiptBank','dayPaymentCash','dayPaymentBank','dayCashDrawn','cfCash','cfBank','dayNet'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).textContent=money({bfCash:s.bfCash,bfBank:s.bfBank,dayReceiptCash:s.rc,dayReceiptBank:s.rb,dayPaymentCash:s.pc,dayPaymentBank:s.pb,dayCashDrawn:s.draw,cfCash:s.cfCash,cfBank:s.cfBank,dayNet:s.net}[id])});document.getElementById('cashDayStatus').value=s.closed?'CLOSED':'OPEN';document.getElementById('cashDayNote').textContent=s.closed?'Day closed. Next day B/F will carry forward this day\'s C/F.':'Close the day after all Accounts entries are complete. The next day B/F is taken from the previous day C/F.';let hb='<table><tr><th>Account Head</th><th>B/F</th><th>Day Receipts / Allotment</th><th>Day Payments</th><th>C/F</th></tr>';CASH_HEADS.forEach(h=>hb+=`<tr><td>${esc(h)}</td><td>${money(s.bfHeads[h])}</td><td>${money(s.headReceipts[h])}</td><td>${money(s.headPayments[h])}</td><td><b>${money(s.cfHeads[h])}</b></td></tr>`);hb+='</table>';document.getElementById('dayHeadBalances').innerHTML=hb;let h='<table><tr><th>Date</th><th>Type</th><th>Voucher No</th><th>Ref</th><th>Party</th><th>Mode</th><th>Amount</th></tr>';s.rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td>${esc(x.voucher_number)}</td><td>${esc(x.reference_no||'')}</td><td>${esc(sourceDetailObject(x).to_whom_paid||x.party||'')}</td><td>${esc(x.mode||'')}</td><td>${money(x.amount)}</td></tr>`);h+='</table>';document.getElementById('dayEntriesTable').innerHTML=h}
 function prepareDayCashbook(){document.getElementById('cashDayDate').value=document.getElementById('cashDayDate').value||today();renderDayClose()}
 async function closeCashbookDay(){if(!canAccountsEntry()){alert('Only ACCOUNTS/ADMIN can close the Cash Book day.');return}const d=document.getElementById('cashDayDate').value||today();if(calculateDay(d).closed){alert('This day is already closed.');return}if(!confirm(`Close Cash Book for ${d}? No further entries will be allowed for this date.`))return;const{data,error}=await sb.rpc('close_cashbook_day',{p_close_date:d});if(error){alert(error.message);return}await refreshAll();renderDayClose();alert(`Day closed. Closing Cash: ${money(data.closing_cash)} | Closing Bank: ${money(data.closing_bank)}`)}
 function printDayCashbook(){const d=document.getElementById('cashDayDate').value||today(),s=calculateDay(d),camp=activeCamp||{},rows=s.rows;let html=`<h1>CAMP CASH BOOK</h1><h2 style="font-size:12px;margin-top:4px">RECEIPTS AND PAYMENTS</h2><div class="meta"><b>Camp:</b> ${esc(camp.camp_name||'')} &nbsp; | &nbsp; <b>Code:</b> ${esc(camp.camp_code||'')} &nbsp; | &nbsp; <b>Station:</b> ${esc(camp.station||'')} &nbsp; | &nbsp; <b>Date:</b> ${d}</div>`;html+=`<table><tr><th colspan="6">RECEIPTS</th><th colspan="10">PAYMENTS</th></tr><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Date</th><th>PV No.</th><th>Source</th><th>Invoice / Ref</th><th>To Whom Paid</th><th>On What Account</th><th>Particulars / Items</th><th>Mode</th><th>Amount</th><th>Head</th></tr>`;const receipts=rows.filter(x=>x.entry_type==='RECEIPT'),payments=rows.filter(x=>x.entry_type==='PAYMENT'),n=Math.max(receipts.length,payments.length,1);for(let i=0;i<n;i++){const r=receipts[i],p=payments[i],pd=sourceDetailObject(p);html+=`<tr><td>${r?esc(r.entry_date):''}</td><td>${r?esc(r.voucher_number):''}</td><td>${r?esc(r.party||''):''}</td><td>${r?esc((r.reference_no||'')+(allocationSummary(r)?' | '+allocationSummary(r):'')):''}</td><td class="num">${r&&r.mode==='CASH'?money(r.amount):''}</td><td class="num">${r&&r.mode==='BANK'?money(r.amount):''}</td><td>${p?esc(p.entry_date):''}</td><td>${p?esc(p.voucher_number):''}</td><td>${p?esc(p.source_type||''):''}</td><td>${p?esc(p.reference_no||''):''}</td><td>${p?esc(pd.to_whom_paid||p.party||''):''}</td><td>${p?esc(pd.on_account||p.code_head||''):''}</td><td>${p?esc(itemSummary(p)):''}</td><td>${p?esc(p.mode||''):''}</td><td class="num">${p?money(p.amount):''}</td><td>${p?esc(allocationSummary(p)):''}</td></tr>`}html+=`<tr class="total"><td colspan="4">BALANCE B/F</td><td class="num">${money(s.bfCash)}</td><td class="num">${money(s.bfBank)}</td><td colspan="4">TOTAL PAYMENTS</td><td colspan="2"></td><td class="num">${money(s.pc+s.pb)}</td><td colspan="2"></td></tr>`;html+=`<tr class="total"><td colspan="4">TOTAL RECEIPTS</td><td class="num">${money(s.rc)}</td><td class="num">${money(s.rb)}</td><td colspan="4">CASH DRAWN</td><td colspan="2"></td><td class="num">${money(s.draw)}</td><td colspan="2"></td></tr>`;html+=`<tr class="total"><td colspan="4">BALANCE C/F</td><td class="num">${money(s.cfCash)}</td><td class="num">${money(s.cfBank)}</td><td colspan="10">DAY STATUS: ${s.closed?'CLOSED':'OPEN'}</td></tr></table>`;html+=`<h3 style="margin-top:18px">Account Head Balance – Carry Forward</h3><table><tr><th>Head</th><th>B/F</th><th>Receipts/Allotment</th><th>Payments</th><th>C/F</th></tr>${CASH_HEADS.map(h=>`<tr><td>${esc(h)}</td><td>${money(s.bfHeads[h])}</td><td>${money(s.headReceipts[h])}</td><td>${money(s.headPayments[h])}</td><td><b>${money(s.cfHeads[h])}</b></td></tr>`).join('')}</table>`;document.getElementById('cashPrintSheet').innerHTML=html;document.body.classList.add('print-cash');window.print();setTimeout(()=>document.body.classList.remove('print-cash'),300)}
 
 function initExtension(){
-  const d=document.getElementById('polDate');if(d)d.value=today();const cd=document.getElementById('cashDate');if(cd)cd.value=today();const pd=document.getElementById('payDate');if(pd)pd.value=today();const cdd=document.getElementById('cdDate');if(cdd)cdd.value=today();const day=document.getElementById('cashDayDate');if(day)day.value=today();const id=document.getElementById('incDate');if(id)id.value=today();const items=document.getElementById('incItems');if(items&&!items.children.length)addIncItem({});setCashType('RECEIPT');
+  const d=document.getElementById('polDate');if(d)d.value=today();const cd=document.getElementById('cashDate');if(cd)cd.value=today();const pd=document.getElementById('payDate');if(pd)pd.value=today();const cdd=document.getElementById('cdDate');if(cdd)cdd.value=today();const day=document.getElementById('cashDayDate');if(day)day.value=today();const ard=document.getElementById('accReportDate');if(ard)ard.value=today();const id=document.getElementById('incDate');if(id)id.value=today();const items=document.getElementById('incItems');if(items&&!items.children.length)addIncItem({});setCashType('RECEIPT');
 }
 
 async function start(){
@@ -1206,4 +880,17 @@ async function start(){
 start();
 </script>
 </body>
-</html>
+</html>function showPage(id,btn){
+  if(profile?.role==='ACCOUNTS' && !['dashboard','cashbook','reports'].includes(id)) return;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id)?.classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));btn?.classList.add('active');toggleMenu(false);if(id==='dashboard')renderDashboard();if(id==='reports')renderReports();
+}
+function renderAccountsDashboard(){
+  const cash=currentSourceBalance('CASH'),bank=currentSourceBalance('BANK');const ce=document.getElementById('accCashInHand'),be=document.getElementById('accCashAtBank');if(ce)ce.textContent=money(cash);if(be)be.textContent=money(bank);const allot={},paid={};CASH_HEADS.forEach(h=>{allot[h]=0;paid[h]=0});cashbookEntries.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);CASH_HEADS.forEach(h=>allot[h]+=Number(a[h]||0))}else if(e.entry_type==='PAYMENT'&&paid[e.code_head]!==undefined)paid[e.code_head]+=Number(e.amount||0)});let h='<table><tr><th>Code Head</th><th>Allotment / Receipt</th><th>Payments / Remitted</th><th>Balance</th></tr>';CASH_HEADS.forEach(head=>{const bal=allot[head]-paid[head];h+=`<tr><td><b>${esc(head)}</b></td><td>${money(allot[head])}</td><td>${money(paid[head])}</td><td><b>${money(bal)}</b></td></tr>`});h+='</table>';const el=document.getElementById('accountsHeadDashboard');if(el)el.innerHTML=h;const d=today(),s=calculateDay(d),set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};set('accDayCashReceipts',s.rc);set('accDayBankReceipts',s.rb);set('accDayCashPayments',s.pc);set('accDayBankPayments',s.pb);set('accDayCashDrawn',s.draw);set('accDayCashCF',s.cfCash);set('accDayBankCF',s.cfBank);const st=document.getElementById('accDayStatus');if(st)st.textContent=s.closed?'CLOSED':'OPEN';const cap=document.getElementById('accountsDayCaption');if(cap)cap.textContent='Day position: '+d;
+}
+function renderDashboard(){
+  const isAccounts=profile?.role==='ACCOUNTS';document.getElementById('accountsDashboard')?.classList.toggle('hidden',!isAccounts);document.getElementById('inventoryDashboard')?.classList.toggle('hidden',isAccounts);if(isAccounts){renderAccountsDashboard();return;}const ia=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0),iq=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0),oa=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0),oq=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0);document.getElementById('dInAmt').textContent=money(ia);document.getElementById('dOutAmt').textContent=money(oa);document.getElementById('dInQty').textContent=iq.toFixed(2);document.getElementById('dOutQty').textContent=oq.toFixed(2);document.getElementById('dItemCount').textContent=items.length+' items';let low=0,h=`<table><tr><th>Ledger</th><th>Item</th><th>Unit</th><th>Balance</th><th>Reorder</th><th>Status</th></tr>`;items.forEach(i=>{const b=balance(i),isLow=b<=+i.reorder_level;if(isLow)low++;h+=`<tr><td>${esc(i.ledger_page_no||'')}</td><td><b>${esc(i.name)}</b></td><td>${esc(i.unit||'')}</td><td>${b.toFixed(2)}</td><td>${(+i.reorder_level||0).toFixed(2)}</td><td><span class="status ${isLow?'low':'ok'}">${isLow?'LOW':'OK'}</span></td></tr>`});h+='</table>';document.getElementById('dashTable').innerHTML=items.length?h:"<div class='empty'>No inventory items yet.</div>";const pct=items.length?Math.round(low/items.length*100):0;document.getElementById('riskPct').textContent=pct+'%';document.getElementById('riskLegend').innerHTML=`<div><span class="status low">${low} Low stock</span></div><div style="margin-top:8px"><span class="status ok">${Math.max(items.length-low,0)} OK</span></div><p class="kpi-note">Maintain reorder levels to reduce stock-outs.</p>`;
+}
+function renderAccountsReports(){if(profile?.role!=='ACCOUNTS')return;const d=document.getElementById('accReportDate')?.value||today(),s=calculateDay(d),set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};set('accRepCash',s.cfCash);set('accRepBank',s.cfBank);set('accRepReceipts',s.rc+s.rb);set('accRepPayments',s.pc+s.pb);const receipts=s.rows.filter(x=>x.entry_type==='RECEIPT'),payments=s.rows.filter(x=>x.entry_type==='PAYMENT');let h=`<div class="cash-report-head"><h2 style="margin:0">CAMP CASH BOOK</h2><p style="margin:4px 0">RECEIPTS AND PAYMENTS | DATE: ${esc(d)}</p></div>`;h+=`<table><tr><th colspan="7" class="receipt-head">RECEIPT</th><th colspan="9" class="payment-head">PAYMENTS</th></tr><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Distribution</th><th>Date</th><th>PV No.</th><th>Source Type</th><th>Invoice / Ref</th><th>To Whom Paid</th><th>On What Account</th><th>Particulars / Items</th><th>Mode</th><th>Amount</th></tr>`;const n=Math.max(receipts.length,payments.length,1);for(let i=0;i<n;i++){const r=receipts[i],p=payments[i],pd=sourceDetailObject(p);h+=`<tr><td>${r?esc(r.entry_date):''}</td><td>${r?esc(r.voucher_number):''}</td><td>${r?esc(r.party||''):''}</td><td>${r?esc(r.reference_no||''):''}</td><td class="num">${r&&r.mode==='CASH'?money(r.amount):''}</td><td class="num">${r&&r.mode==='BANK'?money(r.amount):''}</td><td>${r?esc(allocationSummary(r)):''}</td><td>${p?esc(p.entry_date):''}</td><td>${p?esc(p.voucher_number):''}</td><td>${p?esc(p.source_type||''):''}</td><td>${p?esc(p.reference_no||''):''}</td><td>${p?esc(pd.to_whom_paid||p.party||''):''}</td><td>${p?esc(pd.on_account||p.code_head||''):''}</td><td>${p?esc(itemSummary(p)):''}</td><td>${p?esc(p.mode||''):''}</td><td class="num">${p?money(p.amount):''}</td></tr>`}h+='</table><div class="report-total-grid"><div><b>Balance B/F - Cash</b><span>'+money(s.bfCash)+'</span></div><div><b>Balance B/F - Bank</b><span>'+money(s.bfBank)+'</span></div><div><b>Total Receipts</b><span>'+money(s.rc+s.rb)+'</span></div><div><b>Total Payments</b><span>'+money(s.pc+s.pb)+'</span></div><div><b>Cash Drawn</b><span>'+money(s.draw)+'</span></div><div><b>Balance C/F - Cash</b><span>'+money(s.cfCash)+'</span></div><div><b>Balance C/F - Bank</b><span>'+money(s.cfBank)+'</span></div></div><h3 style="margin-top:18px">Code Head Allotment / Balance</h3><table><tr><th>Code Head</th><th>B/F</th><th>Day Allotment</th><th>Day Payments</th><th>C/F</th></tr>';CASH_HEADS.forEach(head=>h+=`<tr><td>${esc(head)}</td><td>${money(s.bfHeads[head])}</td><td>${money(s.headReceipts[head])}</td><td>${money(s.headPayments[head])}</td><td><b>${money(s.cfHeads[head])}</b></td></tr>`);h+='</table><p style="margin-top:12px">Status: <b>'+(s.closed?'CLOSED':'OPEN')+'</b></p>';const el=document.getElementById('accountsReportContent');if(el)el.innerHTML=h;}
+function clearAccountsReport(){const e=document.getElementById('accReportDate');if(e)e.value=today();renderAccountsReports()}function printAccountsReport(){renderAccountsReports();window.print()}function renderReports(){if(profile?.role==='ACCOUNTS'){renderAccountsReports();return;}
+}
+
