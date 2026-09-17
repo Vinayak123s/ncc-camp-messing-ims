@@ -124,6 +124,31 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 </style>
 <style id="cashbook-final-css">
 .source-details{margin-top:12px;padding:12px;border:1px solid #334155;border-radius:8px;background:#0f1925}.source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.source-items{margin-top:12px;overflow:auto}.source-items table{width:100%;border-collapse:collapse;font-size:12px}.source-items th,.source-items td{border:1px solid #334155;padding:7px;text-align:left;white-space:nowrap}.source-items th{background:#1a2939;color:#e8f0f8}.balance-preview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}.balance-card{padding:10px;border:1px solid #334155;border-radius:8px;background:#0b1420}.balance-card span{display:block;font-size:11px;color:#8fa4b8}.balance-card b{display:block;margin-top:4px;font-size:14px}.balance-good{color:#64d68f}.balance-bad{color:#ff7b86}.head-balance-wrap{margin-top:15px;overflow:auto}.head-balance-wrap table{width:100%;border-collapse:collapse;font-size:12px}.head-balance-wrap th,.head-balance-wrap td{border:1px solid #334155;padding:7px;white-space:nowrap}.head-balance-wrap th{background:#163042;color:#fff}@media(max-width:900px){.source-grid,.balance-preview{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.source-grid,.balance-preview{grid-template-columns:1fr}}</style>
+
+<style id="rviv-separate-css">
+.rviv-reference{background:#f3f4f6;color:#111827;border:1px solid #d1d5db;border-radius:10px;padding:18px}
+.rviv-reference .rviv-head{background:#17365d;color:#fff;border-radius:7px;padding:12px 16px;margin:-18px -18px 16px}
+.rviv-reference .rviv-head h2{color:#fff;margin:0;font-size:19px}
+.rviv-reference .rviv-card{background:#fff;border-radius:8px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px #00000012}
+.rviv-reference .rviv-card h3{margin:0 0 14px;color:#17365d;font-size:18px}
+.rviv-reference label{color:#334155;font-size:12px}
+.rviv-reference input,.rviv-reference select,.rviv-reference textarea{background:#fff;color:#111827;border:1px solid #cbd5e1}
+.rviv-reference .btn{background:#17365d;color:#fff}
+.rviv-reference .btn.ghost{background:#64748b;color:#fff}
+.rviv-reference .btn.red{background:#b91c1c;color:#fff}
+.rviv-reference .rviv-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.rviv-reference .rviv-wide{grid-column:1/-1}
+.rviv-reference .rviv-item{border:1px solid #cbd5e1;border-radius:6px;padding:10px;margin:8px 0;background:#f8fafc}
+.rviv-reference .rviv-item-grid{display:grid;grid-template-columns:2fr 1fr 1.2fr .9fr .9fr .9fr 1.1fr 1.4fr auto;gap:8px;align-items:end}
+.rviv-reference .rviv-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rviv-reference table{width:100%;border-collapse:collapse;font-size:12px;background:#fff}
+.rviv-reference th{background:#17365d;color:#fff;padding:8px;border:1px solid #9ca3af;white-space:nowrap}
+.rviv-reference td{padding:8px;border:1px solid #9ca3af;vertical-align:top}
+.rviv-reference .amount{text-align:right}
+@media(max-width:1000px){.rviv-reference .rviv-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rviv-reference .rviv-item-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:650px){.rviv-reference .rviv-grid,.rviv-reference .rviv-item-grid,.rviv-reference .rviv-summary{grid-template-columns:1fr}.rviv-reference .rviv-wide{grid-column:auto}}
+</style>
+
 </head>
 <body>
 
@@ -168,7 +193,8 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
   <button class="nav stockin-nav" data-page="stockin" onclick="showPage('stockin',this)"><span class="ni">↓</span><span class="nl">Stock In / Purchase</span></button>
   <button class="nav stockout-nav" data-page="stockout" onclick="showPage('stockout',this)"><span class="ni">↑</span><span class="nl">Stock Out / Issue</span></button>
   <button class="nav pol-nav" data-page="pol" onclick="showPage('pol',this)"><span class="ni">⛽</span><span class="nl">POL Drawn</span></button>
-  <button class="nav incident-nav" data-page="incidental" onclick="showPage('incidental',this)"><span class="ni">▣</span><span class="nl">Incidental RV / IV</span></button>
+  <button class="nav incident-nav" data-page="incidentalRV" onclick="showPage('incidentalRV',this)"><span class="ni">↘</span><span class="nl">Incidental RV</span></button>
+  <button class="nav incident-nav" data-page="incidentalIV" onclick="showPage('incidentalIV',this)"><span class="ni">↗</span><span class="nl">Incidental IV</span></button>
   <button class="nav cash-nav" data-page="cashbook" onclick="showPage('cashbook',this)"><span class="ni">₹</span><span class="nl">Cash Book</span></button>
   <button class="nav" data-page="reports" onclick="showPage('reports',this)"><span class="ni">▤</span><span class="nl">Reports</span></button>
   <button class="nav adminonly" data-page="users" onclick="showPage('users',this)"><span class="ni">♟</span><span class="nl">User Management</span></button>
@@ -364,48 +390,65 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 </section>
 
 
-<section id="incidental" class="page">
-  <div class="section-head">
-    <div><h1>Incidental RV / IV</h1><p>Fresh camp-wise receipt / issue voucher entry and register.</p></div>
-  </div>
 
-  <div class="panel"><div class="formbox">
-    <h3>Receipt / RV / IV Entry</h3>
-    <div class="rviv-grid">
-      <div class="field"><label>Voucher Type</label><select id="incType" onchange="prepareIncidentalNo();toggleIncidentalForm()"><option value="RV">Receipt / RV</option><option value="IV">IV / Issue</option></select></div>
-      <div class="field"><label>Voucher Number (Auto)</label><input id="incNo" class="auto-field" readonly></div>
-      <div class="field"><label>Date *</label><input id="incDate" type="date"></div>
-      <div class="field"><label>Invoice / Reference Number</label><input id="incInvoice" placeholder="Invoice / reference number"></div>
-
-      <div class="field"><label>Vendor / Party *</label><input id="incParty"></div>
-      <div class="field"><label>Vendor Address</label><input id="incAddress"></div>
-      <div class="field"><label>Station</label><input id="incStation"></div>
-      <div class="field"><label>CRV No.</label><input id="incCrv"></div>
-
-      <div class="field"><label>Authority</label><input id="incAuthority"></div>
-      <div class="field"><label>Unit (IV)</label><input id="incUnit" placeholder="Unit / Receiving Unit"></div>
-      <div class="field"><label>Mode</label><select id="incMode"><option>CASH</option><option>BANK</option></select></div>
-      <div class="field"><label>Code Head</label><input id="incCodeHead" placeholder="Code head"></div>
-
-      <div class="rviv-full field"><label>Items</label><div id="incItems" class="rviv-items"></div><div class="actions" style="margin-top:8px"><button class="btn dark" type="button" onclick="addIncItem()">+ ADD ITEM</button></div></div>
-
-      <div class="field"><label>GST Mode</label><select id="incGstMode"><option value="inclusive">Inclusive GST</option><option value="exclusive">Exclusive GST</option></select></div>
-      <div class="field"><label>GST Rate (%)</label><input id="incGstRate" type="number" min="0" step="any" oninput="calcIncidental()"></div>
-      <div class="field"><label>Subtotal</label><input id="incSubtotal" class="calculated" readonly></div>
-      <div class="field"><label>GST Amount</label><input id="incGstAmount" class="calculated" readonly></div>
-      <div class="field"><label>Total Amount</label><input id="incAmount" class="calculated" readonly></div>
-      <div class="rviv-full field"><label>Description / Remarks</label><input id="incDesc" placeholder="Purpose / article / expenditure details"></div>
+<section id="incidentalRV" class="page">
+  <div class="section-head"><div><h1>Incidental Receipt Voucher (RV)</h1><p>Separate fresh camp-wise incidental receipt voucher screen.</p></div></div>
+  <div class="rviv-reference">
+    <div class="rviv-head"><h2>Receipt / RV Entry</h2></div>
+    <div class="rviv-card">
+      <div class="rviv-grid">
+        <div class="field"><label>Invoice Number *</label><input id="rvInvoice" required></div>
+        <div class="field"><label>Date *</label><input id="rvDate" type="date" required></div>
+        <div class="field"><label>Vendor Name *</label><input id="rvParty" required></div>
+        <div class="field"><label>Vendor Address *</label><input id="rvAddress" required></div>
+        <div class="field"><label>Station *</label><input id="rvStation" required></div>
+        <div class="field"><label>RV No. (Auto)</label><input id="rvNoAuto" class="auto-field" readonly></div>
+        <div class="field"><label>CRV No.</label><input id="rvCrv"></div>
+        <div class="field"><label>Authority *</label><input id="rvAuthority" required></div>
+        <div class="field"><label>Mode</label><select id="rvMode"><option>CASH</option><option>BANK</option></select></div>
+        <div class="field"><label>Code Head</label><input id="rvCodeHead" placeholder="Code head"></div>
+        <div class="rviv-wide field"><label>Receipt Items</label><div id="rvItems" class="rviv-items"></div><div class="actions" style="margin-top:8px"><button class="btn" type="button" onclick="addRVItem()">＋ ADD ITEM</button></div></div>
+        <div class="field"><label>GST Mode</label><select id="rvGstMode"><option value="inclusive">Inclusive GST</option><option value="exclusive">Exclusive GST</option></select></div>
+        <div class="field"><label>GST Rate (%)</label><input id="rvGstRate" type="number" min="0" step="any"></div>
+        <div class="field"><label>Subtotal</label><input id="rvSubtotal" class="calculated" readonly></div>
+        <div class="field"><label>GST Amount</label><input id="rvGstAmount" class="calculated" readonly></div>
+        <div class="field"><label>Total Amount</label><input id="rvAmount" class="calculated" readonly></div>
+        <div class="rviv-wide field"><label>General Remarks</label><textarea id="rvDesc"></textarea></div>
+      </div>
+      <div class="actions"><button class="btn" onclick="saveIncidentalRV()">SAVE / UPDATE RV</button><button class="btn ghost" onclick="clearIncidentalRV()">CLEAR</button></div>
+      <div id="rvMsg" class="msg"></div>
     </div>
-    <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveIncidental()">SAVE / UPDATE</button><button class="btn ghost" onclick="clearIncidental()">CLEAR</button></div>
-    <div id="incMsg" class="msg"></div>
-  </div></div>
+    <div class="rviv-card"><h3>Saved Incidental RV Register</h3><div id="incidentalRVTable"></div></div>
+  </div>
+</section>
 
-  <div class="panel incident-list"><div class="subhead"><div><h3 style="margin:0">Fresh RV / IV Register</h3><div class="kpi-note">Voucher number is generated for the incidental register. Accounts manually enters the RV/PV number in Cash Book.</div></div></div><div class="tablewrap" id="incidentalTable"></div></div>
+<section id="incidentalIV" class="page">
+  <div class="section-head"><div><h1>Incidental Issue Voucher (IV)</h1><p>Separate fresh camp-wise incidental issue voucher screen.</p></div></div>
+  <div class="rviv-reference">
+    <div class="rviv-head"><h2>IV / Issue Entry</h2></div>
+    <div class="rviv-card">
+      <div class="rviv-grid">
+        <div class="field"><label>IV No. (Auto)</label><input id="ivNoAuto" class="auto-field" readonly></div>
+        <div class="field"><label>Date *</label><input id="ivDateInc" type="date" required></div>
+        <div class="field"><label>Unit *</label><input id="ivUnitInc" required></div>
+        <div class="field"><label>Station</label><input id="ivStationInc"></div>
+        <div class="field"><label>Authority *</label><input id="ivAuthorityInc" required></div>
+        <div class="field"><label>Party / Receiving Unit</label><input id="ivPartyInc"></div>
+        <div class="rviv-wide field"><label>Issue Items</label><div id="ivItemsInc" class="rviv-items"></div><div class="actions" style="margin-top:8px"><button class="btn" type="button" onclick="addIVItem()">＋ ADD ITEM</button></div></div>
+        <div class="field"><label>Mode</label><select id="ivModeInc"><option>CASH</option><option>BANK</option></select></div>
+        <div class="field"><label>Code Head</label><input id="ivCodeHeadInc" placeholder="Code head"></div>
+        <div class="rviv-wide field"><label>Description / Remarks</label><textarea id="ivDescInc"></textarea></div>
+      </div>
+      <div class="actions"><button class="btn" onclick="saveIncidentalIV()">SAVE / UPDATE IV</button><button class="btn ghost" onclick="clearIncidentalIV()">CLEAR</button></div>
+      <div id="ivMsgInc" class="msg"></div>
+    </div>
+    <div class="rviv-card"><h3>Saved Incidental IV Register</h3><div id="incidentalIVTable"></div></div>
+  </div>
 </section>
 
 
 <section id="cashbook" class="page">
-  <div class="section-head"><div><h1>Cash Book</h1><p>Accounts entry. Payment source details auto-fetch from Messing / Incidental / POL. RV & PV numbers are entered manually.</p></div></div>
+  <div class="section-head"><div><h1>Cash Book</h1><p>Accounts entry. Payment source details auto-fetch from Messing RV / Incidental RV / POL Drawn. RV & PV numbers are entered manually.</p></div></div>
 
   <div class="panel">
     <div class="cash-tabs">
@@ -551,12 +594,15 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
+
+// Restored global application state shared by camp-aware modules.
 let camps = [], activeCamp = null;
 let polVehicles = [], polEntries = [];
+
 const UNITS=["Nos","Kgs","Ltrs","Pcs","Gms","Mtrs","Boxes","Packets","Bottles","Cans","Sets","Units","Quintal","Ton","Bags","Dozens"];
 const VOUCHERS=["IV-1","IV-2","IV-3","IV-4","IV-5","IV-6","IV-7","IV-8","IV-9","IV-10"];
 
@@ -581,7 +627,7 @@ async function signIn(){
   setLoginMsg("Signing in...");
   const {data,error}=await sb.auth.signInWithPassword({email,password});
   if(error){setLoginMsg(error.message);return}
-  currentUser=data.user; try{await loadApp()}catch(e){console.error(e);setLoginMsg("Login succeeded but the application failed to load. Refresh and try again.")}
+  currentUser=data.user; try{ await loadApp(); }catch(e){ console.error(e); setLoginMsg('Login succeeded but the application failed to load. Please refresh once.'); }
 }
 async function sendReset(){
   const email=document.getElementById("loginEmail").value.trim();
@@ -594,9 +640,9 @@ async function signOut(){await sb.auth.signOut();location.reload()}
 function applyRoleUI(){
   const allNav=document.querySelectorAll('.sidebar .nav[data-page]'), role=(profile&&profile.role)||'VIEWER'; let allowed;
   if(role==='ACCOUNTS') allowed=new Set(['dashboard','cashbook','reports']);
-  else if(role==='Q_SEC') allowed=new Set(['dashboard','messing','inventory','stockin','stockout','pol','incidental','reports']);
-  else if(role==='MANAGER') allowed=new Set(['dashboard','camp','messing','inventory','stockin','stockout','pol','incidental','cashbook','reports']);
-  else if(role==='ADMIN') allowed=new Set(['dashboard','camp','messing','inventory','stockin','stockout','pol','incidental','cashbook','reports','users']);
+  else if(role==='Q_SEC') allowed=new Set(['dashboard','messing','inventory','stockin','stockout','pol','incidentalRV','incidentalIV','reports']);
+  else if(role==='MANAGER') allowed=new Set(['dashboard','camp','messing','inventory','stockin','stockout','pol','incidentalRV','incidentalIV','cashbook','reports']);
+  else if(role==='ADMIN') allowed=new Set(['dashboard','camp','messing','inventory','stockin','stockout','pol','incidentalRV','incidentalIV','cashbook','reports','users']);
   else allowed=new Set(['dashboard','inventory','reports']);
   allNav.forEach(n=>n.style.display=allowed.has(n.dataset.page)?'flex':'none');
   document.querySelectorAll('.adminonly').forEach(e=>e.style.display=role==='ADMIN'?'flex':'none');
@@ -617,9 +663,11 @@ async function ensureCampContext(){
   if(error){console.error(error);camps=[];activeCamp=null;populateCampTop();renderCamps();return false}
   camps=data||[];
   activeCamp = profile?.current_camp_id ? (camps.find(c=>c.id===profile.current_camp_id)||null) : null;
+  // If no valid camp is assigned, use the newest camp as the session camp.
+  // Persist it when the role is allowed to update profiles; otherwise keep it in session.
   if(!activeCamp && camps.length){
     activeCamp=camps[0];
-    if(['ADMIN','MANAGER'].includes(profile?.role)){
+    if(['ADMIN','MANAGER'].includes(profile?.role)) {
       const {error:pe}=await sb.from('profiles').update({current_camp_id:activeCamp.id}).eq('id',currentUser.id);
       if(!pe) profile.current_camp_id=activeCamp.id;
     }
@@ -637,11 +685,11 @@ async function loadApp(){
   applyRoleUI();
   const hasCamp=await ensureCampContext();
   if(hasCamp){await refreshAll(); showPage('dashboard',document.querySelector('[data-page="dashboard"]'));}
-  else {await refreshAll(); showPage(canCampManage()?'camp':'dashboard',document.querySelector(`[data-page="${canCampManage()?'camp':'dashboard'}"]`)); if(!camps.length){setTimeout(()=>alert('No camp is available yet. ADMIN/MANAGER must create a new camp from Camp Details before entering transactions.'),0)}}
+  else {await refreshAll(); showPage(canCampManage()?'camp':'dashboard',document.querySelector(`[data-page="${canCampManage()?'camp':'dashboard'}"]`));}
 }
 
 async function refreshAll(){
-  if(!activeCamp){renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidental();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();return}
+  if(!activeCamp){renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidentalRV();renderIncidentalIV();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();return}
   const [a,b,c,p,l,cv,pv,iv,cb,cc]=await Promise.all([
     sb.from('inventory_items').select('*').eq('camp_id',activeCamp.id).order('ledger_page_no'),
     sb.from('stock_in_invoices').select('*,stock_in_items(*)').eq('camp_id',activeCamp.id).order('invoice_date',{ascending:false}).order('created_at',{ascending:false}),
@@ -656,12 +704,12 @@ async function refreshAll(){
   ]);
   items=a.data||[];inInvoices=b.data||[];outVouchers=c.data||[];profiles=p.data||[];polVehicles=cv.data||[];polEntries=pv.data||[];incidentals=iv.data||[];cashbookEntries=cb.data||[];cashbookClosures=cc.data||[];
   if(l.data?.value)setLogo(l.data.value);
-  renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidental();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();if(cashType==='PAYMENT')loadCashSources();if(cashType==='DAY')renderDayClose();
+  renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidentalRV();renderIncidentalIV();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();if(cashType==='PAYMENT')loadCashSources();if(cashType==='DAY')renderDayClose();
 }
 
 
 
-/* ===== Restored core functions ===== */
+/* ===== Restored core navigation / inventory / camp functions ===== */
 function addInRow(data={}) {
   const wrap=document.getElementById("inRows"),row=document.createElement("div");row.className="item-row";
   row.innerHTML=`<select class="in-item" onchange="calcInTotal()"><option value="">Select item</option>${inOptions(data.item_id||"")}</select>
@@ -764,8 +812,21 @@ function printPage(){window.print()}
 async function renderCamps(){
   const el=document.getElementById('campTable'); if(!el)return;
   let h='<table><tr><th>Code</th><th>Camp Name</th><th>Station</th><th>From</th><th>To</th><th>Status</th><th>Action</th></tr>';
-  camps.forEach(c=>{const active=activeCamp?.id===c.id; h+=`<tr><td><b>${esc(c.camp_code)}</b></td><td>${esc(c.camp_name)}</td><td>${esc(c.station||'')}</td><td>${esc(c.from_date||'')}</td><td>${esc(c.to_date||'')}</td><td><span class="status ${active?'ok':'low'}">${active?'ACTIVE':'AVAILABLE'}</span></td><td>${active?'Current':`<button class="btn" onclick="switchCamp('${c.id}')">SELECT</button>`}</td></tr>`});
+  camps.forEach(c=>{const active=activeCamp?.id===c.id; h+=`<tr><td><b>${esc(c.camp_code)}</b></td><td>${esc(c.camp_name)}</td><td>${esc(c.station||'')}</td><td>${esc(c.from_date||'')}</td><td>${esc(c.to_date||'')}</td><td><span class="status ${active?'ok':'low'}">${active?'ACTIVE':'AVAILABLE'}</span></td><td>${active?'Current ':''}<button class="btn" onclick="switchCamp('${c.id}')">${active?'RESELECT':'SELECT'}</button> ${roleIs('ADMIN')?`<button class="btn red" onclick="deleteCamp('${c.id}')">DELETE</button>`:''}</td></tr>`});
   h+='</table>'; el.innerHTML=camps.length?h:'<div class="empty">No camp found. ADMIN/MANAGER must start a new camp.</div>';
+}
+async function deleteCamp(id){
+  if(!roleIs('ADMIN')){alert('Only ADMIN can delete a camp.');return}
+  const c=camps.find(x=>x.id===id);if(!c)return;
+  if(!confirm(`Delete camp ${c.camp_code} - ${c.camp_name}? This will delete all camp records.`))return;
+  if(!confirm('Final confirmation: permanently delete this camp and its inventory, messing, POL, incidental and cash-book records?'))return;
+  const ops=[['cashbook_entries','camp_id'],['cashbook_day_closures','camp_id'],['incidental_vouchers','camp_id'],['pol_drawn_entries','camp_id'],['pol_vehicles','camp_id'],['stock_out_items','camp_id'],['stock_out_vouchers','camp_id'],['stock_in_items','camp_id'],['stock_in_invoices','camp_id'],['inventory_items','camp_id']];
+  for(const [table,col] of ops){const {error}=await sb.from(table).delete().eq(col,id);if(error){alert(`Cannot delete ${c.camp_code}: ${error.message}`);return}}
+  await sb.from('profiles').update({current_camp_id:null}).eq('current_camp_id',id);
+  const {error}=await sb.from('camps').delete().eq('id',id);
+  if(error){alert(error.message);return}
+  camps=camps.filter(x=>x.id!==id);if(activeCamp?.id===id)activeCamp=null;profile.current_camp_id=null;populateCampTop();await refreshAll();
+  showPage(canCampManage()?'camp':'dashboard',document.querySelector(`[data-page="${canCampManage()?'camp':'dashboard'}"]`));
 }
 function renderCashSources(){const st=document.getElementById('cashSourceType');if(!st)return;const current=st.value||'MESSING';st.innerHTML=cashSourceTypes().map(x=>`<option value="${x}" ${x===current?'selected':''}>${x.replaceAll('_',' ')}</option>`).join('');loadCashSources()}
 function renderInventory(){
@@ -859,9 +920,11 @@ async function switchCamp(id){
   if(!id)return;
   const c=camps.find(x=>x.id===id); if(!c)return;
   activeCamp=c;
+  // Persist for roles allowed to update their current camp; otherwise keep the selection for the session.
   const {error}=await sb.from('profiles').update({current_camp_id:id}).eq('id',currentUser.id);
   if(!error) profile.current_camp_id=id;
-  populateCampTop(); await refreshAll();
+  populateCampTop();
+  await refreshAll();
   showPage('dashboard',document.querySelector('[data-page="dashboard"]'));
 }
 function toggleMenu(force){
@@ -906,9 +969,9 @@ function clearPOLVehicle(){['polVehNo','polUnit','polVehType','polKM','polBal','
 function renderPOL(){
   const vt=document.getElementById('polVehiclesTable'), et=document.getElementById('polEntriesTable'); if(!vt||!et)return;
   let h='<table><tr><th>Vehicle No</th><th>Type</th><th>Unit</th><th>KM</th><th>POL Balance</th><th>KPL</th><th>Driver</th><th>Authority</th><th>Action</th></tr>';
-  polVehicles.forEach(v=>h+=`<tr><td><b>${esc(v.vehicle_no)}</b></td><td>${esc(v.vehicle_type)}</td><td>${esc(v.unit)}</td><td>${(+v.km_reading||0).toFixed(1)}</td><td>${(+v.pol_balance||0).toFixed(2)}</td><td>${(+v.kpl||0).toFixed(2)}</td><td>${esc(v.driver_name)}</td><td>${esc(v.authority_no)}</td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button> <button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:'View'}</td></tr>`); h+='</table>'; vt.innerHTML=polVehicles.length?h:'<div class="empty">No vehicles saved for this camp.</div>';
+  polVehicles.forEach(v=>h+=`<tr><td><b>${esc(v.vehicle_no)}</b></td><td>${esc(v.vehicle_type)}</td><td>${esc(v.unit)}</td><td>${(+v.km_reading||0).toFixed(1)}</td><td>${(+v.pol_balance||0).toFixed(2)}</td><td>${(+v.kpl||0).toFixed(2)}</td><td>${esc(v.driver_name)}</td><td>${esc(v.authority_no)}</td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:''}</td></tr>`); h+='</table>'; vt.innerHTML=polVehicles.length?h:'<div class="empty">No vehicles saved for this camp.</div>';
   let e='<table><tr><th>Date</th><th>Vehicle</th><th>Fuel</th><th>Invoice</th><th>Petrol Bunk</th><th>Previous</th><th>Drawn</th><th>Present</th><th>Rate</th><th>Total</th><th>Action</th></tr>';
-  polEntries.forEach(x=>e+=`<tr><td>${esc(x.entry_date||'')}</td><td><b>${esc(x.vehicle_no||'')}</b></td><td>${esc(x.fuel_type)}</td><td>${esc(x.invoice_number)}</td><td>${esc(x.petrol_bunk)}</td><td>${(+x.previous_fuel||0).toFixed(2)}</td><td>${(+x.litres||0).toFixed(2)}</td><td>${(+x.present_fuel||0).toFixed(2)}</td><td>${money(x.rate)}</td><td>${money(x.total_amount)}</td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLEntry('${x.id}')">Edit</button> <button class="btn red" onclick="deletePOLEntry('${x.id}')">Delete</button>`:'View'}</td></tr>`); e+='</table>'; et.innerHTML=polEntries.length?e:'<div class="empty">No POL drawn entries for this camp.</div>';
+  polEntries.forEach(x=>e+=`<tr><td>${esc(x.entry_date||'')}</td><td><b>${esc(x.vehicle_no||'')}</b></td><td>${esc(x.fuel_type)}</td><td>${esc(x.invoice_number)}</td><td>${esc(x.petrol_bunk)}</td><td>${(+x.previous_fuel||0).toFixed(2)}</td><td>${(+x.litres||0).toFixed(2)}</td><td>${(+x.present_fuel||0).toFixed(2)}</td><td>${money(x.rate)}</td><td>${money(x.total_amount)}</td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLEntry('${x.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deletePOLEntry('${x.id}')">Delete</button>`:''}</td></tr>`); e+='</table>'; et.innerHTML=polEntries.length?e:'<div class="empty">No POL drawn entries for this camp.</div>';
   loadPOLVehicleSelect();
 }
 function loadPOLVehicleSelect(){const s=document.getElementById('polVehSelect');if(!s)return;const c=s.value;s.innerHTML='<option value="">Select Vehicle</option>'+polVehicles.map(v=>`<option value="${esc(v.id)}" ${v.id===c?'selected':''}>${esc(v.vehicle_no)} - ${esc(v.vehicle_type)}</option>`).join('')}
@@ -927,55 +990,65 @@ function exportPOLCSV(){const rows=[['Date','Vehicle No','Fuel Type','Invoice','
 let incidentalEditingId=null;
 const incUnits=['Nos','Pcs','Ltr','Reams','Kg','Kgs','Ltrs','Sets','Boxes','Packets','Meters','Dozens','Other'];
 function incUnitOptions(v='Nos'){return incUnits.map(u=>`<option ${u===v?'selected':''}>${u}</option>`).join('')}
-function addIncItem(item={}){
-  const box=document.getElementById('incItems');
+let rvEditingId=null, ivEditingId=null;
+function incUnitOptions(v){return UNITS.map(u=>`<option ${v===u?'selected':''}>${u}</option>`).join('')}
+function addIncItemGeneric(containerId, item={}){
+  const box=document.getElementById(containerId); if(!box)return;
   const wrap=document.createElement('div');wrap.className='rviv-item';
   wrap.innerHTML=`<div class="rviv-item-grid">
     <div class="field"><label>Nomenclature *</label><input class="ix-desc" value="${esc(item.desc||'')}" required></div>
     <div class="field"><label>A/u</label><select class="ix-unit">${incUnitOptions(item.unit||'Nos')}</select></div>
     <div class="field"><label>Exp / N-Exp</label><select class="ix-type"><option ${item.type==='Expendable'||!item.type?'selected':''}>Expendable</option><option ${item.type==='Non-Expendable'?'selected':''}>Non-Expendable</option></select></div>
-    <div class="field"><label>Qty *</label><input class="ix-qty" type="number" min="0.01" step="any" value="${item.qty??''}" oninput="calcIncidental()" required></div>
-    <div class="field"><label>Rate *</label><input class="ix-rate" type="number" min="0" step="any" value="${item.rate??''}" oninput="calcIncidental()" required></div>
+    <div class="field"><label>Qty *</label><input class="ix-qty" type="number" min="0.01" step="any" value="${item.qty??''}" required></div>
+    <div class="field"><label>Rate *</label><input class="ix-rate" type="number" min="0" step="any" value="${item.rate??''}" required></div>
     <div class="field"><label>Page No.</label><input class="ix-page" value="${esc(item.page||'')}"></div>
     <div class="field"><label>Authorised Units</label><input class="ix-authorised" value="${esc(item.authorised||'')}"></div>
     <div class="field"><label>Remarks</label><input class="ix-remarks" value="${esc(item.remarks||'')}"></div>
-    <button type="button" class="btn red" onclick="this.closest('.rviv-item').remove();calcIncidental()">Remove</button>
+    <button type="button" class="btn red" onclick="this.closest('.rviv-item').remove();recalcIncidentalForms()">Remove</button>
   </div>`;
-  box.appendChild(wrap);calcIncidental();
+  box.appendChild(wrap);wrap.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',recalcIncidentalForms));recalcIncidentalForms();
 }
-function getIncItems(){return [...document.querySelectorAll('#incItems .rviv-item')].map(row=>({
+function addRVItem(item={}){addIncItemGeneric('rvItems',item)}
+function addIVItem(item={}){addIncItemGeneric('ivItemsInc',item)}
+function readIncItems(containerId){return [...document.querySelectorAll(`#${containerId} .rviv-item`)].map(row=>({
   desc:row.querySelector('.ix-desc').value.trim(),unit:row.querySelector('.ix-unit').value,type:row.querySelector('.ix-type').value,
   qty:+row.querySelector('.ix-qty').value||0,rate:+row.querySelector('.ix-rate').value||0,page:row.querySelector('.ix-page').value.trim(),
   authorised:row.querySelector('.ix-authorised').value.trim(),remarks:row.querySelector('.ix-remarks').value.trim()
-})).filter(x=>x.desc&&x.qty>0)}
-function calcIncidental(){
-  const items=getIncItems();const base=items.reduce((s,x)=>s+x.qty*x.rate,0);const rate=+document.getElementById('incGstRate').value||0;let gst=0,total=base;
-  if(document.getElementById('incGstMode').value==='inclusive'){gst=rate?base*rate/(100+rate):0}else{gst=base*rate/100;total=base+gst}
-  document.getElementById('incSubtotal').value=money(base);document.getElementById('incGstAmount').value=money(gst);document.getElementById('incAmount').value=money(total);
+})).filter(x=>x.desc&&x.qty>0)
 }
-async function prepareIncidentalNo(){if(!activeCamp)return;const t=document.getElementById('incType').value;const {data,error}=await sb.rpc('next_incidental_voucher_no',{p_type:t});document.getElementById('incNo').value=error?'':data}
-function toggleIncidentalForm(){const iv=document.getElementById('incType').value==='IV';document.getElementById('incCrv').disabled=iv;document.getElementById('incVendorAddress').disabled=false;}
-function clearIncidental(){incidentalEditingId=null;document.getElementById('incType').value='RV';document.getElementById('incDate').value=today();['incParty','incAddress','incStation','incCrv','incAuthority','incUnit','incInvoice','incCodeHead','incDesc'].forEach(id=>document.getElementById(id).value='');document.getElementById('incMode').value='CASH';document.getElementById('incGstMode').value='inclusive';document.getElementById('incGstRate').value='';document.getElementById('incItems').innerHTML='';document.getElementById('incSubtotal').value='₹0.00';document.getElementById('incGstAmount').value='₹0.00';document.getElementById('incAmount').value='₹0.00';setMsg('incMsg','');addIncItem({});prepareIncidentalNo()}
-async function saveIncidental(){
-  if(!canQsecEntry()){setMsg('incMsg','Only ADMIN, MANAGER or Q SEC can enter incidental RV/IV.');return}
-  if(!activeCamp){setMsg('incMsg','Select a camp first.');return}
-  const items=getIncItems(); if(!items.length){setMsg('incMsg','Add at least one item with quantity and rate.');return}
-  calcIncidental();
-  const type=document.getElementById('incType').value,date=document.getElementById('incDate').value||today(),party=document.getElementById('incParty').value.trim(),address=document.getElementById('incAddress').value.trim(),station=document.getElementById('incStation').value.trim(),invoice=document.getElementById('incInvoice').value.trim(),crv=document.getElementById('incCrv').value.trim(),authority=document.getElementById('incAuthority').value.trim(),unit=document.getElementById('incUnit').value.trim(),mode=document.getElementById('incMode').value,head=document.getElementById('incCodeHead').value.trim(),desc=document.getElementById('incDesc').value.trim(),gstMode=document.getElementById('incGstMode').value,gstRate=+document.getElementById('incGstRate').value||0,subtotal=+(document.getElementById('incSubtotal').value.replace(/[^0-9.]/g,''))||0,gstAmount=+(document.getElementById('incGstAmount').value.replace(/[^0-9.]/g,''))||0,total=+(document.getElementById('incAmount').value.replace(/[^0-9.]/g,''))||0,no=document.getElementById('incNo').value;
-  if(!party||!no||!authority&&type==='IV'){setMsg('incMsg','Party, voucher number and authority are required.');return}
-  const {data,error}=await sb.rpc('save_incidental_voucher',{p_id:incidentalEditingId,p_type:type,p_voucher_no:no,p_voucher_date:date,p_party:party,p_invoice_number:invoice||null,p_vendor_address:address||null,p_station:station||null,p_crv_no:crv||null,p_authority:authority||null,p_unit:unit||null,p_items:items,p_subtotal:subtotal,p_gst_mode:gstMode,p_gst_rate:gstRate,p_gst_amount:gstAmount,p_amount:total,p_mode:mode,p_code_head:head||null,p_description:desc||null});
-  if(error){setMsg('incMsg',error.message);return}
-  setMsg('incMsg',(incidentalEditingId?'RV/IV updated successfully.':'RV/IV saved successfully.'),true);clearIncidental();await refreshAll();
+function calcIncFor(prefix,containerId){
+  const items=readIncItems(containerId),base=items.reduce((s,x)=>s+x.qty*x.rate,0);let gst=0,total=base;
+  const mode=document.getElementById(prefix+'GstMode')?.value||'inclusive',rate=+document.getElementById(prefix+'GstRate')?.value||0;
+  if(mode==='inclusive')gst=rate?base*rate/(100+rate):0;else{gst=base*rate/100;total=base+gst}
+  const put=(id,v)=>{const e=document.getElementById(id);if(e)e.value=money(v)};put(prefix+'Subtotal',base);put(prefix+'GstAmount',gst);put(prefix+'Amount',total)
 }
-function renderIncidental(){
-  const el=document.getElementById('incidentalTable');if(!el)return;
-  let h='<table><tr><th>Type</th><th>Voucher No</th><th>Date</th><th>Party</th><th>Invoice / Ref</th><th>Items</th><th>Mode</th><th>Amount</th><th>Action</th></tr>';
-  incidentals.forEach(x=>{const n=Array.isArray(x.items)?x.items.length:0;h+=`<tr><td>${esc(x.voucher_type)}</td><td><b>${esc(x.voucher_no)}</b></td><td>${esc(x.voucher_date)}</td><td>${esc(x.party||'')}</td><td>${esc(x.invoice_number||'')}</td><td>${n}</td><td>${esc(x.mode||'')}</td><td>${money(x.amount)}</td><td><button class="btn" onclick="printIncidental('${x.id}')">Generate</button> <button class="btn ghost" onclick="editIncidental('${x.id}')">Edit</button> ${canDelete()?`<button class="btn red" onclick="deleteIncidental('${x.id}')">Delete</button>`:''}</td></tr>`});
-  h+='</table>';el.innerHTML=incidentals.length?h:'<div class="empty">No incidental RV/IV entries for this camp.</div>';
+function recalcIncidentalForms(){calcIncFor('rv','rvItems')}
+async function nextIncNo(type,inputId){if(!activeCamp){document.getElementById(inputId).value='';return}const {data,error}=await sb.rpc('next_incidental_voucher_no',{p_type:type});document.getElementById(inputId).value=error?'':data}
+function clearIncidentalRV(){rvEditingId=null;['rvInvoice','rvParty','rvAddress','rvStation','rvCrv','rvAuthority','rvCodeHead','rvDesc'].forEach(id=>document.getElementById(id).value='');document.getElementById('rvDate').value=today();document.getElementById('rvMode').value='CASH';document.getElementById('rvGstMode').value='inclusive';document.getElementById('rvGstRate').value='';document.getElementById('rvItems').innerHTML='';document.getElementById('rvSubtotal').value='₹0.00';document.getElementById('rvGstAmount').value='₹0.00';document.getElementById('rvAmount').value='₹0.00';setMsg('rvMsg','');addRVItem({});nextIncNo('RV','rvNoAuto')}
+function clearIncidentalIV(){ivEditingId=null;['ivUnitInc','ivStationInc','ivAuthorityInc','ivPartyInc','ivCodeHeadInc','ivDescInc'].forEach(id=>document.getElementById(id).value='');document.getElementById('ivDateInc').value=today();document.getElementById('ivModeInc').value='CASH';document.getElementById('ivItemsInc').innerHTML='';setMsg('ivMsgInc','');addIVItem({});nextIncNo('IV','ivNoAuto')}
+async function saveIncidentalGeneric(type,editingId,ids,msgId,containerId){
+  if(!canQsecEntry()){setMsg(msgId,'Only ADMIN, MANAGER or Q SEC can enter incidental RV/IV.');return}
+  if(!activeCamp){setMsg(msgId,'Select a camp first.');return}
+  const items=readIncItems(containerId);if(!items.length){setMsg(msgId,'Add at least one item with quantity and rate.');return}
+  let date,party,address,station,invoice,crv,authority,unit,mode,head,desc,gstMode='inclusive',gstRate=0,subtotal=0,gstAmount=0,total=0,no;
+  if(type==='RV'){
+    calcIncFor('rv',containerId);date=document.getElementById('rvDate').value||today();party=document.getElementById('rvParty').value.trim();address=document.getElementById('rvAddress').value.trim();station=document.getElementById('rvStation').value.trim();invoice=document.getElementById('rvInvoice').value.trim();crv=document.getElementById('rvCrv').value.trim();authority=document.getElementById('rvAuthority').value.trim();unit='';mode=document.getElementById('rvMode').value;head=document.getElementById('rvCodeHead').value.trim();desc=document.getElementById('rvDesc').value.trim();gstMode=document.getElementById('rvGstMode').value;gstRate=+document.getElementById('rvGstRate').value||0;subtotal=+(document.getElementById('rvSubtotal').value.replace(/[^0-9.]/g,''))||0;gstAmount=+(document.getElementById('rvGstAmount').value.replace(/[^0-9.]/g,''))||0;total=+(document.getElementById('rvAmount').value.replace(/[^0-9.]/g,''))||0;no=document.getElementById('rvNoAuto').value;if(!party||!invoice||!authority||!no){setMsg(msgId,'Vendor, invoice, authority and RV number are required.');return}
+  }else{
+    date=document.getElementById('ivDateInc').value||today();party=document.getElementById('ivPartyInc').value.trim();address='';station=document.getElementById('ivStationInc').value.trim();invoice='';crv='';authority=document.getElementById('ivAuthorityInc').value.trim();unit=document.getElementById('ivUnitInc').value.trim();mode=document.getElementById('ivModeInc').value;head=document.getElementById('ivCodeHeadInc').value.trim();desc=document.getElementById('ivDescInc').value.trim();no=document.getElementById('ivNoAuto').value;subtotal=items.reduce((s,x)=>s+x.qty*x.rate,0);total=subtotal;if(!unit||!authority||!no){setMsg(msgId,'Receiving unit, authority and IV number are required.');return}
+  }
+  const {error}=await sb.rpc('save_incidental_voucher',{p_id:editingId,p_type:type,p_voucher_no:no,p_voucher_date:date,p_party:party||null,p_invoice_number:invoice||null,p_vendor_address:address||null,p_station:station||null,p_crv_no:crv||null,p_authority:authority||null,p_unit:unit||null,p_items:items,p_subtotal:subtotal,p_gst_mode:gstMode,p_gst_rate:gstRate,p_gst_amount:gstAmount,p_amount:total,p_mode:mode,p_code_head:head||null,p_description:desc||null});
+  if(error){setMsg(msgId,error.message);return}
+  setMsg(msgId,`${type==='RV'?'RV':'IV'} saved successfully.`,true);type==='RV'?clearIncidentalRV():clearIncidentalIV();await refreshAll();
 }
-function editIncidental(id){const x=incidentals.find(a=>a.id===id);if(!x)return;incidentalEditingId=id;for(const [id,val] of Object.entries({incType:x.voucher_type,incNo:x.voucher_no,incDate:x.voucher_date,incInvoice:x.invoice_number||'',incParty:x.party||'',incAddress:x.vendor_address||'',incStation:x.station||'',incCrv:x.crv_no||'',incAuthority:x.authority||'',incUnit:x.unit||'',incMode:x.mode||'CASH',incCodeHead:x.code_head||'',incDesc:x.description||''}))document.getElementById(id).value=val;document.getElementById('incItems').innerHTML='';(x.items||[]).forEach(addIncItem);document.getElementById('incGstMode').value=x.gst_mode||'inclusive';document.getElementById('incGstRate').value=x.gst_rate||'';calcIncidental();setMsg('incMsg','Editing existing RV/IV. Save / Update to commit.',true);showPage('incidental',document.querySelector('[data-page="incidental"]'))}
+function saveIncidentalRV(){return saveIncidentalGeneric('RV',rvEditingId,'rv','rvMsg','rvItems')}
+function saveIncidentalIV(){return saveIncidentalGeneric('IV',ivEditingId,'iv','ivMsgInc','ivItemsInc')}
+function incidentalRegisterTable(type,editFn){const rows=incidentals.filter(x=>x.voucher_type===type);let h='<table><tr><th>Voucher No.</th><th>Date</th><th>Invoice / Ref</th><th>Party</th><th>Items</th><th>Mode</th><th>Total</th><th>Action</th></tr>';rows.forEach(x=>{h+=`<tr><td><b>${esc(x.voucher_no)}</b></td><td>${esc(x.voucher_date)}</td><td>${esc(x.invoice_number||'')}</td><td>${esc(x.party||'')}</td><td>${Array.isArray(x.items)?x.items.length:0}</td><td>${esc(x.mode||'')}</td><td>${money(x.amount)}</td><td><button class="btn" onclick="printIncidental('${x.id}')">Generate</button> ${canTxEdit()?`<button class="btn ghost" onclick="${editFn}('${x.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deleteIncidental('${x.id}')">Delete</button>`:''}</td></tr>`});h+='</table>';return rows.length?h:'<div class="empty">No saved '+(type==='RV'?'Incidental RV':'Incidental IV')+' entries for this camp.</div>'}
+function renderIncidentalRV(){const el=document.getElementById('incidentalRVTable');if(el)el.innerHTML=incidentalRegisterTable('RV','editIncidentalRV')}
+function renderIncidentalIV(){const el=document.getElementById('incidentalIVTable');if(el)el.innerHTML=incidentalRegisterTable('IV','editIncidentalIV')}
+function editIncidentalRV(id){const x=incidentals.find(a=>a.id===id&&a.voucher_type==='RV');if(!x)return;rvEditingId=id;document.getElementById('rvNoAuto').value=x.voucher_no;document.getElementById('rvDate').value=x.voucher_date;document.getElementById('rvInvoice').value=x.invoice_number||'';document.getElementById('rvParty').value=x.party||'';document.getElementById('rvAddress').value=x.vendor_address||'';document.getElementById('rvStation').value=x.station||'';document.getElementById('rvCrv').value=x.crv_no||'';document.getElementById('rvAuthority').value=x.authority||'';document.getElementById('rvMode').value=x.mode||'CASH';document.getElementById('rvCodeHead').value=x.code_head||'';document.getElementById('rvDesc').value=x.description||'';document.getElementById('rvGstMode').value=x.gst_mode||'inclusive';document.getElementById('rvGstRate').value=x.gst_rate||'';document.getElementById('rvItems').innerHTML='';(x.items||[]).forEach(addRVItem);recalcIncidentalForms();showPage('incidentalRV',document.querySelector('[data-page="incidentalRV"]'))}
+function editIncidentalIV(id){const x=incidentals.find(a=>a.id===id&&a.voucher_type==='IV');if(!x)return;ivEditingId=id;document.getElementById('ivNoAuto').value=x.voucher_no;document.getElementById('ivDateInc').value=x.voucher_date;document.getElementById('ivUnitInc').value=x.unit||'';document.getElementById('ivStationInc').value=x.station||'';document.getElementById('ivAuthorityInc').value=x.authority||'';document.getElementById('ivPartyInc').value=x.party||'';document.getElementById('ivModeInc').value=x.mode||'CASH';document.getElementById('ivCodeHeadInc').value=x.code_head||'';document.getElementById('ivDescInc').value=x.description||'';document.getElementById('ivItemsInc').innerHTML='';(x.items||[]).forEach(addIVItem);showPage('incidentalIV',document.querySelector('[data-page="incidentalIV"]'))}
 async function deleteIncidental(id){if(!canDelete())return alert('Only ADMIN/MANAGER can delete incidental vouchers.');if(!confirm('Delete this incidental voucher?'))return;const {error}=await sb.from('incidental_vouchers').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await refreshAll()}
-function incidentalVoucherSheet(r){const iv=r.voucher_type==='IV';const items=r.items||[];const rows=items.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.desc)}</td><td>${esc(x.unit||'')}</td><td>${x.qty}</td><td>${money(x.rate)}</td><td>${esc(x.page||'')}</td><td>${esc(x.remarks||'')}</td></tr>`).join('');return `<div style="font-size:10px;text-align:right;text-decoration:underline">In lieu of IAFZ- 2076</div><h1>RECEIPT/ISSUE EXPENSE VOUCHER</h1><div class="heads"><div><b>To be completed by Issuing Officer</b><br>${iv?'Issue (a) IV No- ':'Receipt (a) RV No- '}${esc(r.voucher_no)}<br>${esc(r.party||'')}<br>Address: ${esc(r.vendor_address||'')}<br>Stn: ${esc(r.station||'')}<br>Dated: ${esc(r.voucher_date||'')}<br>Authority: ${esc(r.authority||'')}</div><div><b>To be completed by Receiving Officer</b><br>Invoice/Ref: ${esc(r.invoice_number||'')}<br>CRV No: ${esc(r.crv_no||'')}<br>Unit: ${esc(r.unit||'39 Kar Bn NCC')}<br>Stn: ${esc(r.station||'')}<br>Dated: ${esc(r.voucher_date||'')}</div></div><table><tr><th>Sl No</th><th>Nomenclature</th><th>A/u</th><th>Qty</th><th>Rate</th><th>Page No</th><th>Remarks</th></tr>${rows}</table><div style="text-align:right;margin-top:12px"><b>Subtotal: ${money(r.subtotal)}</b><br>GST: ${money(r.gst_amount)}<br><b>Total: ${money(r.amount)}</b></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;margin-top:70px;font-size:11px;text-decoration:underline"><div>ISSUED BY</div><div>COLLECTED BY</div><div>RECEIVED BY</div></div>`}
+function incidentalVoucherSheet(r){const iv=r.voucher_type==='IV';const items=r.items||[];const rows=items.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.desc)}</td><td>${esc(x.unit||'')}</td><td>${x.qty}</td><td>${money(x.rate)}</td><td>${esc(x.page||'')}</td><td>${esc(x.remarks||'')}</td></tr>`).join('');return `<div style="font-size:10px;text-align:right;text-decoration:underline">In lieu of IAFZ- 2076</div><h1>${iv?'ISSUE':'RECEIPT'} EXPENSE VOUCHER</h1><div class="heads"><div><b>To be completed by Issuing Officer</b><br>${iv?'Issue (a) IV No- ':'Receipt (a) RV No- '}${esc(r.voucher_no)}<br>${esc(r.party||'')}<br>Address: ${esc(r.vendor_address||'')}<br>Stn: ${esc(r.station||'')}<br>Dated: ${esc(r.voucher_date||'')}<br>Authority: ${esc(r.authority||'')}</div><div><b>To be completed by Receiving Officer</b><br>Invoice/Ref: ${esc(r.invoice_number||'')}<br>CRV No: ${esc(r.crv_no||'')}<br>Unit: ${esc(r.unit||'39 Kar Bn NCC')}<br>Stn: ${esc(r.station||'')}<br>Dated: ${esc(r.voucher_date||'')}</div></div><table><tr><th>Sl No</th><th>Nomenclature</th><th>A/u</th><th>Qty</th><th>Rate</th><th>Page No</th><th>Remarks</th></tr>${rows}</table><div style="text-align:right;margin-top:12px"><b>Subtotal: ${money(r.subtotal)}</b><br>GST: ${money(r.gst_amount)}<br><b>Total: ${money(r.amount)}</b></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;margin-top:70px;font-size:11px;text-decoration:underline"><div>ISSUED BY</div><div>COLLECTED BY</div><div>RECEIVED BY</div></div>`}
 function printIncidental(id){const r=incidentals.find(a=>a.id===id);if(!r)return;document.getElementById('incidentalPrintSheet').innerHTML=incidentalVoucherSheet(r);document.body.classList.add('print-rviv');window.print();setTimeout(()=>document.body.classList.remove('print-rviv'),300)}
 
 /* ===== Cash Book / Manual RV-PV + Payment Auto Fetch + Day Close ===== */
@@ -1068,7 +1141,7 @@ function allocationSummary(x){
 }
 function sourceDetailObject(x){let d=x?.source_details||{};if(typeof d==='string'){try{d=JSON.parse(d)}catch(_){d={}}}d=d||{};if(!d.to_whom_paid&&x?.party)d.to_whom_paid=x.party;if(!d.on_account&&x?.code_head)d.on_account=x.code_head;if(!d.source_reference&&x?.reference_no)d.source_reference=x.reference_no;return d}
 function itemSummary(x){const d=sourceDetailObject(x),items=Array.isArray(d.items)?d.items:[];return items.map(it=>`${it.name||it.item||it.desc||''}${it.qty!=null?` (${it.qty} ${it.unit||''})`:''}`).filter(Boolean).join(', ')}
-function renderCashbook(){const el=document.getElementById('cashbookTable');if(!el)return;let h='<table><tr><th>Date</th><th>Type</th><th>RV / PV No.</th><th>Source Type</th><th>Invoice / Ref</th><th>To Whom / Party</th><th>On What Account</th><th>Mode</th><th>Code Head / Distribution</th><th>Purchased Items / Particulars</th><th>Amount</th></tr>';cashbookEntries.forEach(x=>{const d=sourceDetailObject(x);h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.source_type||'')}</td><td>${esc(x.reference_no||'')}</td><td>${esc(d.to_whom_paid||x.party||'')}</td><td>${esc(d.on_account||x.code_head||x.reference_no||'')}</td><td>${esc(x.mode||'')}</td><td>${esc(allocationSummary(x))}</td><td>${esc(itemSummary(x))}</td><td>${money(x.amount)}</td></tr>`});h+='</table>';el.innerHTML=cashbookEntries.length?h:'<div class="empty">No Cash Book entries for this camp.</div>'}
+function renderCashbook(){const el=document.getElementById('cashbookTable');if(!el)return;let h='<table><tr><th>Date</th><th>Type</th><th>RV / PV No.</th><th>Source Type</th><th>Invoice / Ref</th><th>To Whom / Party</th><th>On What Account</th><th>Mode</th><th>Code Head / Distribution</th><th>Purchased Items / Particulars</th><th>Amount</th><th>Action</th></tr>';cashbookEntries.forEach(x=>{const d=sourceDetailObject(x);h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.source_type||'')}</td><td>${esc(x.reference_no||'')}</td><td>${esc(d.to_whom_paid||x.party||'')}</td><td>${esc(d.on_account||x.code_head||x.reference_no||'')}</td><td>${esc(x.mode||'')}</td><td>${esc(allocationSummary(x))}</td><td>${esc(itemSummary(x))}</td><td>${money(x.amount)}</td><td>${canAccountsEntry()?`<button class="btn red" onclick="deleteCashbook('${x.id}')">Delete</button>`:'View'}</td></tr>`});h+='</table>';el.innerHTML=cashbookEntries.length?h:'<div class="empty">No Cash Book entries for this camp.</div>'}
 function latestClosureBefore(date){return [...cashbookClosures].filter(x=>x.close_date<date).sort((a,b)=>b.close_date.localeCompare(a.close_date))[0]||null}
 const CASH_HEADS=['Messing','INC','POL','Rank Pay','TA Cadets','TA/DA Civ Staff','Rent','Others'];
 function jsonObj(v){if(!v)return {};if(typeof v==='string'){try{return JSON.parse(v)}catch(_){return {}}}return v}
@@ -1100,7 +1173,7 @@ async function closeCashbookDay(){if(!canAccountsEntry()){alert('Only ACCOUNTS/A
 function printDayCashbook(){const d=document.getElementById('cashDayDate').value||today(),s=calculateDay(d),camp=activeCamp||{},rows=s.rows;let html=`<h1>CAMP CASH BOOK</h1><h2 style="font-size:12px;margin-top:4px">RECEIPTS AND PAYMENTS</h2><div class="meta"><b>Camp:</b> ${esc(camp.camp_name||'')} &nbsp; | &nbsp; <b>Code:</b> ${esc(camp.camp_code||'')} &nbsp; | &nbsp; <b>Station:</b> ${esc(camp.station||'')} &nbsp; | &nbsp; <b>Date:</b> ${d}</div>`;html+=`<table><tr><th colspan="6">RECEIPTS</th><th colspan="10">PAYMENTS</th></tr><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Date</th><th>PV No.</th><th>Source</th><th>Invoice / Ref</th><th>To Whom Paid</th><th>On What Account</th><th>Particulars / Items</th><th>Mode</th><th>Amount</th><th>Head</th></tr>`;const receipts=rows.filter(x=>x.entry_type==='RECEIPT'),payments=rows.filter(x=>x.entry_type==='PAYMENT'),n=Math.max(receipts.length,payments.length,1);for(let i=0;i<n;i++){const r=receipts[i],p=payments[i],pd=sourceDetailObject(p);html+=`<tr><td>${r?esc(r.entry_date):''}</td><td>${r?esc(r.voucher_number):''}</td><td>${r?esc(r.party||''):''}</td><td>${r?esc((r.reference_no||'')+(allocationSummary(r)?' | '+allocationSummary(r):'')):''}</td><td class="num">${r&&r.mode==='CASH'?money(r.amount):''}</td><td class="num">${r&&r.mode==='BANK'?money(r.amount):''}</td><td>${p?esc(p.entry_date):''}</td><td>${p?esc(p.voucher_number):''}</td><td>${p?esc(p.source_type||''):''}</td><td>${p?esc(p.reference_no||''):''}</td><td>${p?esc(pd.to_whom_paid||p.party||''):''}</td><td>${p?esc(pd.on_account||p.code_head||''):''}</td><td>${p?esc(itemSummary(p)):''}</td><td>${p?esc(p.mode||''):''}</td><td class="num">${p?money(p.amount):''}</td><td>${p?esc(allocationSummary(p)):''}</td></tr>`}html+=`<tr class="total"><td colspan="4">BALANCE B/F</td><td class="num">${money(s.bfCash)}</td><td class="num">${money(s.bfBank)}</td><td colspan="4">TOTAL PAYMENTS</td><td colspan="2"></td><td class="num">${money(s.pc+s.pb)}</td><td colspan="2"></td></tr>`;html+=`<tr class="total"><td colspan="4">TOTAL RECEIPTS</td><td class="num">${money(s.rc)}</td><td class="num">${money(s.rb)}</td><td colspan="4">CASH DRAWN</td><td colspan="2"></td><td class="num">${money(s.draw)}</td><td colspan="2"></td></tr>`;html+=`<tr class="total"><td colspan="4">BALANCE C/F</td><td class="num">${money(s.cfCash)}</td><td class="num">${money(s.cfBank)}</td><td colspan="10">DAY STATUS: ${s.closed?'CLOSED':'OPEN'}</td></tr></table>`;html+=`<h3 style="margin-top:18px">Account Head Balance – Carry Forward</h3><table><tr><th>Head</th><th>B/F</th><th>Receipts/Allotment</th><th>Payments</th><th>C/F</th></tr>${CASH_HEADS.map(h=>`<tr><td>${esc(h)}</td><td>${money(s.bfHeads[h])}</td><td>${money(s.headReceipts[h])}</td><td>${money(s.headPayments[h])}</td><td><b>${money(s.cfHeads[h])}</b></td></tr>`).join('')}</table>`;document.getElementById('cashPrintSheet').innerHTML=html;document.body.classList.add('print-cash');window.print();setTimeout(()=>document.body.classList.remove('print-cash'),300)}
 
 function initExtension(){
-  const d=document.getElementById('polDate');if(d)d.value=today();const cd=document.getElementById('cashDate');if(cd)cd.value=today();const pd=document.getElementById('payDate');if(pd)pd.value=today();const cdd=document.getElementById('cdDate');if(cdd)cdd.value=today();const day=document.getElementById('cashDayDate');if(day)day.value=today();const ard=document.getElementById('accReportDate');if(ard)ard.value=today();const id=document.getElementById('incDate');if(id)id.value=today();const items=document.getElementById('incItems');if(items&&!items.children.length)addIncItem({});setCashType('RECEIPT');
+  const d=document.getElementById('polDate');if(d)d.value=today();const cd=document.getElementById('cashDate');if(cd)cd.value=today();const pd=document.getElementById('payDate');if(pd)pd.value=today();const cdd=document.getElementById('cdDate');if(cdd)cdd.value=today();const day=document.getElementById('cashDayDate');if(day)day.value=today();const ard=document.getElementById('accReportDate');if(ard)ard.value=today();const rvd=document.getElementById('rvDate');if(rvd)rvd.value=today();const ivd=document.getElementById('ivDateInc');if(ivd)ivd.value=today();const rvi=document.getElementById('rvItems');if(rvi&&!rvi.children.length)addRVItem({});const ivi=document.getElementById('ivItemsInc');if(ivi&&!ivi.children.length)addIVItem({});setCashType('RECEIPT');
 }
 
 async function start(){
@@ -1109,21 +1182,6 @@ async function start(){
 }
 
 start();
-
-
-function exportCSV(){
-  const rows=[];
-  const headers=['Ledger','Item','Category','Unit','Opening','Stock In','Stock Out','Balance','Reorder Level','Status'];
-  rows.push(headers);
-  (items||[]).forEach(i=>{
-    const b=balance(i); const sin=(inInvoices||[]).reduce((s,h)=>s+(h.stock_in_items||[]).filter(r=>r.item_id===i.id).reduce((a,r)=>a+(+r.quantity||0),0),0);
-    const sout=(outVouchers||[]).reduce((s,h)=>s+(h.stock_out_items||[]).filter(r=>r.item_id===i.id).reduce((a,r)=>a+(+r.quantity||0),0),0);
-    rows.push([i.ledger_page_no||'',i.name||'',i.category||'',i.unit||'',i.opening_stock||0,sin,sout,b,+i.reorder_level||0,b<=+i.reorder_level?'LOW':'OK']);
-  });
-  const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');
-  a.href=url; a.download=(activeCamp?.camp_code||'NCC')+'_Inventory_Report.csv'; a.click(); URL.revokeObjectURL(url);
-}
 
 function showPage(id,btn){
   if(profile?.role==='ACCOUNTS' && !['dashboard','cashbook','reports'].includes(id)) return;
