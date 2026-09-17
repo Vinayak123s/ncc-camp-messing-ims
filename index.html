@@ -555,6 +555,8 @@ const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
+let camps = [], activeCamp = null;
+let polVehicles = [], polEntries = [];
 const UNITS=["Nos","Kgs","Ltrs","Pcs","Gms","Mtrs","Boxes","Packets","Bottles","Cans","Sets","Units","Quintal","Ton","Bags","Dozens"];
 const VOUCHERS=["IV-1","IV-2","IV-3","IV-4","IV-5","IV-6","IV-7","IV-8","IV-9","IV-10"];
 
@@ -579,7 +581,7 @@ async function signIn(){
   setLoginMsg("Signing in...");
   const {data,error}=await sb.auth.signInWithPassword({email,password});
   if(error){setLoginMsg(error.message);return}
-  currentUser=data.user; await loadApp();
+  currentUser=data.user; try{await loadApp()}catch(e){console.error(e);setLoginMsg("Login succeeded but the application failed to load. Refresh and try again.")}
 }
 async function sendReset(){
   const email=document.getElementById("loginEmail").value.trim();
@@ -612,10 +614,16 @@ function applyRoleUI(){
 
 async function ensureCampContext(){
   const {data,error}=await sb.from('camps').select('*').order('from_date',{ascending:false}).order('created_at',{ascending:false});
-  if(error){console.error(error);return false}
+  if(error){console.error(error);camps=[];activeCamp=null;populateCampTop();renderCamps();return false}
   camps=data||[];
-  if(profile.current_camp_id) activeCamp=camps.find(c=>c.id===profile.current_camp_id)||null;
-  else activeCamp=null;
+  activeCamp = profile?.current_camp_id ? (camps.find(c=>c.id===profile.current_camp_id)||null) : null;
+  if(!activeCamp && camps.length){
+    activeCamp=camps[0];
+    if(['ADMIN','MANAGER'].includes(profile?.role)){
+      const {error:pe}=await sb.from('profiles').update({current_camp_id:activeCamp.id}).eq('id',currentUser.id);
+      if(!pe) profile.current_camp_id=activeCamp.id;
+    }
+  }
   populateCampTop(); renderCamps();
   return !!activeCamp;
 }
@@ -629,7 +637,7 @@ async function loadApp(){
   applyRoleUI();
   const hasCamp=await ensureCampContext();
   if(hasCamp){await refreshAll(); showPage('dashboard',document.querySelector('[data-page="dashboard"]'));}
-  else {await refreshAll(); showPage(canCampManage()?'camp':'dashboard',document.querySelector(`[data-page="${canCampManage()?'camp':'dashboard'}"]`));}
+  else {await refreshAll(); showPage(canCampManage()?'camp':'dashboard',document.querySelector(`[data-page="${canCampManage()?'camp':'dashboard'}"]`)); if(!camps.length){setTimeout(()=>alert('No camp is available yet. ADMIN/MANAGER must create a new camp from Camp Details before entering transactions.'),0)}}
 }
 
 async function refreshAll(){
@@ -649,6 +657,238 @@ async function refreshAll(){
   items=a.data||[];inInvoices=b.data||[];outVouchers=c.data||[];profiles=p.data||[];polVehicles=cv.data||[];polEntries=pv.data||[];incidentals=iv.data||[];cashbookEntries=cb.data||[];cashbookClosures=cc.data||[];
   if(l.data?.value)setLogo(l.data.value);
   renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidental();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();if(cashType==='PAYMENT')loadCashSources();if(cashType==='DAY')renderDayClose();
+}
+
+
+
+/* ===== Restored core functions ===== */
+function addInRow(data={}) {
+  const wrap=document.getElementById("inRows"),row=document.createElement("div");row.className="item-row";
+  row.innerHTML=`<select class="in-item" onchange="calcInTotal()"><option value="">Select item</option>${inOptions(data.item_id||"")}</select>
+    <input class="in-qty" type="number" min="0" step="0.01" value="${data.quantity??""}" oninput="calcInTotal()">
+    <input class="in-rate" type="number" min="0" step="0.01" value="${data.rate??""}" oninput="calcInTotal()">
+    <div class="amt in-amt">0.00</div><button class="btn red" onclick="this.parentElement.remove();calcInTotal()">×</button>`;
+  wrap.appendChild(row);calcInTotal();
+}
+function addOutRow(data={}){
+  const wrap=document.getElementById("outRows"),row=document.createElement("div");row.className="item-row";
+  row.innerHTML=`<select class="out-item" onchange="updateOutRow(this)"><option value="">Select item</option>${items.map(i=>`<option value="${i.id}" ${data.item_id===i.id?"selected":""}>${esc(i.name)} (${esc(i.unit||"")})</option>`).join("")}</select>
+    <div class="out-bal badge">0.00</div><input class="out-qty" type="number" min="0" step="0.01" value="${data.quantity??""}" oninput="calcOutTotal()"><div class="amt out-amt">0.00</div>
+    <button class="btn red" onclick="this.parentElement.remove();calcOutTotal()">×</button>`;
+  wrap.appendChild(row);updateOutRow(row.querySelector(".out-item"));
+}
+function availableCashSources(type){if(type==='MESSING')return inInvoices.map(x=>({id:x.id,label:`${x.invoice_number} | ${x.invoice_date} | ${x.supplier||''}`,ref:x.invoice_number,party:x.supplier||'',amount:(x.stock_in_items||[]).reduce((s,r)=>s+(+r.amount||0),0)}));if(type==='INCIDENTAL_RV'||type==='INCIDENTAL_IV')return incidentals.filter(x=>x.voucher_type===type.split('_')[1]).map(x=>({id:x.id,label:`${x.voucher_no} | ${x.invoice_number||'-'} | ${x.party||''}`,ref:x.invoice_number||x.voucher_no,party:x.party||'',amount:+x.amount||0}));if(type==='POL_DRAWN')return polEntries.map(x=>({id:x.id,label:`${x.invoice_number} | ${x.entry_date} | ${x.petrol_bunk||''}`,ref:x.invoice_number,party:x.petrol_bunk||'',amount:+x.total_amount||0}));return []}
+function balance(i){return (+i.opening_stock||0)+(+i.stock_in_qty||0)-(+i.stock_out_qty||0)}
+function calcInTotal(){let t=0;document.querySelectorAll("#inRows .item-row").forEach(r=>{const q=+r.querySelector(".in-qty").value||0,rate=+r.querySelector(".in-rate").value||0,a=q*rate;r.querySelector(".in-amt").textContent=a.toFixed(2);t+=a});document.getElementById("inTotal").textContent=t.toFixed(2)}
+function calcOutTotal(){let t=0;document.querySelectorAll("#outRows .item-row").forEach(r=>{const i=items.find(x=>x.id===r.querySelector(".out-item").value),q=+r.querySelector(".out-qty").value||0,a=q*(+(i?.avg_rate||0));r.querySelector(".out-amt").textContent=a.toFixed(2);t+=a});document.getElementById("outTotal").textContent=t.toFixed(2)}
+function cashSourceTypes(){return ['MESSING','INCIDENTAL_RV','INCIDENTAL_IV','POL_DRAWN','OTHER']}
+function clearCampForm(){['campCode','campName','campStation','campFrom','campTo','campRemarks'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});setMsg('campMsg','')}
+function clearReportFilter(){document.getElementById("fromDate").value="";document.getElementById("toDate").value="";renderReports()}
+function closeModal(){document.getElementById("modal").classList.add("hidden")}
+function dateOk(d,from,to){return (!from||d>=from)&&(!to||d<=to)}
+async function deleteCashbook(id){if(!canAccountsEntry())return;if(!confirm('Delete this cash book entry?'))return;const {error}=await sb.from('cashbook_entries').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await refreshAll()}
+async function deleteItem(id){
+  if(!canDelete())return alert("Only ADMIN/MANAGER can delete inventory items.");
+  if(!confirm("Delete this item? It cannot be deleted if transactions reference it."))return;
+  const {error}=await sb.from("inventory_items").delete().eq("id",id);if(error)alert(error.message);else await refreshAll();
+}
+async function deleteStockIn(id){
+  if(!canDelete())return alert("Only ADMIN/MANAGER can delete invoices.");
+  if(!confirm("Delete this complete invoice and all its item rows?"))return;
+  const {error}=await sb.rpc("delete_stock_in_invoice",{p_id:id});if(error)alert(error.message);else await refreshAll();
+}
+async function deleteStockOut(id){
+  if(!canDelete())return alert("Only ADMIN/MANAGER can delete vouchers.");
+  if(!confirm("Delete this complete voucher and all its item rows?"))return;
+  const {error}=await sb.rpc("delete_stock_out_voucher",{p_id:id});if(error)alert(error.message);else await refreshAll();
+}
+async function editStockIn(id){
+  if(!canTxEdit())return;
+  const h=inInvoices.find(x=>x.id===id);if(!h)return;
+  document.getElementById("editInId").value=h.id;document.getElementById("inInvoice").value=h.invoice_number;document.getElementById("inDate").value=h.invoice_date;document.getElementById("inSupplier").value=h.supplier||"";
+  document.getElementById("stockInFormTitle").textContent="Edit Purchase Invoice";document.getElementById("inRows").innerHTML="";
+  (h.stock_in_items||[]).forEach(r=>addInRow(r));if(!(h.stock_in_items||[]).length)addInRow();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+async function editStockOut(id){
+  if(!canTxEdit())return;
+  const h=outVouchers.find(x=>x.id===id);if(!h)return;
+  document.getElementById("editOutId").value=h.id;document.getElementById("outVoucher").value=h.voucher_number;document.getElementById("outDate").value=h.voucher_date;document.getElementById("outIssuedTo").value=h.issued_to||"";
+  document.getElementById("stockOutFormTitle").textContent="Edit Issue Voucher";document.getElementById("outRows").innerHTML="";
+  (h.stock_out_items||[]).forEach(r=>addOutRow(r));if(!(h.stock_out_items||[]).length)addOutRow();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function inOptions(selected=""){return items.length?items.map(i=>`<option value="${i.id}" ${selected===i.id?"selected":""}>${esc(i.name)} (${esc(i.unit||"")})</option>`).join(""):"<option value=''>Add inventory items first</option>"}
+async function openItemModal(id=null){
+  const item=id?items.find(x=>x.id===id):null;
+  let next="";
+  if(!item){
+    const {data,error}=await sb.rpc("next_ledger_page_no");
+    next=error?String(Math.max(0,...items.map(i=>+i.ledger_page_no||0))+1):String(data);
+  }else next=item.ledger_page_no||"";
+  const unitOpts=UNITS.map(u=>`<option ${item?.unit===u?"selected":""}>${u}</option>`).join("");
+  openModal(`<div class="modalhead"><h2>${item?"Edit":"Add"} Inventory Item</h2><button class="close" onclick="closeModal()">×</button></div>
+  <div class="formbox" style="margin-top:12px">
+   <div class="form-grid">
+    <div class="field"><label>Ledger Page No. (Auto)</label><input id="fLedger" value="${esc(next)}" readonly></div>
+    <div class="field"><label>Item Name</label><input id="fName" value="${esc(item?.name||"")}" placeholder="Item name"></div>
+    <div class="field"><label>Category</label><input id="fCat" value="${esc(item?.category||"")}" placeholder="Category"></div>
+    <div class="field"><label>Unit</label><select id="fUnit">${unitOpts}</select></div>
+    <div class="field"><label>Opening Stock</label><input id="fOpening" type="number" step="0.01" min="0" value="${item?.opening_stock??0}"></div>
+    <div class="field"><label>Reorder Level</label><input id="fReorder" type="number" step="0.01" min="0" value="${item?.reorder_level??0}"></div>
+   </div>
+   <div class="actions" style="margin-top:14px"><button class="btn" onclick="saveItem('${item?.id||""}')">SAVE ITEM</button><button class="btn ghost" onclick="closeModal()">CANCEL</button></div>
+  </div>`);
+}
+function openLogo(){
+  if(!roleIs("ADMIN"))return;
+  openModal(`<div class="modalhead"><h2>Upload NC Logo</h2><button class="close" onclick="closeModal()">×</button></div><div class="formbox" style="margin-top:12px"><p class="muted">Choose JPG or PNG. The logo is stored in Supabase Storage.</p><input id="logoFile" type="file" accept="image/png,image/jpeg"><div class="actions" style="margin-top:12px"><button class="btn" onclick="uploadLogo()">UPLOAD</button></div></div>`)
+}
+function openModal(html){document.getElementById("modalBox").innerHTML=html;document.getElementById("modal").classList.remove("hidden")}
+function populateCampTop(){
+  const el=document.getElementById('campSelectTop'); if(!el)return;
+  const current=activeCamp?.id||'';
+  el.innerHTML='<option value="">Select Camp</option>'+camps.map(c=>`<option value="${esc(c.id)}" ${c.id===current?'selected':''}>${esc(c.camp_code)} - ${esc(c.camp_name)}</option>`).join('');
+  const lbl=document.getElementById('campActiveLabel'); if(lbl) lbl.textContent=activeCamp?`${activeCamp.camp_code} | ${activeCamp.camp_name}`:'No camp selected';
+}
+function populateUnitFilter(){
+  const el=document.getElementById("unitFilter");if(!el)return;const current=el.value;
+  el.innerHTML='<option value="">All Units</option>'+[...new Set([...UNITS,...items.map(i=>i.unit).filter(Boolean)])].map(u=>`<option ${u===current?"selected":""}>${esc(u)}</option>`).join("");
+}
+function populateVoucherSelects(){
+  const v=document.getElementById("outVoucher"),current=v.value;
+  if(v)v.innerHTML=VOUCHERS.map(x=>`<option ${x===current?"selected":""}>${x}</option>`).join("");
+}
+async function prepareCashVoucherNo(){if(!activeCamp){document.getElementById('cashVoucherNo').value='';return}const {data,error}=await sb.rpc('next_cashbook_voucher_no',{p_type:cashType});document.getElementById('cashVoucherNo').value=error?'':data}
+function printPage(){window.print()}
+async function renderCamps(){
+  const el=document.getElementById('campTable'); if(!el)return;
+  let h='<table><tr><th>Code</th><th>Camp Name</th><th>Station</th><th>From</th><th>To</th><th>Status</th><th>Action</th></tr>';
+  camps.forEach(c=>{const active=activeCamp?.id===c.id; h+=`<tr><td><b>${esc(c.camp_code)}</b></td><td>${esc(c.camp_name)}</td><td>${esc(c.station||'')}</td><td>${esc(c.from_date||'')}</td><td>${esc(c.to_date||'')}</td><td><span class="status ${active?'ok':'low'}">${active?'ACTIVE':'AVAILABLE'}</span></td><td>${active?'Current':`<button class="btn" onclick="switchCamp('${c.id}')">SELECT</button>`}</td></tr>`});
+  h+='</table>'; el.innerHTML=camps.length?h:'<div class="empty">No camp found. ADMIN/MANAGER must start a new camp.</div>';
+}
+function renderCashSources(){const st=document.getElementById('cashSourceType');if(!st)return;const current=st.value||'MESSING';st.innerHTML=cashSourceTypes().map(x=>`<option value="${x}" ${x===current?'selected':''}>${x.replaceAll('_',' ')}</option>`).join('');loadCashSources()}
+function renderInventory(){
+  const q=(document.getElementById("invSearch")?.value||"").toLowerCase(),u=document.getElementById("unitFilter")?.value||"";
+  const list=items.filter(i=>(i.name+" "+(i.category||"")).toLowerCase().includes(q)&&(!u||i.unit===u));
+  let h=`<table><tr><th>Ledger Page</th><th>Item Name</th><th>Category</th><th>Unit</th><th>Opening</th><th>Stock In</th><th>Stock Out</th><th>Balance</th><th>Reorder</th><th>Status</th><th>Action</th></tr>`;
+  list.forEach(i=>{
+    const b=balance(i),low=b<=+i.reorder_level;
+    const actions=canWriteInventory()?`<button class="btn ghost" onclick="openItemModal('${i.id}')">Edit</button> ${canDelete()?`<button class="btn red" onclick="deleteItem('${i.id}')">Delete</button>`:""}`:"Read only";
+    h+=`<tr><td><b>${esc(i.ledger_page_no||"")}</b></td><td><b>${esc(i.name)}</b></td><td>${esc(i.category||"")}</td><td>${esc(i.unit||"")}</td><td>${(+i.opening_stock||0).toFixed(2)}</td><td>${(+i.stock_in_qty||0).toFixed(2)}</td><td>${(+i.stock_out_qty||0).toFixed(2)}</td><td><b>${b.toFixed(2)}</b></td><td>${(+i.reorder_level||0).toFixed(2)}</td><td><span class="status ${low?"low":"ok"}">${low?"LOW":"OK"}</span></td><td>${actions}</td></tr>`;
+  });
+  h+="</table>";document.getElementById("inventoryTable").innerHTML=list.length?h:"<div class='empty'>No inventory items found.</div>";
+}
+function renderStockInList(){
+  let h=`<table><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th><th>Action</th></tr>`;
+  inInvoices.forEach(x=>{const total=(x.stock_in_items||[]).reduce((s,r)=>s+(+r.amount||(+r.quantity||0)*(+r.rate||0)),0);
+    let actions=canTxEdit()?`<button class="btn ghost" onclick="editStockIn('${x.id}')">Edit</button>`:"View";
+    if(canDelete())actions+=` <button class="btn red" onclick="deleteStockIn('${x.id}')">Delete</button>`;
+    h+=`<tr><td><b>${esc(x.invoice_number)}</b></td><td>${esc(x.invoice_date)}</td><td>${esc(x.supplier||"")}</td><td>${(x.stock_in_items||[]).length}</td><td>${money(total)}</td><td>${actions}</td></tr>`});
+  h+="</table>";document.getElementById("inList").innerHTML=inInvoices.length?h:"<div class='empty'>No purchase invoices saved yet.</div>";
+}
+function renderStockOutList(){
+  let h=`<table><tr><th>Voucher</th><th>Date</th><th>Issued To</th><th>Items</th><th>Total</th><th>Action</th></tr>`;
+  outVouchers.forEach(x=>{const total=(x.stock_out_items||[]).reduce((s,r)=>s+(+r.amount||(+r.quantity||0)*(+r.rate||0)),0);
+    let actions=canTxEdit()?`<button class="btn ghost" onclick="editStockOut('${x.id}')">Edit</button>`:"View";
+    if(canDelete())actions+=` <button class="btn red" onclick="deleteStockOut('${x.id}')">Delete</button>`;
+    h+=`<tr><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.voucher_date)}</td><td>${esc(x.issued_to||"")}</td><td>${(x.stock_out_items||[]).length}</td><td>${money(total)}</td><td>${actions}</td></tr>`});
+  h+="</table>";document.getElementById("outList").innerHTML=outVouchers.length?h:"<div class='empty'>No issue vouchers saved yet.</div>";
+}
+function renderUsers(){
+  if(!roleIs("ADMIN"))return;
+  let h=`<table><tr><th>Display Name</th><th>Role</th><th>UUID</th><th>Created</th></tr>`;
+  profiles.forEach(u=>h+=`<tr><td>${esc(u.display_name||"")}</td><td><span class="badge">${esc(u.role)}</span></td><td>${esc(u.id)}</td><td>${esc(u.created_at||"")}</td></tr>`);
+  h+="</table>";document.getElementById("usersTable").innerHTML=profiles.length?h:"<div class='empty'>No profiles found.</div>";
+}
+function resetStockInForm(){
+  if(!canStockCreate()&&!document.getElementById("editInId").value)return;
+  document.getElementById("editInId").value="";document.getElementById("inInvoice").value="";document.getElementById("inDate").value=today();document.getElementById("inSupplier").value="";
+  document.getElementById("stockInFormTitle").textContent="New Purchase Invoice";document.getElementById("inRows").innerHTML="";addInRow();setMsg("inMsg","");
+}
+function resetStockOutForm(){
+  if(!canStockCreate()&&!document.getElementById("editOutId").value)return;
+  document.getElementById("editOutId").value="";document.getElementById("outVoucher").value="IV-1";document.getElementById("outDate").value=today();document.getElementById("outIssuedTo").value="";
+  document.getElementById("stockOutFormTitle").textContent="New Issue Voucher";document.getElementById("outRows").innerHTML="";addOutRow();setMsg("outMsg","");
+}
+async function saveCamp(){
+  if(!canCampManage()){setMsg('campMsg','Only ADMIN or MANAGER can create a camp.');return}
+  const code=document.getElementById('campCode').value.trim().toUpperCase(), name=document.getElementById('campName').value.trim(), station=document.getElementById('campStation').value.trim(), from=document.getElementById('campFrom').value, to=document.getElementById('campTo').value||null, remarks=document.getElementById('campRemarks').value.trim();
+  if(!code||!name||!from){setMsg('campMsg','Camp code, camp name and from date are required.');return}
+  const {data,error}=await sb.from('camps').insert({camp_code:code,camp_name:name,station:station||null,from_date:from,to_date:to,remarks:remarks||null,created_by:currentUser.id}).select().single();
+  if(error){setMsg('campMsg',error.message);return}
+  camps=[data,...camps]; profile.current_camp_id=data.id; activeCamp=data; await sb.from('profiles').update({current_camp_id:data.id}).eq('id',currentUser.id); clearCampForm(); setMsg('campMsg','New camp started successfully.',true); populateCampTop(); renderCamps(); await refreshAll(); showPage('dashboard',document.querySelector('[data-page="dashboard"]'));
+}
+async function saveStockIn(){
+  if(!canTxEdit())return;
+  const id=document.getElementById("editInId").value||null,invoice=document.getElementById("inInvoice").value.trim(),date=document.getElementById("inDate").value,supplier=document.getElementById("inSupplier").value.trim();
+  if(!id&&!canStockCreate()){setMsg("inMsg","Your role can edit existing invoices but cannot create new invoices.");return}
+  if(!invoice||!date){setMsg("inMsg","Invoice number and date are required.");return}
+  const rows=[...document.querySelectorAll("#inRows .item-row")].map(r=>({item_id:r.querySelector(".in-item").value,quantity:+r.querySelector(".in-qty").value||0,rate:+r.querySelector(".in-rate").value||0})).filter(x=>x.item_id&&x.quantity>0);
+  if(!rows.length){setMsg("inMsg","Add at least one item with quantity.");return}
+  const {data,error}=await sb.rpc("save_stock_in_invoice",{p_id:id,p_invoice_number:invoice,p_invoice_date:date,p_supplier:supplier,p_items:rows});
+  if(error){setMsg("inMsg",error.message);return}
+  setMsg("inMsg","Invoice saved successfully.",true);resetStockInForm();await refreshAll();
+  showPage("stockin",document.querySelector('[data-page="stockin"]'));
+}
+async function saveStockOut(){
+  if(!canTxEdit())return;
+  const id=document.getElementById("editOutId").value||null,voucher=document.getElementById("outVoucher").value,date=document.getElementById("outDate").value,issued=document.getElementById("outIssuedTo").value.trim();
+  if(!id&&!canStockCreate()){setMsg("outMsg","Your role can edit existing vouchers but cannot create new vouchers.");return}
+  if(!date){setMsg("outMsg","Date is required.");return}
+  const rows=[...document.querySelectorAll("#outRows .item-row")].map(r=>({item_id:r.querySelector(".out-item").value,quantity:+r.querySelector(".out-qty").value||0})).filter(x=>x.item_id&&x.quantity>0);
+  if(!rows.length){setMsg("outMsg","Add at least one item with quantity.");return}
+  const {data,error}=await sb.rpc("save_stock_out_voucher",{p_id:id,p_voucher_number:voucher,p_voucher_date:date,p_issued_to:issued,p_items:rows});
+  if(error){setMsg("outMsg",error.message);return}
+  setMsg("outMsg","Voucher saved successfully.",true);resetStockOutForm();await refreshAll();
+  showPage("stockout",document.querySelector('[data-page="stockout"]'));
+}
+async function saveUserProfile(){
+  if(!roleIs("ADMIN"))return;
+  const id=document.getElementById("uId").value.trim(),name=document.getElementById("uName").value.trim(),role=document.getElementById("uRole").value;
+  if(!id){setMsg("userMsg","Auth User UUID is required.");return}
+  const {error}=await sb.from("profiles").upsert({id,display_name:name||null,role},{onConflict:"id"});
+  if(error){setMsg("userMsg",error.message);return}
+  setMsg("userMsg","User profile saved.",true);document.getElementById("uId").value="";document.getElementById("uName").value="";await refreshAll();
+}
+function setLogo(url){
+  document.getElementById("ncLogo").innerHTML=`<img src="${esc(url)}" alt="NC">`;
+  document.getElementById("loginLogo").innerHTML=`<img src="${esc(url)}" style="width:100%;height:100%;border-radius:15px;object-fit:cover" alt="NC">`;
+}
+async function switchCamp(id){
+  if(!id)return;
+  const c=camps.find(x=>x.id===id); if(!c)return;
+  activeCamp=c;
+  const {error}=await sb.from('profiles').update({current_camp_id:id}).eq('id',currentUser.id);
+  if(!error) profile.current_camp_id=id;
+  populateCampTop(); await refreshAll();
+  showPage('dashboard',document.querySelector('[data-page="dashboard"]'));
+}
+function toggleMenu(force){
+  const s=document.getElementById("side");
+  if(force===false){s.classList.remove("expanded","open");return}
+  s.classList.toggle("expanded");s.classList.toggle("open");
+}
+function toggleMessingMenu(btn){
+  const sub=document.getElementById("messingSubnav");
+  if(!sub)return;
+  const open=sub.classList.toggle("open");
+  document.getElementById("messingArrow").textContent=open?"▾":"▸";
+  document.querySelectorAll(".nav").forEach(n=>n.classList.remove("active"));
+  btn.classList.add("active");
+  // Open the Messing landing page only when the section button is clicked.
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById("messing")?.classList.add("active");
+}
+function updateOutRow(sel){const r=sel.parentElement,i=items.find(x=>x.id===sel.value),b=i?balance(i):0;r.querySelector(".out-bal").textContent=b.toFixed(2);r.querySelector(".out-qty").max=Math.max(0,b);calcOutTotal()}
+async function uploadLogo(){
+  const f=document.getElementById("logoFile").files[0];if(!f)return;
+  const ext=(f.name.split(".").pop()||"png").toLowerCase(),path=`logos/nc-logo.${ext}`;
+  const {error}=await sb.storage.from("ims-assets").upload(path,f,{upsert:true,contentType:f.type});
+  if(error){alert(error.message);return}
+  const {data}=sb.storage.from("ims-assets").getPublicUrl(path);
+  const {error:e2}=await sb.from("app_settings").upsert({key:"nc_logo_path",value:data.publicUrl});
+  if(e2){alert(e2.message);return}closeModal();await refreshAll();
 }
 
 async function saveItem(id){
@@ -869,6 +1109,21 @@ async function start(){
 }
 
 start();
+
+
+function exportCSV(){
+  const rows=[];
+  const headers=['Ledger','Item','Category','Unit','Opening','Stock In','Stock Out','Balance','Reorder Level','Status'];
+  rows.push(headers);
+  (items||[]).forEach(i=>{
+    const b=balance(i); const sin=(inInvoices||[]).reduce((s,h)=>s+(h.stock_in_items||[]).filter(r=>r.item_id===i.id).reduce((a,r)=>a+(+r.quantity||0),0),0);
+    const sout=(outVouchers||[]).reduce((s,h)=>s+(h.stock_out_items||[]).filter(r=>r.item_id===i.id).reduce((a,r)=>a+(+r.quantity||0),0),0);
+    rows.push([i.ledger_page_no||'',i.name||'',i.category||'',i.unit||'',i.opening_stock||0,sin,sout,b,+i.reorder_level||0,b<=+i.reorder_level?'LOW':'OK']);
+  });
+  const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=(activeCamp?.camp_code||'NCC')+'_Inventory_Report.csv'; a.click(); URL.revokeObjectURL(url);
+}
 
 function showPage(id,btn){
   if(profile?.role==='ACCOUNTS' && !['dashboard','cashbook','reports'].includes(id)) return;
