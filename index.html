@@ -121,6 +121,8 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 }
 
 </style>
+<style id="cashbook-final-css">
+.source-details{margin-top:12px;padding:12px;border:1px solid #334155;border-radius:8px;background:#0f1925}.source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.source-items{margin-top:12px;overflow:auto}.source-items table{width:100%;border-collapse:collapse;font-size:12px}.source-items th,.source-items td{border:1px solid #334155;padding:7px;text-align:left;white-space:nowrap}.source-items th{background:#1a2939;color:#e8f0f8}.balance-preview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}.balance-card{padding:10px;border:1px solid #334155;border-radius:8px;background:#0b1420}.balance-card span{display:block;font-size:11px;color:#8fa4b8}.balance-card b{display:block;margin-top:4px;font-size:14px}.balance-good{color:#64d68f}.balance-bad{color:#ff7b86}.head-balance-wrap{margin-top:15px;overflow:auto}.head-balance-wrap table{width:100%;border-collapse:collapse;font-size:12px}.head-balance-wrap th,.head-balance-wrap td{border:1px solid #334155;padding:7px;white-space:nowrap}.head-balance-wrap th{background:#163042;color:#fff}@media(max-width:900px){.source-grid,.balance-preview{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.source-grid,.balance-preview{grid-template-columns:1fr}}</style>
 </head>
 <body>
 
@@ -444,12 +446,26 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
         <div class="field"><label>Code Head *</label><select id="cashPaymentCodeHead" onchange="paymentHeadChanged()"><option value="">Select code head</option><option>MESSING</option><option>INC</option><option>POL</option><option>RANK PAY</option><option>TA CADETS</option><option>TA/DA CIV STAFF</option><option>RENT</option><option>OTHERS</option></select></div>
         <div class="field" id="cashSourceTypeWrap"><label>Source Type *</label><select id="cashSourceType" onchange="loadCashSources()"><option value="MESSING_RV">MESSING RV</option><option value="INCIDENTAL_RV">INCIDENTAL RV</option><option value="POL_DRAWN">POL DRAWN</option></select></div>
         <div class="field" id="cashSourceWrap" style="grid-column:span 2"><label>Source Invoice / Voucher</label><select id="cashSource" onchange="fillCashSource()"><option value="">Select source</option></select></div>
-        <div class="field hidden" id="cashOtherHeadWrap"><label>Other Head *</label><select id="cashOtherHead"><option>RANK PAY</option><option>TA/DA CIV STAFF</option><option>RENT</option><option>OTHERS</option></select></div>
         <div class="field"><label>Invoice / Reference No.</label><input id="cashInvoice" class="auto-field" readonly></div>
-        <div class="field"><label>Party / Vendor</label><input id="cashPaymentParty" class="auto-field" readonly></div>
+        <div class="field"><label>To Whom Paid</label><input id="cashPaymentParty" class="auto-field" readonly></div>
+        <div class="field"><label>On What Account</label><input id="cashPaymentAccount" class="auto-field" readonly></div>
         <div class="field"><label>Amount *</label><input id="cashPaymentAmount" class="calculated" readonly></div>
-        <div class="field"><label>Payment Mode</label><select id="cashPaymentMode"><option>CASH</option><option>BANK</option></select></div>
-        <div class="field" style="grid-column:span 3"><label>Narration</label><input id="cashPaymentNarration" placeholder="Payment narration"></div>
+        <div class="field"><label>Payment Mode</label><select id="cashPaymentMode" onchange="updatePaymentBalancePreview()"><option>CASH</option><option>BANK</option></select></div>
+        <div class="field" style="grid-column:span 2"><label>Narration</label><input id="cashPaymentNarration" placeholder="Payment narration"></div>
+      </div>
+      <div id="cashSourceDetails" class="source-details hidden">
+        <div class="source-grid">
+          <div class="field"><label>Source Date</label><input id="cashSourceDate" class="auto-field" readonly></div>
+          <div class="field"><label>Source Party / Bunk</label><input id="cashSourceParty" class="auto-field" readonly></div>
+          <div class="field"><label>Source Remaining Amount</label><input id="cashSourceTotal" class="calculated" readonly></div>
+        </div>
+        <div class="source-items"><table><thead><tr><th>Purchased Item / Particular</th><th>A/u</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody id="cashSourceItemsBody"></tbody></table></div>
+      </div>
+      <div id="cashPaymentBalances" class="balance-preview">
+        <div class="balance-card"><span>Current Bank Balance</span><b id="payBankCurrent">₹0.00</b></div>
+        <div class="balance-card"><span>Current Head Balance</span><b id="payHeadCurrent">₹0.00</b></div>
+        <div class="balance-card"><span>Bank Balance After Payment</span><b id="payBankAfter">₹0.00</b></div>
+        <div class="balance-card"><span>Head Balance After Payment</span><b id="payHeadAfter">₹0.00</b></div>
       </div>
       <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveCashbook()">SAVE PAYMENT</button><button class="btn ghost" onclick="clearCashbookForm()">CLEAR</button></div>
       <div id="paymentMsg" class="msg"></div>
@@ -522,7 +538,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -915,7 +931,7 @@ function applyRoleUI(){
     e.style.display=showInc?'flex':'none';
   });
 
-  const showCash=['ADMIN','MANAGER','ACCOUNTS'].includes(role);
+  const showCash=['ADMIN','ACCOUNTS'].includes(role);
   document.querySelectorAll('.cash-nav').forEach(e=>{
     e.style.display=showCash?'flex':'none';
   });
@@ -1089,67 +1105,16 @@ function setCashType(type){
 }
 function cashPaymentSourceTypes(){return ['MESSING_RV','INCIDENTAL_RV','POL_DRAWN']}
 function availablePaymentSources(type){
-  if(type==='MESSING_RV')return inInvoices.map(x=>({id:x.id,label:`${x.invoice_number} | ${x.invoice_date} | ${x.supplier||''}`,ref:x.invoice_number,party:x.supplier||'',amount:(x.stock_in_items||[]).reduce((s,r)=>s+(+r.amount||(+r.quantity||0)*(+r.rate||0)),0)}));
-  if(type==='INCIDENTAL_RV')return incidentals.filter(x=>x.voucher_type==='RV').map(x=>({id:x.id,label:`${x.voucher_no} | ${x.invoice_number||'-'} | ${x.party||''}`,ref:x.invoice_number||x.voucher_no,party:x.party||'',amount:+x.amount||0}));
-  if(type==='POL_DRAWN')return polEntries.map(x=>({id:x.id,label:`${x.invoice_number} | ${x.entry_date} | ${x.petrol_bunk||''}`,ref:x.invoice_number,party:x.petrol_bunk||'',amount:+x.total_amount||0}));
+  if(type==='MESSING_RV')return inInvoices.map(x=>{const gross=(x.stock_in_items||[]).reduce((s,r)=>s+(+r.amount||(+r.quantity||0)*(+r.rate||0)),0),paid=cashbookEntries.filter(e=>e.entry_type==='PAYMENT'&&e.source_type==='MESSING_RV'&&e.source_id===x.id).reduce((s,e)=>s+(+e.amount||0),0),remaining=Math.max(0,gross-paid),its=(x.stock_in_items||[]).map(r=>{const it=items.find(i=>i.id===r.item_id);return{name:it?.name||'Item',unit:it?.unit||'',qty:+r.quantity||0,rate:+r.rate||0,amount:+r.amount||0}});return{id:x.id,label:`${x.invoice_number} | ${x.invoice_date} | ${x.supplier||''} | Balance ${money(remaining)}`,ref:x.invoice_number,party:x.supplier||'',amount:remaining,date:x.invoice_date,onAccount:'MESSING',items:its}}).filter(x=>x.amount>0);
+  if(type==='INCIDENTAL_RV')return incidentals.filter(x=>x.voucher_type==='RV').map(x=>{const paid=cashbookEntries.filter(e=>e.entry_type==='PAYMENT'&&e.source_type==='INCIDENTAL_RV'&&e.source_id===x.id).reduce((s,e)=>s+(+e.amount||0),0),remaining=Math.max(0,(+x.amount||0)-paid),its=(x.items||[]).map(r=>({name:r.desc||'',unit:r.unit||'',qty:+r.qty||0,rate:+r.rate||0,amount:(+r.qty||0)*(+r.rate||0)}));return{id:x.id,label:`${x.voucher_no} | ${x.invoice_number||'-'} | ${x.party||''} | Balance ${money(remaining)}`,ref:x.invoice_number||x.voucher_no,party:x.party||'',amount:remaining,date:x.voucher_date,onAccount:'INC',items:its}}).filter(x=>x.amount>0);
+  if(type==='POL_DRAWN')return polEntries.map(x=>{const paid=cashbookEntries.filter(e=>e.entry_type==='PAYMENT'&&e.source_type==='POL_DRAWN'&&e.source_id===x.id).reduce((s,e)=>s+(+e.amount||0),0),remaining=Math.max(0,(+x.total_amount||0)-paid),its=[{name:`${x.fuel_type} – ${x.vehicle_no}`,unit:'Ltr',qty:+x.litres||0,rate:+x.rate||0,amount:+x.total_amount||0}];return{id:x.id,label:`${x.invoice_number} | ${x.entry_date} | ${x.petrol_bunk||''} | Balance ${money(remaining)}`,ref:x.invoice_number,party:x.petrol_bunk||'',amount:remaining,date:x.entry_date,onAccount:'POL',items:its}}).filter(x=>x.amount>0);
   return [];
 }
-function paymentHeadChanged(){
-  const code=document.getElementById('cashPaymentCodeHead').value;
-  const linked=['MESSING','INC','POL'].includes(code);
-  const sourceWrap=document.getElementById('cashSourceWrap');
-  const sourceTypeWrap=document.getElementById('cashSourceTypeWrap');
-  const ref=document.getElementById('cashInvoice');
-  const party=document.getElementById('cashPaymentParty');
-  const amount=document.getElementById('cashPaymentAmount');
-  if(linked){
-    sourceTypeWrap.classList.remove('hidden');
-    sourceWrap.classList.remove('hidden');
-    ref.readOnly=true; party.readOnly=true; amount.readOnly=true;
-    ref.classList.add('auto-field'); party.classList.add('auto-field'); amount.classList.add('calculated');
-    const desired=code==='MESSING'?'MESSING_RV':(code==='INC'?'INCIDENTAL_RV':'POL_DRAWN');
-    const st=document.getElementById('cashSourceType');
-    if(st.value!==desired)st.value=desired;
-    loadCashSources();
-  }else{
-    sourceTypeWrap.classList.add('hidden');
-    sourceWrap.classList.add('hidden');
-    ref.readOnly=false; party.readOnly=false; amount.readOnly=false;
-    ref.classList.remove('auto-field'); party.classList.remove('auto-field'); amount.classList.remove('calculated');
-    ref.value=''; party.value='';
-  }
-}
-function loadCashSources(){
-  if(cashType!=='PAYMENT')return;
-  const code=document.getElementById('cashPaymentCodeHead').value;
-  if(!['MESSING','INC','POL'].includes(code)){ paymentHeadChangedNoLoop(); return; }
-  const type=document.getElementById('cashSourceType').value;
-  const sel=document.getElementById('cashSource');
-  const list=availablePaymentSources(type);
-  document.getElementById('cashInvoice').value='';
-  document.getElementById('cashPaymentParty').value='';
-  document.getElementById('cashPaymentAmount').value='';
-  sel.innerHTML='<option value="">Select source</option>'+list.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join('');
-  document.getElementById('cashInvoice').readOnly=true;
-  document.getElementById('cashPaymentParty').readOnly=true;
-  document.getElementById('cashPaymentAmount').readOnly=true;
-  document.getElementById('cashInvoice').classList.add('auto-field');
-  document.getElementById('cashPaymentParty').classList.add('auto-field');
-  document.getElementById('cashPaymentAmount').classList.add('calculated');
-}
-function paymentHeadChangedNoLoop(){
-  document.getElementById('cashSourceTypeWrap').classList.add('hidden');
-  document.getElementById('cashSourceWrap').classList.add('hidden');
-  const ref=document.getElementById('cashInvoice'),party=document.getElementById('cashPaymentParty'),amount=document.getElementById('cashPaymentAmount');
-  ref.readOnly=false;party.readOnly=false;amount.readOnly=false;ref.classList.remove('auto-field');party.classList.remove('auto-field');amount.classList.remove('calculated');
-}
-function fillCashSource(){
-  const type=document.getElementById('cashSourceType').value,id=document.getElementById('cashSource').value;
-  const x=availablePaymentSources(type).find(a=>a.id===id);
-  document.getElementById('cashInvoice').value=x?.ref||'';
-  document.getElementById('cashPaymentParty').value=x?.party||'';
-  document.getElementById('cashPaymentAmount').value=x?money(x.amount):'';
-}
+function sourceTypeForHead(head){return head==='MESSING'?'MESSING_RV':head==='INC'?'INCIDENTAL_RV':head==='POL'?'POL_DRAWN':''}
+function paymentHeadChanged(){const code=document.getElementById('cashPaymentCodeHead').value,linked=['MESSING','INC','POL'].includes(code),sw=document.getElementById('cashSourceWrap'),stw=document.getElementById('cashSourceTypeWrap');const ids=['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount'];if(linked){stw.classList.remove('hidden');sw.classList.remove('hidden');document.getElementById('cashInvoice').readOnly=true;document.getElementById('cashPaymentParty').readOnly=true;document.getElementById('cashPaymentAccount').readOnly=true;document.getElementById('cashPaymentAmount').readOnly=true;ids.forEach(id=>document.getElementById(id).classList.add('auto-field'));document.getElementById('cashPaymentAmount').classList.add('calculated');document.getElementById('cashSourceType').value=sourceTypeForHead(code);loadCashSources()}else{stw.classList.add('hidden');sw.classList.add('hidden');clearPaymentSourceFields();document.getElementById('cashInvoice').readOnly=false;document.getElementById('cashPaymentParty').readOnly=false;document.getElementById('cashPaymentAccount').readOnly=false;document.getElementById('cashPaymentAmount').readOnly=false;ids.forEach(id=>document.getElementById(id).classList.remove('auto-field','calculated'));document.getElementById('cashPaymentAccount').value=code;document.getElementById('cashPaymentParty').value='';document.getElementById('cashInvoice').value='';document.getElementById('cashPaymentAmount').value=''}updatePaymentBalancePreview()}
+function loadCashSources(){if(cashType!=='PAYMENT')return;const code=document.getElementById('cashPaymentCodeHead').value;if(!['MESSING','INC','POL'].includes(code)){clearPaymentSourceFields();return}const type=sourceTypeForHead(code),sel=document.getElementById('cashSource'),list=availablePaymentSources(type);document.getElementById('cashSourceType').value=type;sel.innerHTML='<option value="">Select source</option>'+list.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join('');clearPaymentSourceFields(false)}
+function clearPaymentSourceFields(clearSource=true){if(clearSource)document.getElementById('cashSource').value='';['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(id=>document.getElementById(id).value='');document.getElementById('cashSourceItemsBody').innerHTML='';document.getElementById('cashSourceDetails').classList.add('hidden');updatePaymentBalancePreview()}
+function fillCashSource(){const type=document.getElementById('cashSourceType').value,id=document.getElementById('cashSource').value,x=availablePaymentSources(type).find(a=>String(a.id)===String(id));if(!x){clearPaymentSourceFields(false);return}document.getElementById('cashInvoice').value=x.ref||'';document.getElementById('cashPaymentParty').value=x.party||'';document.getElementById('cashPaymentAccount').value=x.onAccount||'';document.getElementById('cashPaymentAmount').value=money(x.amount);document.getElementById('cashSourceDate').value=x.date||'';document.getElementById('cashSourceParty').value=x.party||'';document.getElementById('cashSourceTotal').value=money(x.amount);document.getElementById('cashSourceItemsBody').innerHTML=(x.items||[]).map(it=>`<tr><td>${esc(it.name||'')}</td><td>${esc(it.unit||'')}</td><td>${it.qty??''}</td><td>${money(it.rate)}</td><td>${money(it.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';document.getElementById('cashSourceDetails').classList.remove('hidden');updatePaymentBalancePreview()}
 function showReceiptAllocation(id,amount){
   pendingReceiptAllocationId=id;pendingReceiptAllocationAmount=Number(amount||0);
   document.getElementById('receiptAllocationInfo').textContent=`Receipt saved for ${money(amount)}. Distribute the full amount across Messing, INC, POL, Rank Pay, TA Cadets, TA/DA Civ Staff, Rent or Others.`;
@@ -1169,8 +1134,10 @@ async function saveCashbook(){
   if(!canAccountsEntry()){setMsg('cashMsg','Cash Book entry is restricted to ACCOUNTS and ADMIN.');setMsg('paymentMsg','Cash Book entry is restricted to ACCOUNTS and ADMIN.');return}
   if(!activeCamp){setMsg('cashMsg','Select a camp first.');return}
   if(cashType==='PAYMENT'){
-    const date=document.getElementById('payDate').value||today(),voucher=document.getElementById('payVoucherNo').value.trim(),sourceType=document.getElementById('cashSourceType').value,sourceId=['MESSING_RV','INCIDENTAL_RV','POL_DRAWN'].includes(sourceType)?(document.getElementById('cashSource').value||null):null,ref=document.getElementById('cashInvoice').value.trim(),party=document.getElementById('cashPaymentParty').value.trim(),amt=+(document.getElementById('cashPaymentAmount').value.replace(/[^0-9.]/g,''))||0,mode=document.getElementById('cashPaymentMode').value,head=document.getElementById('cashPaymentCodeHead').value,narr=document.getElementById('cashPaymentNarration').value.trim();
-    if(!voucher||!date||!head||amt<=0){setMsg('paymentMsg','Enter PV No., date, code head and valid amount.');return}
+    const date=document.getElementById('payDate').value||today(),voucher=document.getElementById('payVoucherNo').value.trim(),head=document.getElementById('cashPaymentCodeHead').value,sourceType=document.getElementById('cashSourceType').value,sourceId=['MESSING_RV','INCIDENTAL_RV','POL_DRAWN'].includes(sourceType)?(document.getElementById('cashSource').value||null):null,ref=document.getElementById('cashInvoice').value.trim(),party=document.getElementById('cashPaymentParty').value.trim(),amt=+(document.getElementById('cashPaymentAmount').value.replace(/[^0-9.]/g,''))||0,mode=document.getElementById('cashPaymentMode').value,narr=document.getElementById('cashPaymentNarration').value.trim();
+    if(!voucher||!date||!head||amt<=0){setMsg('paymentMsg','Enter Date, PV No., Code Head and valid amount.');return}
+    if(['MESSING','INC','POL'].includes(head)&&!sourceId){setMsg('paymentMsg','Select the linked source record.');return}
+    if(!['MESSING','INC','POL'].includes(head)&&(ref===''||party==='')){setMsg('paymentMsg','Enter Invoice/Reference and To Whom Paid for this account head.');return}
     const {error}=await sb.rpc('save_cashbook_entry_manual',{p_entry_type:'PAYMENT',p_voucher_number:voucher,p_entry_date:date,p_source_type:sourceType,p_source_id:sourceId,p_reference_no:ref||null,p_party:party||null,p_amount:amt,p_mode:mode,p_code_head:head,p_narration:narr||null});
     if(error){setMsg('paymentMsg',error.message);return}
     setMsg('paymentMsg','Payment voucher saved successfully.',true);clearCashbookForm();await refreshAll();return;
@@ -1178,8 +1145,7 @@ async function saveCashbook(){
   if(cashType==='RECEIPT'){
     const date=document.getElementById('cashDate').value||today(),voucher=document.getElementById('cashVoucherNo').value.trim(),party=document.getElementById('cashParty').value.trim(),account=document.getElementById('cashAccountText').value.trim(),amount=+document.getElementById('cashAmount').value||0,mode=document.getElementById('cashMode').value,init=document.getElementById('cashInitial').value.trim(),narr=document.getElementById('cashNarration').value.trim();
     if(!voucher||!party||amount<=0){setMsg('cashMsg','Enter Date, RV No., To Whom Received and a valid Amount.');return}
-    const finalNarr=init?(narr?`${narr} | Initial: ${init}`:`Initial: ${init}`):narr;
-    const {data,error}=await sb.rpc('save_cashbook_entry_manual',{p_entry_type:'RECEIPT',p_voucher_number:voucher,p_entry_date:date,p_source_type:'OTHER',p_source_id:null,p_reference_no:account||null,p_party:party,p_amount:amount,p_mode:mode,p_code_head:null,p_narration:finalNarr||null});
+    const finalNarr=init?(narr?`${narr} | Initial: ${init}`:`Initial: ${init}`):narr;const {data,error}=await sb.rpc('save_cashbook_entry_manual',{p_entry_type:'RECEIPT',p_voucher_number:voucher,p_entry_date:date,p_source_type:'OTHER',p_source_id:null,p_reference_no:account||null,p_party:party,p_amount:amount,p_mode:mode,p_code_head:null,p_narration:finalNarr||null});
     if(error){setMsg('cashMsg',error.message);return}
     setMsg('cashMsg','Receipt voucher saved. Now distribute the receipt amount.',true);clearReceiptEntryOnly();showReceiptAllocation(data,amount);await refreshAll();return;
   }
@@ -1205,29 +1171,28 @@ async function saveCashDrawn(){
 function clearCashDrawn(){document.getElementById('cdDate').value=today();document.getElementById('cdNo').value='';document.getElementById('cdCheque').value='';document.getElementById('cdAmount').value='';document.getElementById('cdPurpose').value='';setMsg('cashDrawnMsg','')}
 function clearCashbookForm(){
   clearReceiptEntryOnly();
-  document.getElementById('payDate').value=today();document.getElementById('payVoucherNo').value='';document.getElementById('cashPaymentCodeHead').value='';document.getElementById('cashSource').value='';document.getElementById('cashInvoice').value='';document.getElementById('cashPaymentParty').value='';document.getElementById('cashPaymentAmount').value='';document.getElementById('cashPaymentNarration').value='';document.getElementById('cashSourceType').value='MESSING_RV';
-  setMsg('paymentMsg','');hideReceiptAllocation();loadCashSources();
+  document.getElementById('payDate').value=today();document.getElementById('payVoucherNo').value='';document.getElementById('cashPaymentCodeHead').value='';document.getElementById('cashSourceType').value='MESSING_RV';document.getElementById('cashPaymentNarration').value='';clearPaymentSourceFields();setMsg('paymentMsg','');hideReceiptAllocation();paymentHeadChanged();
 }
 function allocationSummary(x){
   if(x.head_allocations){let a=typeof x.head_allocations==='string'?JSON.parse(x.head_allocations):x.head_allocations;const labels=[];Object.entries(a||{}).forEach(([k,v])=>{if(Number(v)>0)labels.push(`${k}: ${money(v)}`)});if(labels.length)return labels.join(' | ')}
   return x.code_head||'';
 }
-function renderCashbook(){
-  const el=document.getElementById('cashbookTable');if(!el)return;
-  let h='<table><tr><th>Date</th><th>Type</th><th>RV / PV No.</th><th>Source Type</th><th>Invoice / Ref</th><th>From Whom / Party</th><th>Mode</th><th>Code Head / Distribution</th><th>Amount</th><th>Narration</th></tr>';
-  cashbookEntries.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.source_type||'')}</td><td>${esc(x.reference_no||'')}</td><td>${esc(x.party||'')}</td><td>${esc(x.mode||'')}</td><td>${esc(allocationSummary(x))}</td><td>${money(x.amount)}</td><td>${esc(x.narration||'')}</td></tr>`);h+='</table>';
-  el.innerHTML=cashbookEntries.length?h:'<div class="empty">No Cash Book entries for this camp.</div>';
-}
+function sourceDetailObject(x){let d=x?.source_details||{};if(typeof d==='string'){try{d=JSON.parse(d)}catch(_){d={}}}return d||{}}
+function itemSummary(x){const d=sourceDetailObject(x),items=Array.isArray(d.items)?d.items:[];return items.map(it=>`${it.name||it.item||it.desc||''}${it.qty!=null?` (${it.qty} ${it.unit||''})`:''}`).filter(Boolean).join(', ')}
+function renderCashbook(){const el=document.getElementById('cashbookTable');if(!el)return;let h='<table><tr><th>Date</th><th>Type</th><th>RV / PV No.</th><th>Source Type</th><th>Invoice / Ref</th><th>To Whom / Party</th><th>On What Account</th><th>Mode</th><th>Code Head / Distribution</th><th>Purchased Items / Particulars</th><th>Amount</th></tr>';cashbookEntries.forEach(x=>{const d=sourceDetailObject(x);h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.source_type||'')}</td><td>${esc(x.reference_no||'')}</td><td>${esc(d.to_whom_paid||x.party||'')}</td><td>${esc(d.on_account||x.code_head||x.reference_no||'')}</td><td>${esc(x.mode||'')}</td><td>${esc(allocationSummary(x))}</td><td>${esc(itemSummary(x))}</td><td>${money(x.amount)}</td></tr>`});h+='</table>';el.innerHTML=cashbookEntries.length?h:'<div class="empty">No Cash Book entries for this camp.</div>'}
 function latestClosureBefore(date){return [...cashbookClosures].filter(x=>x.close_date<date).sort((a,b)=>b.close_date.localeCompare(a.close_date))[0]||null}
-function calculateDay(date){
-  const prev=latestClosureBefore(date);let bfCash=prev?+prev.closing_cash:0,bfBank=prev?+prev.closing_bank:0;let rc=0,rb=0,pc=0,pb=0,draw=0;const rows=cashbookEntries.filter(x=>x.entry_date===date);
-  rows.forEach(e=>{const amt=+e.amount||0;if(e.entry_type==='RECEIPT'){if(e.mode==='CASH')rc+=amt;else rb+=amt}else if(e.entry_type==='PAYMENT'){if(e.mode==='CASH')pc+=amt;else pb+=amt}else if(e.entry_type==='CASH_DRAWN'){draw+=amt}});
-  const cfCash=bfCash+rc-pc+draw,cfBank=bfBank+rb-pb-draw;return {bfCash,bfBank,rc,rb,pc,pb,draw,cfCash,cfBank,net:cfCash+cfBank,rows,closed:!!cashbookClosures.find(x=>x.close_date===date)};
-}
-function renderDayClose(){const d=document.getElementById('cashDayDate')?.value||today();if(!document.getElementById('cashDayDate'))return;const s=calculateDay(d);['bfCash','bfBank','dayReceiptCash','dayReceiptBank','dayPaymentCash','dayPaymentBank','dayCashDrawn','cfCash','cfBank','dayNet'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).textContent=money({bfCash:s.bfCash,bfBank:s.bfBank,dayReceiptCash:s.rc,dayReceiptBank:s.rb,dayPaymentCash:s.pc,dayPaymentBank:s.pb,dayCashDrawn:s.draw,cfCash:s.cfCash,cfBank:s.cfBank,dayNet:s.net}[id])});document.getElementById('cashDayStatus').value=s.closed?'CLOSED':'OPEN';document.getElementById('cashDayNote').textContent=s.closed?'Day closed. Next day B/F will carry forward this day\'s C/F.':'Close the day after all Accounts entries are complete. The next day B/F is taken from the previous day C/F.';let h='<table><tr><th>Date</th><th>Type</th><th>Voucher No</th><th>Ref</th><th>Party</th><th>Mode</th><th>Amount</th></tr>';s.rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td>${esc(x.voucher_number)}</td><td>${esc(x.reference_no||'')}</td><td>${esc(x.party||'')}</td><td>${esc(x.mode||'')}</td><td>${money(x.amount)}</td></tr>`);h+='</table>';document.getElementById('dayEntriesTable').innerHTML=h;}
+const CASH_HEADS=['Messing','INC','POL','Rank Pay','TA Cadets','TA/DA Civ Staff','Rent','Others'];
+function jsonObj(v){if(!v)return {};if(typeof v==='string'){try{return JSON.parse(v)}catch(_){return {}}}return v}
+function headZero(){const o={};CASH_HEADS.forEach(h=>o[h]=0);return o}
+function dayHeadValues(rows){const receipts=headZero(),payments=headZero();rows.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);Object.entries(a).forEach(([k,v])=>{if(receipts[k]!==undefined)receipts[k]+=Number(v)||0})}else if(e.entry_type==='PAYMENT'){if(payments[e.code_head]!==undefined)payments[e.code_head]+=Number(e.amount)||0}});return{receipts,payments}}
+function calculateDay(date){const prev=latestClosureBefore(date);let bfCash=prev?+prev.closing_cash:0,bfBank=prev?+prev.closing_bank:0,bfHeads=jsonObj(prev?.closing_heads);CASH_HEADS.forEach(h=>{if(bfHeads[h]==null)bfHeads[h]=0});let rc=0,rb=0,pc=0,pb=0,draw=0;const rows=cashbookEntries.filter(x=>x.entry_date===date);rows.forEach(e=>{const a=+e.amount||0;if(e.entry_type==='RECEIPT'){if(e.mode==='CASH')rc+=a;else rb+=a}else if(e.entry_type==='PAYMENT'){if(e.mode==='CASH')pc+=a;else pb+=a}else if(e.entry_type==='CASH_DRAWN')draw+=a});const hv=dayHeadValues(rows),cfHeads=headZero();CASH_HEADS.forEach(h=>cfHeads[h]=(Number(bfHeads[h])||0)+(Number(hv.receipts[h])||0)-(Number(hv.payments[h])||0));const cfCash=bfCash+rc-pc+draw,cfBank=bfBank+rb-pb-draw;return{bfCash,bfBank,rc,rb,pc,pb,draw,cfCash,cfBank,net:cfCash+cfBank,rows,closed:!!cashbookClosures.find(x=>x.close_date===date),bfHeads,headReceipts:hv.receipts,headPayments:hv.payments,cfHeads}}
+function currentHeadBalance(head,date=today()){let total=0;cashbookEntries.filter(e=>e.entry_date<=date).forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);total+=Number(a[head]||0)}else if(e.entry_type==='PAYMENT'&&e.code_head===head)total-=Number(e.amount||0)});return total}
+function currentSourceBalance(mode){let total=0;cashbookEntries.forEach(e=>{const a=Number(e.amount)||0;if(e.entry_type==='RECEIPT'&&e.mode===mode)total+=a;if(e.entry_type==='PAYMENT'&&e.mode===mode)total-=a;if(e.entry_type==='CASH_DRAWN'){if(mode==='CASH')total+=a;if(mode==='BANK')total-=a}});return total}
+function updatePaymentBalancePreview(){const mode=document.getElementById('cashPaymentMode')?.value||'CASH',head=document.getElementById('cashPaymentCodeHead')?.value||'',amt=+(document.getElementById('cashPaymentAmount')?.value||0)||0,bank=currentSourceBalance('BANK'),headBal=head?currentHeadBalance(head):0;document.getElementById('payBankCurrent').textContent=money(bank);document.getElementById('payHeadCurrent').textContent=money(headBal);document.getElementById('payBankAfter').textContent=money(mode==='BANK'?bank-amt:bank);document.getElementById('payHeadAfter').textContent=money(headBal-amt);['payBankAfter','payHeadAfter'].forEach(id=>{const el=document.getElementById(id);el.classList.remove('balance-good','balance-bad');if(Number(el.textContent.replace(/[^0-9.-]/g,''))<0)el.classList.add('balance-bad');else el.classList.add('balance-good')})}
+function renderDayClose(){const d=document.getElementById('cashDayDate')?.value||today();if(!document.getElementById('cashDayDate'))return;const s=calculateDay(d);['bfCash','bfBank','dayReceiptCash','dayReceiptBank','dayPaymentCash','dayPaymentBank','dayCashDrawn','cfCash','cfBank','dayNet'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).textContent=money({bfCash:s.bfCash,bfBank:s.bfBank,dayReceiptCash:s.rc,dayReceiptBank:s.rb,dayPaymentCash:s.pc,dayPaymentBank:s.pb,dayCashDrawn:s.draw,cfCash:s.cfCash,cfBank:s.cfBank,dayNet:s.net}[id])});document.getElementById('cashDayStatus').value=s.closed?'CLOSED':'OPEN';document.getElementById('cashDayNote').textContent=s.closed?'Day closed. Next day B/F will carry forward this day\'s C/F.':'Close the day after all Accounts entries are complete. The next day B/F is taken from the previous day C/F.';let hb='<table><tr><th>Account Head</th><th>B/F</th><th>Day Receipts / Allotment</th><th>Day Payments</th><th>C/F</th></tr>';CASH_HEADS.forEach(h=>hb+=`<tr><td>${esc(h)}</td><td>${money(s.bfHeads[h])}</td><td>${money(s.headReceipts[h])}</td><td>${money(s.headPayments[h])}</td><td><b>${money(s.cfHeads[h])}</b></td></tr>`);hb+='</table>';document.getElementById('dayHeadBalances').innerHTML=hb;let h='<table><tr><th>Date</th><th>Type</th><th>Voucher No</th><th>Ref</th><th>Party</th><th>Mode</th><th>Amount</th></tr>';s.rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td>${esc(x.voucher_number)}</td><td>${esc(x.reference_no||'')}</td><td>${esc(sourceDetailObject(x).to_whom_paid||x.party||'')}</td><td>${esc(x.mode||'')}</td><td>${money(x.amount)}</td></tr>`);h+='</table>';document.getElementById('dayEntriesTable').innerHTML=h}
 function prepareDayCashbook(){document.getElementById('cashDayDate').value=document.getElementById('cashDayDate').value||today();renderDayClose()}
-async function closeCashbookDay(){if(!canAccountsEntry()){alert('Only ACCOUNTS/ADMIN can close the Cash Book day.');return}const d=document.getElementById('cashDayDate').value||today();if(calculateDay(d).closed){alert('This day is already closed.');return}if(!confirm(`Close Cash Book for ${d}? No further entries will be allowed for this date.`))return;const {data,error}=await sb.rpc('close_cashbook_day',{p_close_date:d});if(error){alert(error.message);return}await refreshAll();renderDayClose();alert(`Day closed. Closing Cash: ${money(data.closing_cash)} | Closing Bank: ${money(data.closing_bank)}`)}
-function printDayCashbook(){const d=document.getElementById('cashDayDate').value||today();const s=calculateDay(d);const camp=activeCamp||{};const rows=s.rows;let html=`<h1>CAMP CASH BOOK</h1><h2 style="font-size:12px;margin-top:4px">RECEIPTS AND PAYMENTS</h2><div class="meta"><b>Camp:</b> ${esc(camp.camp_name||'')} &nbsp; | &nbsp; <b>Code:</b> ${esc(camp.camp_code||'')} &nbsp; | &nbsp; <b>Station:</b> ${esc(camp.station||'')} &nbsp; | &nbsp; <b>Date:</b> ${d}</div><table><tr><th colspan="6">RECEIPTS</th><th colspan="8">PAYMENTS</th></tr><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Date</th><th>PV No.</th><th>Source</th><th>Invoice / Ref</th><th>From Whom Paid</th><th>Code Head</th><th>Cash</th><th>Bank</th></tr>`;const receipts=rows.filter(x=>x.entry_type==='RECEIPT'),payments=rows.filter(x=>x.entry_type==='PAYMENT');const n=Math.max(receipts.length,payments.length,1);for(let i=0;i<n;i++){const r=receipts[i],p=payments[i];html+=`<tr><td>${r?esc(r.entry_date):''}</td><td>${r?esc(r.voucher_number):''}</td><td>${r?esc(r.party||''):''}</td><td>${r?esc((r.reference_no||'')+(allocationSummary(r)?' | '+allocationSummary(r):'')):''}</td><td class="num">${r&&r.mode==='CASH'?money(r.amount):''}</td><td class="num">${r&&r.mode==='BANK'?money(r.amount):''}</td><td>${p?esc(p.entry_date):''}</td><td>${p?esc(p.voucher_number):''}</td><td>${p?esc(p.source_type||''):''}</td><td>${p?esc(p.reference_no||''):''}</td><td>${p?esc(p.party||''):''}</td><td>${p?esc(allocationSummary(p)):''}</td><td class="num">${p&&p.mode==='CASH'?money(p.amount):''}</td><td class="num">${p&&p.mode==='BANK'?money(p.amount):''}</td></tr>`}html+=`<tr class="total"><td colspan="3">BALANCE B/F</td><td class="num">${money(s.bfCash)}</td><td class="num">${money(s.bfBank)}</td><td colspan="3">TOTALS</td><td class="num">${money(s.pc)}</td><td class="num">${money(s.pb)}</td></tr><tr class="total"><td colspan="3">TOTAL RECEIPTS</td><td class="num">${money(s.rc)}</td><td class="num">${money(s.rb)}</td><td colspan="3">CASH DRAWN</td><td class="num">${money(s.draw)}</td><td class="num">${money(0)}</td></tr><tr class="total"><td colspan="3">BALANCE C/F</td><td class="num">${money(s.cfCash)}</td><td class="num">${money(s.cfBank)}</td><td colspan="3">DAY STATUS</td><td colspan="2">${s.closed?'CLOSED':'OPEN'}</td></tr></table><div style="margin-top:26px;font-size:10px">Prepared by Accounts. Balance C/F becomes the next day's Balance B/F.</div>`;document.getElementById('cashPrintSheet').innerHTML=html;document.body.classList.add('print-cash');window.print();setTimeout(()=>document.body.classList.remove('print-cash'),300)}
+async function closeCashbookDay(){if(!canAccountsEntry()){alert('Only ACCOUNTS/ADMIN can close the Cash Book day.');return}const d=document.getElementById('cashDayDate').value||today();if(calculateDay(d).closed){alert('This day is already closed.');return}if(!confirm(`Close Cash Book for ${d}? No further entries will be allowed for this date.`))return;const{data,error}=await sb.rpc('close_cashbook_day',{p_close_date:d});if(error){alert(error.message);return}await refreshAll();renderDayClose();alert(`Day closed. Closing Cash: ${money(data.closing_cash)} | Closing Bank: ${money(data.closing_bank)}`)}
+function printDayCashbook(){const d=document.getElementById('cashDayDate').value||today(),s=calculateDay(d),camp=activeCamp||{},rows=s.rows;let html=`<h1>CAMP CASH BOOK</h1><h2 style="font-size:12px;margin-top:4px">RECEIPTS AND PAYMENTS</h2><div class="meta"><b>Camp:</b> ${esc(camp.camp_name||'')} &nbsp; | &nbsp; <b>Code:</b> ${esc(camp.camp_code||'')} &nbsp; | &nbsp; <b>Station:</b> ${esc(camp.station||'')} &nbsp; | &nbsp; <b>Date:</b> ${d}</div>`;html+=`<table><tr><th colspan="6">RECEIPTS</th><th colspan="10">PAYMENTS</th></tr><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Date</th><th>PV No.</th><th>Source</th><th>Invoice / Ref</th><th>To Whom Paid</th><th>On What Account</th><th>Particulars / Items</th><th>Mode</th><th>Amount</th><th>Head</th></tr>`;const receipts=rows.filter(x=>x.entry_type==='RECEIPT'),payments=rows.filter(x=>x.entry_type==='PAYMENT'),n=Math.max(receipts.length,payments.length,1);for(let i=0;i<n;i++){const r=receipts[i],p=payments[i],pd=sourceDetailObject(p);html+=`<tr><td>${r?esc(r.entry_date):''}</td><td>${r?esc(r.voucher_number):''}</td><td>${r?esc(r.party||''):''}</td><td>${r?esc((r.reference_no||'')+(allocationSummary(r)?' | '+allocationSummary(r):'')):''}</td><td class="num">${r&&r.mode==='CASH'?money(r.amount):''}</td><td class="num">${r&&r.mode==='BANK'?money(r.amount):''}</td><td>${p?esc(p.entry_date):''}</td><td>${p?esc(p.voucher_number):''}</td><td>${p?esc(p.source_type||''):''}</td><td>${p?esc(p.reference_no||''):''}</td><td>${p?esc(pd.to_whom_paid||p.party||''):''}</td><td>${p?esc(pd.on_account||p.code_head||''):''}</td><td>${p?esc(itemSummary(p)):''}</td><td>${p?esc(p.mode||''):''}</td><td class="num">${p?money(p.amount):''}</td><td>${p?esc(allocationSummary(p)):''}</td></tr>`}html+=`<tr class="total"><td colspan="4">BALANCE B/F</td><td class="num">${money(s.bfCash)}</td><td class="num">${money(s.bfBank)}</td><td colspan="4">TOTAL PAYMENTS</td><td colspan="2"></td><td class="num">${money(s.pc+s.pb)}</td><td colspan="2"></td></tr>`;html+=`<tr class="total"><td colspan="4">TOTAL RECEIPTS</td><td class="num">${money(s.rc)}</td><td class="num">${money(s.rb)}</td><td colspan="4">CASH DRAWN</td><td colspan="2"></td><td class="num">${money(s.draw)}</td><td colspan="2"></td></tr>`;html+=`<tr class="total"><td colspan="4">BALANCE C/F</td><td class="num">${money(s.cfCash)}</td><td class="num">${money(s.cfBank)}</td><td colspan="10">DAY STATUS: ${s.closed?'CLOSED':'OPEN'}</td></tr></table>`;html+=`<h3 style="margin-top:18px">Account Head Balance – Carry Forward</h3><table><tr><th>Head</th><th>B/F</th><th>Receipts/Allotment</th><th>Payments</th><th>C/F</th></tr>${CASH_HEADS.map(h=>`<tr><td>${esc(h)}</td><td>${money(s.bfHeads[h])}</td><td>${money(s.headReceipts[h])}</td><td>${money(s.headPayments[h])}</td><td><b>${money(s.cfHeads[h])}</b></td></tr>`).join('')}</table>`;document.getElementById('cashPrintSheet').innerHTML=html;document.body.classList.add('print-cash');window.print();setTimeout(()=>document.body.classList.remove('print-cash'),300)}
 
 function initExtension(){
   const d=document.getElementById('polDate');if(d)d.value=today();const cd=document.getElementById('cashDate');if(cd)cd.value=today();const pd=document.getElementById('payDate');if(pd)pd.value=today();const cdd=document.getElementById('cdDate');if(cdd)cdd.value=today();const day=document.getElementById('cashDayDate');if(day)day.value=today();const id=document.getElementById('incDate');if(id)id.value=today();const items=document.getElementById('incItems');if(items&&!items.children.length)addIncItem({});setCashType('RECEIPT');
