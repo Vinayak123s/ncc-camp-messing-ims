@@ -74,6 +74,16 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 @media(max-width:1000px){.grid{grid-template-columns:1fr 1fr}.chartrow{grid-template-columns:1fr}.inline-section{grid-template-columns:1fr 1fr}}
 @media(max-width:650px){.sidebar{width:0;padding:10px 0}.sidebar.open{width:235px;padding:10px 8px}.sidebar.expanded{width:235px}.sidebar.expanded~main,main{margin-left:0}.topbar{padding-left:62px}.grid{grid-template-columns:1fr}.form-grid,.inline-section,.inventory-preview{grid-template-columns:1fr}.item-row{grid-template-columns:1fr 80px 90px 90px 38px}.login-card{padding:26px 22px}}
 @media print{.sidebar,.topbar,.actions,.toolbar,footer,.no-print{display:none!important}main{margin:0;padding:0;background:#fff;color:#111}.page{display:block!important}.panel{box-shadow:none;border:1px solid #ccc;background:#fff;color:#111}.panel *{color:#111!important}table{min-width:0}th{background:#eee!important}}
+
+/* ===== CAMP / Q SEC / ACCOUNTS / CASHBOOK EXTENSION ===== */
+.camp-top{display:flex;align-items:center;gap:8px;margin-left:22px;color:#9eb2c7;font-size:11px}.camp-top select{min-width:210px;padding:7px 10px;border:1px solid #34475c;border-radius:7px;background:#0f1722;color:#eef6ff;font-weight:700}
+.nav.qsec-nav,.nav.cash-nav,.nav.camp-nav,.nav.pol-nav,.nav.incident-nav,.nav.messing-nav{display:flex}
+.module-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.module-card{background:#111d29;border:1px solid #283a4e;border-radius:10px;padding:16px}.module-card h3{margin:0 0 8px}.module-card p{color:#8ea2b6;font-size:12px;min-height:34px}.camp-active{background:#0d3c3f;border:1px solid #1d7276;color:#9cf3f5;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:800}.readonly-note{padding:10px 12px;border:1px dashed #42566c;border-radius:8px;color:#8ea2b6;font-size:12px;margin-bottom:12px}
+.pol-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.pol-form{background:#101a25;border:1px solid #263546;border-radius:9px;padding:14px}.pol-info{margin-top:10px;padding:11px 13px;border-radius:8px;background:#0e2b22;border:1px solid #1f624b;color:#a9edc9;font-size:12px}.register-actions{display:flex;gap:7px;flex-wrap:wrap}.source-row{display:grid;grid-template-columns:1.1fr 1.1fr .9fr .9fr 1fr 1fr;gap:8px;align-items:end}.source-row .field{min-width:0}.cash-tabs{display:flex;gap:8px;margin-bottom:12px}.cash-tab{padding:9px 14px;border:1px solid #38506a;background:#152232;color:#bcd0e5;border-radius:8px;font-weight:900;cursor:pointer}.cash-tab.active{background:#1f8da0;color:#fff}.cash-layout{display:grid;grid-template-columns:1.1fr 1.4fr;gap:14px}.small-kpi{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}.small-kpi .chip b{display:block;font-size:19px;margin-top:5px}.camp-list table,.cash-list table,.pol-list table,.incident-list table{min-width:1050px}.print-title{display:none}
+@media(max-width:1100px){.module-grid{grid-template-columns:1fr 1fr}.pol-grid{grid-template-columns:1fr 1fr}.source-row{grid-template-columns:1fr 1fr 1fr}.cash-layout{grid-template-columns:1fr}}
+@media(max-width:700px){.camp-top{display:none}.module-grid,.pol-grid,.source-row{grid-template-columns:1fr}.small-kpi{grid-template-columns:1fr}.cash-layout{grid-template-columns:1fr}}
+@media print{.print-title{display:block}.no-print{display:none!important}}
+
 </style>
 </head>
 <body>
@@ -105,6 +115,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 <div id="appView" class="app hidden">
 <header class="topbar">
   <div class="brand">NCC CAMP MESSING IMS</div>
+  <div class="camp-top"><span>ACTIVE CAMP</span><select id="campSelectTop" onchange="switchCamp(this.value)"><option value="">Select Camp</option></select></div>
   <div class="top-right"><span id="userBox"></span><div class="avatar" id="avatar">N</div></div>
 </header>
 
@@ -112,6 +123,8 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
   <button class="hamb" onclick="toggleMenu()">☰</button>
   <div class="side-brand"><div class="nc" id="ncLogo">NC</div><div class="side-name">NCC CAMP<br>MESSING</div></div>
   <button class="nav active" data-page="dashboard" onclick="showPage('dashboard',this)"><span class="ni">⌂</span><span class="nl">Home / Dashboard</span></button>
+<button class="nav camp-nav" data-page="camp" onclick="showPage('camp',this)"><span class="ni">🏕</span><span class="nl">Camp Details</span></button>
+  <button class="nav messing-nav" data-page="messing" onclick="showPage('messing',this)"><span class="ni">🍚</span><span class="nl">Messing</span></button>
   <button class="nav" data-page="inventory" onclick="showPage('inventory',this)"><span class="ni">▦</span><span class="nl">Inventory Master</span></button>
   <button class="nav stockin-nav" data-page="stockin" onclick="showPage('stockin',this)"><span class="ni">↓</span><span class="nl">Stock In / Purchase</span></button>
   <button class="nav stockout-nav" data-page="stockout" onclick="showPage('stockout',this)"><span class="ni">↑</span><span class="nl">Stock Out / Issue</span></button>
@@ -184,7 +197,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
     </div>
   </div>
   <div class="panel">
-    <div class="subhead"><div><h3 style="margin:0">Saved Purchase Invoices</h3><div class="kpi-note">Edit is available to ADMIN, MANAGER and STOREKEEPER. Delete is ADMIN/MANAGER.</div></div></div>
+    <div class="subhead"><div><h3 style="margin:0">Saved Purchase Invoices</h3><div class="kpi-note">Edit is available to ADMIN, MANAGER and Q SEC. Delete is ADMIN/MANAGER.</div></div></div>
     <div class="tablewrap" id="inList" style="margin-top:10px"></div>
   </div>
 </section>
@@ -215,7 +228,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
     </div>
   </div>
   <div class="panel">
-    <div class="subhead"><div><h3 style="margin:0">Saved Issue Vouchers</h3><div class="kpi-note">Edit is available to ADMIN, MANAGER and STOREKEEPER. Delete is ADMIN/MANAGER.</div></div></div>
+    <div class="subhead"><div><h3 style="margin:0">Saved Issue Vouchers</h3><div class="kpi-note">Edit is available to ADMIN, MANAGER and Q SEC. Delete is ADMIN/MANAGER.</div></div></div>
     <div class="tablewrap" id="outList" style="margin-top:10px"></div>
   </div>
 </section>
@@ -227,6 +240,122 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
   <div class="panel" id="reportsContent"></div>
 </section>
 
+
+<section id="camp" class="page">
+  <div class="section-head"><div><h1>Camp Details</h1><p>Each camp has an independent inventory, messing, POL, incidental and cash book.</p></div><div class="actions"><span class="camp-active" id="campActiveLabel">No camp selected</span></div></div>
+  <div class="panel">
+    <div class="formbox">
+      <h3>Start / Add New Camp</h3>
+      <div class="form-grid">
+        <div class="field"><label>Camp Code *</label><input id="campCode" placeholder="CATC-01-2026"></div>
+        <div class="field"><label>Camp Name *</label><input id="campName" placeholder="CATC Camp"></div>
+        <div class="field"><label>Station / Location</label><input id="campStation" placeholder="Bengaluru / Station"></div>
+        <div class="field"><label>From Date *</label><input id="campFrom" type="date"></div>
+        <div class="field"><label>To Date</label><input id="campTo" type="date"></div>
+        <div class="field"><label>Remarks</label><input id="campRemarks" placeholder="Camp purpose / details"></div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveCamp()">START NEW CAMP</button><button class="btn ghost" onclick="clearCampForm()">CLEAR</button></div>
+      <div id="campMsg" class="msg"></div>
+    </div>
+  </div>
+  <div class="panel camp-list"><div class="subhead"><div><h3 style="margin:0">Camp Register</h3><div class="kpi-note">Select a camp to work on its own fresh transaction set.</div></div></div><div class="tablewrap" id="campTable" style="margin-top:10px"></div></div>
+</section>
+
+<section id="messing" class="page">
+  <div class="section-head"><div><h1>Messing</h1><p>Camp-wise messing preparation, purchases and issues.</p></div></div>
+  <div class="panel"><div class="module-grid">
+    <div class="module-card"><h3>Messing Purchase</h3><p>Create a purchase invoice with multiple items for the active camp.</p><button class="btn" onclick="showPage('stockin',document.querySelector('[data-page=stockin]'))">OPEN STOCK IN / PURCHASE</button></div>
+    <div class="module-card"><h3>Messing Issue</h3><p>Issue store items against IV-1 to IV-10 for the active camp.</p><button class="btn" onclick="showPage('stockout',document.querySelector('[data-page=stockout]'))">OPEN STOCK OUT / ISSUE</button></div>
+    <div class="module-card"><h3>Messing Register</h3><p>Review saved purchase invoices and issue vouchers for the active camp.</p><button class="btn ghost" onclick="showPage('reports',document.querySelector('[data-page=reports]'))">OPEN REPORTS</button></div>
+  </div></div>
+</section>
+
+<section id="pol" class="page">
+  <div class="section-head"><div><h1>POL Drawn</h1><p>Vehicle attachment, petrol/diesel drawn, bunk details, previous and present fuel balance.</p></div><div class="actions"><button class="btn dark" onclick="exportPOLCSV()">EXPORT CSV</button><button class="btn ghost" onclick="window.print()">PRINT / PDF</button></div></div>
+  <div class="panel"><div class="pol-form">
+    <h3>Vehicle Attachment</h3>
+    <div class="pol-grid">
+      <div class="field"><label>Vehicle Number *</label><input id="polVehNo" placeholder="KA-01-AB-1234"></div>
+      <div class="field"><label>Name of Unit *</label><input id="polUnit" placeholder="Name of Unit"></div>
+      <div class="field"><label>Vehicle Type *</label><select id="polVehType"><option value="">Select</option><option>Bolero</option><option>Canter</option><option>Gypsy</option><option>Motor Cycle</option></select></div>
+      <div class="field"><label>KM Rdg *</label><input id="polKM" type="number" min="0" step="0.1"></div>
+      <div class="field"><label>POL Balance (Ltr) *</label><input id="polBal" type="number" min="0" step="0.01"></div>
+      <div class="field"><label>KPL *</label><input id="polKPL" type="number" min="0.01" step="0.01"></div>
+      <div class="field"><label>Driver Name *</label><input id="polDriver"></div>
+      <div class="field" style="grid-column:span 2"><label>Authority / Movement Order *</label><input id="polAuth"></div>
+    </div>
+    <div class="actions" style="margin-top:12px"><button class="btn" onclick="savePOLVehicle()">SAVE VEHICLE</button><button class="btn ghost" onclick="clearPOLVehicle()">CLEAR</button></div>
+    <div id="polVehMsg" class="msg"></div>
+  </div></div>
+  <div class="panel"><div class="pol-form">
+    <h3>POL Drawn Entry</h3>
+    <div class="pol-grid">
+      <div class="field"><label>Vehicle Number *</label><select id="polVehSelect" onchange="loadPOLVehicle()"><option value="">Select Vehicle</option></select></div>
+      <div class="field"><label>Fuel Type *</label><select id="polFuel"><option value="">Select</option><option>Petrol</option><option>Diesel</option></select></div>
+      <div class="field"><label>Invoice Number *</label><input id="polInvoice" placeholder="Invoice Number"></div>
+      <div class="field"><label>Petrol Bunk Details *</label><input id="polBunk" placeholder="Petrol bunk / pump"></div>
+      <div class="field"><label>Previous Fuel (Ltr)</label><input id="polPrev" class="auto-field" readonly value="0.00"></div>
+      <div class="field"><label>Fuel Drawn (Ltr) *</label><input id="polLitres" type="number" min="0.01" step="0.01" oninput="calcPOL()"></div>
+      <div class="field"><label>Present Fuel (Ltr)</label><input id="polPresent" class="calculated" readonly value="0.00"></div>
+      <div class="field"><label>Rate / Ltr *</label><input id="polRate" type="number" min="0.01" step="0.01" oninput="calcPOL()"></div>
+      <div class="field"><label>Total Amount</label><input id="polAmount" class="calculated" readonly value="₹0.00"></div>
+      <div class="field"><label>Date</label><input id="polDate" type="date"></div>
+    </div>
+    <div class="pol-info" id="polVehicleInfo">No vehicle selected.</div>
+    <div class="actions" style="margin-top:12px"><button id="polSaveBtn" class="btn" onclick="savePOLEntry()">SAVE POL ENTRY</button><button class="btn ghost" onclick="clearPOLEntry()">CLEAR</button></div>
+    <div id="polMsg" class="msg"></div>
+  </div></div>
+  <div class="panel pol-list"><div class="subhead"><h3 style="margin:0">Vehicle Register</h3></div><div class="tablewrap" id="polVehiclesTable"></div></div>
+  <div class="panel pol-list"><div class="subhead"><h3 style="margin:0">POL Drawn Register</h3></div><div class="tablewrap" id="polEntriesTable"></div></div>
+</section>
+
+<section id="incidental" class="page">
+  <div class="section-head"><div><h1>Incidental RV / IV</h1><p>Camp-wise incidental receipt and issue vouchers. Invoice/reference numbers are available to the Accounts cash book.</p></div></div>
+  <div class="panel"><div class="formbox">
+    <h3>Incidental Voucher Entry</h3>
+    <div class="form-grid">
+      <div class="field"><label>Voucher Type</label><select id="incType" onchange="prepareIncidentalNo()"><option value="RV">RV - Receipt Voucher</option><option value="IV">IV - Issue Voucher</option></select></div>
+      <div class="field"><label>Voucher Number (Auto)</label><input id="incNo" class="auto-field" readonly></div>
+      <div class="field"><label>Date</label><input id="incDate" type="date"></div>
+      <div class="field"><label>Party / Vendor</label><input id="incParty"></div>
+      <div class="field"><label>Invoice / Reference Number</label><input id="incInvoice" placeholder="Invoice / reference number"></div>
+      <div class="field"><label>Amount</label><input id="incAmount" type="number" min="0.01" step="0.01"></div>
+      <div class="field"><label>Mode</label><select id="incMode"><option>CASH</option><option>BANK</option></select></div>
+      <div class="field"><label>Code Head</label><input id="incCodeHead" placeholder="Code head"></div>
+      <div class="field" style="grid-column:span 3"><label>Description / Purpose</label><input id="incDesc" placeholder="Purpose / article / expenditure details"></div>
+    </div>
+    <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveIncidental()">SAVE VOUCHER</button><button class="btn ghost" onclick="clearIncidental()">CLEAR</button></div>
+    <div id="incMsg" class="msg"></div>
+  </div></div>
+  <div class="panel incident-list"><div class="subhead"><h3 style="margin:0">Incidental Register</h3></div><div class="tablewrap" id="incidentalTable"></div></div>
+</section>
+
+<section id="cashbook" class="page">
+  <div class="section-head"><div><h1>Cash Book</h1><p>Accounts section entry. Source invoice/voucher number and amount are auto-fetched from camp transactions.</p></div></div>
+  <div class="panel"><div class="cash-layout"><div class="formbox">
+    <div class="cash-tabs"><button id="cashReceiptTab" class="cash-tab active" onclick="setCashType('RECEIPT')">RECEIPTS</button><button id="cashPaymentTab" class="cash-tab" onclick="setCashType('PAYMENT')">PAYMENTS</button></div>
+    <div id="cashAccountsNote" class="readonly-note hidden">Only the ACCOUNTS role and ADMIN can save receipt/payment voucher entries.</div>
+    <div class="form-grid">
+      <div class="field"><label>Date</label><input id="cashDate" type="date"></div>
+      <div class="field"><label>Voucher Number (Auto)</label><input id="cashVoucherNo" class="auto-field" readonly></div>
+      <div class="field"><label>Source Type</label><select id="cashSourceType" onchange="loadCashSources()"></select></div>
+      <div class="field" style="grid-column:span 2"><label>Source Invoice / Voucher</label><select id="cashSource" onchange="fillCashSource()"><option value="">Select source</option></select></div>
+      <div class="field"><label>Invoice / Reference No.</label><input id="cashInvoice" class="auto-field" readonly></div>
+      <div class="field"><label>Party / Vendor</label><input id="cashParty" class="auto-field" readonly></div>
+      <div class="field"><label>Amount</label><input id="cashAmount" class="calculated" readonly></div>
+      <div class="field"><label>Mode</label><select id="cashMode"><option>CASH</option><option>BANK</option></select></div>
+      <div class="field"><label>Code Head</label><input id="cashCodeHead"></div>
+      <div class="field" style="grid-column:span 3"><label>Narration</label><input id="cashNarration" placeholder="Receipt / payment narration"></div>
+    </div>
+    <div class="actions" style="margin-top:12px"><button id="cashSaveBtn" class="btn" onclick="saveCashbook()">SAVE VOUCHER</button><button class="btn ghost" onclick="clearCashbookForm()">CLEAR</button></div>
+    <div id="cashMsg" class="msg"></div>
+  </div><div class="formbox">
+    <div class="small-kpi"><div class="chip"><span class="kpi-note">Receipts</span><b id="cashReceiptsTotal">₹0.00</b></div><div class="chip"><span class="kpi-note">Payments</span><b id="cashPaymentsTotal">₹0.00</b></div><div class="chip"><span class="kpi-note">Balance</span><b id="cashBalanceTotal">₹0.00</b></div></div>
+    <div class="readonly-note">The source record is linked by source type and source ID. This prevents manual re-entry of invoice numbers for the linked camp transactions.</div>
+    <div class="tablewrap" id="cashbookTable"></div>
+  </div></div>
+</section>
+
 <section id="users" class="page">
   <div class="section-head"><div><h1>User Management</h1><p>ADMIN can manage profile roles. Create the Auth user first in Supabase Authentication.</p></div></div>
   <div class="panel">
@@ -235,7 +364,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="form-grid">
         <div class="field"><label>Auth User UUID</label><input id="uId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
         <div class="field"><label>Display Name</label><input id="uName" placeholder="Storekeeper"></div>
-        <div class="field"><label>Role</label><select id="uRole"><option>ADMIN</option><option>MANAGER</option><option>STOREKEEPER</option><option>VIEWER</option></select></div>
+        <div class="field"><label>Role</label><select id="uRole"><option>ADMIN</option><option>MANAGER</option><option>Q_SEC</option><option>ACCOUNTS</option><option>VIEWER</option></select></div>
       </div>
       <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveUserProfile()">SAVE USER PROFILE</button></div>
       <div id="userMsg" class="msg"></div>
@@ -251,7 +380,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -261,10 +390,10 @@ const VOUCHERS=["IV-1","IV-2","IV-3","IV-4","IV-5","IV-6","IV-7","IV-8","IV-9","
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const today=()=>new Date().toISOString().slice(0,10);
 const roleIs=(...r)=>!!profile&&r.includes(profile.role);
-const canStockCreate=()=>roleIs("ADMIN","STOREKEEPER");
-const canTxEdit=()=>roleIs("ADMIN","MANAGER","STOREKEEPER");
-const canDelete=()=>roleIs("ADMIN","MANAGER");
-const canWriteInventory=()=>roleIs("ADMIN","MANAGER","STOREKEEPER");
+const canStockCreate=()=>roleIs('ADMIN','MANAGER','Q_SEC');
+const canTxEdit=()=>roleIs('ADMIN','MANAGER','Q_SEC');
+const canDelete=()=>roleIs('ADMIN','MANAGER');
+const canWriteInventory=()=>roleIs('ADMIN','MANAGER','Q_SEC');
 const money=n=>"₹"+(+n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
 
 function setMsg(id,text,ok=false){const e=document.getElementById(id);if(!e)return;e.textContent=text;e.className="msg "+(ok?"ok":"err")}
@@ -300,7 +429,7 @@ async function loadApp(){
 }
 function applyRoleUI(){
   document.querySelectorAll(".adminonly").forEach(e=>e.style.display=roleIs("ADMIN")?"flex":"none");
-  document.querySelectorAll(".stockin-nav,.stockout-nav").forEach(e=>e.style.display=roleIs("ADMIN","MANAGER","STOREKEEPER")?"flex":"none");
+  document.querySelectorAll(".stockin-nav,.stockout-nav").forEach(e=>e.style.display=roleIs("ADMIN","MANAGER","Q_SEC")?"flex":"none");
   document.getElementById("newInBtn").style.display=canStockCreate()?"inline-flex":"none";
   document.getElementById("newOutBtn").style.display=canStockCreate()?"inline-flex":"none";
   document.getElementById("saveInBtn").style.display=canTxEdit()?"inline-flex":"none";
@@ -567,6 +696,160 @@ function start(){
   document.getElementById("fromDate").value="";document.getElementById("toDate").value="";
   if(sb)sb.auth.getSession().then(({data})=>{if(data.session){currentUser=data.session.user;loadApp()}});
 }
+
+/* ================= CAMP + Q SEC + ACCOUNTS EXTENSION ================= */
+let camps=[], activeCamp=null, polVehicles=[], polEntries=[], incidentals=[], cashbookEntries=[], cashType='RECEIPT';
+
+function canQsecEntry(){return roleIs('ADMIN','MANAGER','Q_SEC')}
+function canAccountsEntry(){return roleIs('ADMIN','ACCOUNTS')}
+function canCampManage(){return roleIs('ADMIN','MANAGER')}
+
+function populateCampTop(){
+  const el=document.getElementById('campSelectTop'); if(!el)return;
+  const current=activeCamp?.id||'';
+  el.innerHTML='<option value="">Select Camp</option>'+camps.map(c=>`<option value="${esc(c.id)}" ${c.id===current?'selected':''}>${esc(c.camp_code)} - ${esc(c.camp_name)}</option>`).join('');
+  const lbl=document.getElementById('campActiveLabel'); if(lbl) lbl.textContent=activeCamp?`${activeCamp.camp_code} | ${activeCamp.camp_name}`:'No camp selected';
+}
+async function switchCamp(id){
+  if(!id)return;
+  const c=camps.find(x=>x.id===id); if(!c)return;
+  const {error}=await sb.from('profiles').update({current_camp_id:id}).eq('id',currentUser.id);
+  if(error){alert(error.message);return}
+  profile.current_camp_id=id; activeCamp=c; populateCampTop(); await refreshAll();
+  showPage('dashboard',document.querySelector('[data-page="dashboard"]'));
+}
+function clearCampForm(){['campCode','campName','campStation','campFrom','campTo','campRemarks'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});setMsg('campMsg','')}
+async function saveCamp(){
+  if(!canCampManage()){setMsg('campMsg','Only ADMIN or MANAGER can create a camp.');return}
+  const code=document.getElementById('campCode').value.trim().toUpperCase(), name=document.getElementById('campName').value.trim(), station=document.getElementById('campStation').value.trim(), from=document.getElementById('campFrom').value, to=document.getElementById('campTo').value||null, remarks=document.getElementById('campRemarks').value.trim();
+  if(!code||!name||!from){setMsg('campMsg','Camp code, camp name and from date are required.');return}
+  const {data,error}=await sb.from('camps').insert({camp_code:code,camp_name:name,station:station||null,from_date:from,to_date:to,remarks:remarks||null,created_by:currentUser.id}).select().single();
+  if(error){setMsg('campMsg',error.message);return}
+  camps=[data,...camps]; profile.current_camp_id=data.id; activeCamp=data; await sb.from('profiles').update({current_camp_id:data.id}).eq('id',currentUser.id); clearCampForm(); setMsg('campMsg','New camp started successfully.',true); populateCampTop(); renderCamps(); await refreshAll(); showPage('dashboard',document.querySelector('[data-page="dashboard"]'));
+}
+async function renderCamps(){
+  const el=document.getElementById('campTable'); if(!el)return;
+  let h='<table><tr><th>Code</th><th>Camp Name</th><th>Station</th><th>From</th><th>To</th><th>Status</th><th>Action</th></tr>';
+  camps.forEach(c=>{const active=activeCamp?.id===c.id; h+=`<tr><td><b>${esc(c.camp_code)}</b></td><td>${esc(c.camp_name)}</td><td>${esc(c.station||'')}</td><td>${esc(c.from_date||'')}</td><td>${esc(c.to_date||'')}</td><td><span class="status ${active?'ok':'low'}">${active?'ACTIVE':'AVAILABLE'}</span></td><td>${active?'Current':`<button class="btn" onclick="switchCamp('${c.id}')">SELECT</button>`}</td></tr>`});
+  h+='</table>'; el.innerHTML=camps.length?h:'<div class="empty">No camp found. ADMIN/MANAGER must start a new camp.</div>';
+}
+
+function applyRoleUI(){
+  const allNav=document.querySelectorAll('.sidebar .nav[data-page]');
+  const allowed=new Set(['dashboard','inventory','reports']);
+  if(roleIs('ADMIN','MANAGER')) ['camp','messing','stockin','stockout','pol','incidental','cashbook','users'].forEach(x=>allowed.add(x));
+  if(roleIs('Q_SEC')) ['messing','stockin','stockout','pol','incidental'].forEach(x=>allowed.add(x));
+  if(roleIs('ACCOUNTS')) ['cashbook','incidental'].forEach(x=>allowed.add(x));
+  allNav.forEach(n=>{const p=n.dataset.page;n.style.display=allowed.has(p)?'flex':'none'});
+  document.querySelectorAll('.adminonly').forEach(e=>e.style.display=roleIs('ADMIN')?'flex':'none');
+  const showStock=roleIs('ADMIN','MANAGER','Q_SEC'); document.querySelectorAll('.stockin-nav,.stockout-nav').forEach(e=>e.style.display=showStock?'flex':'none');
+  const add=document.getElementById('addItemBtn'); if(add)add.style.display=canWriteInventory()?'inline-flex':'none';
+  ['newInBtn','newOutBtn'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display=canStockCreate()?'inline-flex':'none'});
+  const cashSave=document.getElementById('cashSaveBtn'); if(cashSave)cashSave.style.display=canAccountsEntry()?'inline-flex':'none';
+  const note=document.getElementById('cashAccountsNote'); if(note)note.classList.toggle('hidden',canAccountsEntry());
+}
+
+async function ensureCampContext(){
+  const {data,error}=await sb.from('camps').select('*').order('from_date',{ascending:false}).order('created_at',{ascending:false});
+  if(error){console.error(error);return false}
+  camps=data||[];
+  if(profile.current_camp_id) activeCamp=camps.find(c=>c.id===profile.current_camp_id)||null;
+  else activeCamp=null;
+  populateCampTop(); renderCamps();
+  return !!activeCamp;
+}
+
+async function loadApp(){
+  const {data:p,error}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();
+  if(error||!p){setLoginMsg('Login succeeded, but no profile/role is assigned to this Auth user.');await sb.auth.signOut();return}
+  profile=p;
+  document.getElementById('loginView').classList.add('hidden'); document.getElementById('appView').classList.remove('hidden');
+  document.getElementById('userBox').textContent=(currentUser.email||'')+' | '+profile.role; document.getElementById('avatar').textContent=(profile.display_name||currentUser.email||'N').slice(0,1).toUpperCase();
+  applyRoleUI();
+  const hasCamp=await ensureCampContext();
+  if(hasCamp){await refreshAll(); showPage('dashboard',document.querySelector('[data-page="dashboard"]'));}
+  else {await refreshAll(); showPage(canCampManage()?'camp':'dashboard',document.querySelector(`[data-page="${canCampManage()?'camp':'dashboard'}"]`));}
+}
+
+async function refreshAll(){
+  if(!activeCamp){renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidental();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();return}
+  const [a,b,c,p,l,cv,pv,iv,cb]=await Promise.all([
+    sb.from('inventory_items').select('*').eq('camp_id',activeCamp.id).order('ledger_page_no'),
+    sb.from('stock_in_invoices').select('*,stock_in_items(*)').eq('camp_id',activeCamp.id).order('invoice_date',{ascending:false}).order('created_at',{ascending:false}),
+    sb.from('stock_out_vouchers').select('*,stock_out_items(*)').eq('camp_id',activeCamp.id).order('voucher_date',{ascending:false}).order('created_at',{ascending:false}),
+    sb.from('profiles').select('id,display_name,role,created_at,current_camp_id').order('display_name'),
+    sb.from('app_settings').select('*').eq('key','nc_logo_path').maybeSingle(),
+    sb.from('pol_vehicles').select('*').eq('camp_id',activeCamp.id).order('vehicle_no'),
+    sb.from('pol_drawn_entries').select('*').eq('camp_id',activeCamp.id).order('entry_date',{ascending:false}).order('created_at',{ascending:false}),
+    sb.from('incidental_vouchers').select('*').eq('camp_id',activeCamp.id).order('voucher_date',{ascending:false}).order('created_at',{ascending:false}),
+    sb.from('cashbook_entries').select('*').eq('camp_id',activeCamp.id).order('entry_date',{ascending:false}).order('created_at',{ascending:false})
+  ]);
+  items=a.data||[];inInvoices=b.data||[];outVouchers=c.data||[];profiles=p.data||[];polVehicles=cv.data||[];polEntries=pv.data||[];incidentals=iv.data||[];cashbookEntries=cb.data||[];
+  if(l.data?.value)setLogo(l.data.value);
+  renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidental();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();renderCashSources();
+}
+
+async function saveItem(id){
+  if(!canWriteInventory()){alert('Read-only access.');return}
+  if(!activeCamp){alert('Select/start a camp first.');return}
+  const payload={camp_id:activeCamp.id,ledger_page_no:document.getElementById('fLedger').value.trim(),name:document.getElementById('fName').value.trim(),category:document.getElementById('fCat').value.trim(),unit:document.getElementById('fUnit').value,opening_stock:+document.getElementById('fOpening').value||0,reorder_level:+document.getElementById('fReorder').value||0};
+  if(!payload.name){alert('Item name is required.');return}
+  const q=id?sb.from('inventory_items').update(payload).eq('id',id).eq('camp_id',activeCamp.id):sb.from('inventory_items').insert(payload); const {error}=await q; if(error){alert(error.message);return} closeModal(); await refreshAll();
+}
+
+function resetCampGate(){ if(!activeCamp) { if(canCampManage()) showPage('camp',document.querySelector('[data-page="camp"]')); } }
+
+/* POL module - based on the supplied POL Drawn entry fields */
+function clearPOLVehicle(){['polVehNo','polUnit','polVehType','polKM','polBal','polKPL','polDriver','polAuth'].forEach(id=>{document.getElementById(id).value=''});setMsg('polVehMsg','')}
+function renderPOL(){
+  const vt=document.getElementById('polVehiclesTable'), et=document.getElementById('polEntriesTable'); if(!vt||!et)return;
+  let h='<table><tr><th>Vehicle No</th><th>Type</th><th>Unit</th><th>KM</th><th>POL Balance</th><th>KPL</th><th>Driver</th><th>Authority</th><th>Action</th></tr>';
+  polVehicles.forEach(v=>h+=`<tr><td><b>${esc(v.vehicle_no)}</b></td><td>${esc(v.vehicle_type)}</td><td>${esc(v.unit)}</td><td>${(+v.km_reading||0).toFixed(1)}</td><td>${(+v.pol_balance||0).toFixed(2)}</td><td>${(+v.kpl||0).toFixed(2)}</td><td>${esc(v.driver_name)}</td><td>${esc(v.authority_no)}</td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button> <button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:'View'}</td></tr>`); h+='</table>'; vt.innerHTML=polVehicles.length?h:'<div class="empty">No vehicles saved for this camp.</div>';
+  let e='<table><tr><th>Date</th><th>Vehicle</th><th>Fuel</th><th>Invoice</th><th>Petrol Bunk</th><th>Previous</th><th>Drawn</th><th>Present</th><th>Rate</th><th>Total</th><th>Action</th></tr>';
+  polEntries.forEach(x=>e+=`<tr><td>${esc(x.entry_date||'')}</td><td><b>${esc(x.vehicle_no||'')}</b></td><td>${esc(x.fuel_type)}</td><td>${esc(x.invoice_number)}</td><td>${esc(x.petrol_bunk)}</td><td>${(+x.previous_fuel||0).toFixed(2)}</td><td>${(+x.litres||0).toFixed(2)}</td><td>${(+x.present_fuel||0).toFixed(2)}</td><td>${money(x.rate)}</td><td>${money(x.total_amount)}</td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLEntry('${x.id}')">Edit</button> <button class="btn red" onclick="deletePOLEntry('${x.id}')">Delete</button>`:'View'}</td></tr>`); e+='</table>'; et.innerHTML=polEntries.length?e:'<div class="empty">No POL drawn entries for this camp.</div>';
+  loadPOLVehicleSelect();
+}
+function loadPOLVehicleSelect(){const s=document.getElementById('polVehSelect');if(!s)return;const c=s.value;s.innerHTML='<option value="">Select Vehicle</option>'+polVehicles.map(v=>`<option value="${esc(v.id)}" ${v.id===c?'selected':''}>${esc(v.vehicle_no)} - ${esc(v.vehicle_type)}</option>`).join('')}
+function loadPOLVehicle(){const v=polVehicles.find(x=>x.id===document.getElementById('polVehSelect').value);document.getElementById('polPrev').value=v?(+v.pol_balance||0).toFixed(2):'0.00';document.getElementById('polPresent').value=v?(+v.pol_balance||0).toFixed(2):'0.00';document.getElementById('polVehicleInfo').textContent=v?`Vehicle Type: ${v.vehicle_type} | Unit: ${v.unit} | KM: ${v.km_reading} | Current POL Balance: ${(+v.pol_balance||0).toFixed(2)} Ltr | KPL: ${v.kpl} | Driver: ${v.driver_name} | Authority: ${v.authority_no}`:'No vehicle selected.'}
+function calcPOL(){const p=+document.getElementById('polPrev').value||0,l=+document.getElementById('polLitres').value||0,r=+document.getElementById('polRate').value||0;document.getElementById('polPresent').value=(p+l).toFixed(2);document.getElementById('polAmount').value=money(l*r)}
+async function savePOLVehicle(){if(!canQsecEntry()){setMsg('polVehMsg','No entry permission for this role.');return}if(!activeCamp){setMsg('polVehMsg','Select a camp first.');return}const payload={camp_id:activeCamp.id,vehicle_no:document.getElementById('polVehNo').value.trim().toUpperCase(),unit:document.getElementById('polUnit').value.trim(),vehicle_type:document.getElementById('polVehType').value,km_reading:+document.getElementById('polKM').value||0,pol_balance:+document.getElementById('polBal').value||0,kpl:+document.getElementById('polKPL').value||0,driver_name:document.getElementById('polDriver').value.trim(),authority_no:document.getElementById('polAuth').value.trim()};if(!payload.vehicle_no||!payload.unit||!payload.vehicle_type||payload.kpl<=0||!payload.driver_name||!payload.authority_no){setMsg('polVehMsg','Fill all required vehicle fields.');return}const existing=polVehicles.find(v=>v.vehicle_no===payload.vehicle_no);let q=existing?sb.from('pol_vehicles').update(payload).eq('id',existing.id).eq('camp_id',activeCamp.id):sb.from('pol_vehicles').insert(payload);const {error}=await q;if(error){setMsg('polVehMsg',error.message);return}setMsg('polVehMsg','Vehicle saved.',true);clearPOLVehicle();await refreshAll()}
+function editPOLVehicle(id){const v=polVehicles.find(x=>x.id===id);if(!v)return;document.getElementById('polVehNo').value=v.vehicle_no;document.getElementById('polUnit').value=v.unit;document.getElementById('polVehType').value=v.vehicle_type;document.getElementById('polKM').value=v.km_reading;document.getElementById('polBal').value=v.pol_balance;document.getElementById('polKPL').value=v.kpl;document.getElementById('polDriver').value=v.driver_name;document.getElementById('polAuth').value=v.authority_no;window.scrollTo({top:0,behavior:'smooth'})}
+async function deletePOLVehicle(id){if(!canDelete())return alert('Only ADMIN/MANAGER can delete vehicles.');if(!confirm('Delete this vehicle attachment?'))return;const {error}=await sb.from('pol_vehicles').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await refreshAll()}
+function clearPOLEntry(){document.getElementById('polSaveBtn').onclick=function(){savePOLEntry()};['polVehSelect','polFuel','polInvoice','polBunk'].forEach(id=>document.getElementById(id).value='');document.getElementById('polPrev').value='0.00';document.getElementById('polLitres').value='';document.getElementById('polPresent').value='0.00';document.getElementById('polRate').value='';document.getElementById('polAmount').value='₹0.00';document.getElementById('polDate').value=today();document.getElementById('polVehicleInfo').textContent='No vehicle selected.';setMsg('polMsg','')}
+async function savePOLEntry(id=null){if(!canQsecEntry()){setMsg('polMsg','No entry permission for this role.');return}const vehicle=polVehicles.find(v=>v.id===document.getElementById('polVehSelect').value), fuel=document.getElementById('polFuel').value, invoice=document.getElementById('polInvoice').value.trim(), bunk=document.getElementById('polBunk').value.trim(), litres=+document.getElementById('polLitres').value||0, rate=+document.getElementById('polRate').value||0, date=document.getElementById('polDate').value||today();if(!vehicle||!fuel||!invoice||!bunk||litres<=0||rate<=0){setMsg('polMsg','Fill all required POL entry fields.');return}const {error}=await sb.rpc('save_pol_drawn_entry',{p_id:id,p_vehicle_id:vehicle.id,p_fuel_type:fuel,p_invoice_number:invoice,p_petrol_bunk:bunk,p_litres:litres,p_rate:rate,p_entry_date:date});if(error){setMsg('polMsg',error.message);return}setMsg('polMsg','POL entry saved.',true);clearPOLEntry();await refreshAll()}
+function editPOLEntry(id){const x=polEntries.find(v=>v.id===id);if(!x)return;document.getElementById('polVehSelect').value=x.vehicle_id;loadPOLVehicle();document.getElementById('polFuel').value=x.fuel_type;document.getElementById('polInvoice').value=x.invoice_number;document.getElementById('polBunk').value=x.petrol_bunk;document.getElementById('polLitres').value=x.litres;document.getElementById('polRate').value=x.rate;document.getElementById('polDate').value=x.entry_date;document.getElementById('polSaveBtn').onclick=function(){savePOLEntry(id)};calcPOL();window.scrollTo({top:0,behavior:'smooth'})}
+async function deletePOLEntry(id){if(!canDelete())return alert('Only ADMIN/MANAGER can delete POL entries.');if(!confirm('Delete this POL drawn entry? Vehicle balance will be restored.'))return;const {error}=await sb.rpc('delete_pol_drawn_entry',{p_id:id});if(error)alert(error.message);else await refreshAll()}
+function exportPOLCSV(){const rows=[['Date','Vehicle No','Fuel Type','Invoice','Petrol Bunk','Previous Fuel','Drawn Ltr','Present Fuel','Rate','Total Amount'],...polEntries.map(x=>[x.entry_date,x.vehicle_no,x.fuel_type,x.invoice_number,x.petrol_bunk,x.previous_fuel,x.litres,x.present_fuel,x.rate,x.total_amount])];const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='POL_Drawn_Register.csv';a.click()}
+
+/* Incidental RV/IV */
+async function prepareIncidentalNo(){const type=document.getElementById('incType').value;if(!activeCamp)return;const {data,error}=await sb.rpc('next_incidental_voucher_no',{p_type:type});document.getElementById('incNo').value=error?'':data}
+function clearIncidental(){document.getElementById('incType').value='RV';document.getElementById('incDate').value=today();document.getElementById('incParty').value='';document.getElementById('incInvoice').value='';document.getElementById('incAmount').value='';document.getElementById('incMode').value='CASH';document.getElementById('incCodeHead').value='';document.getElementById('incDesc').value='';setMsg('incMsg','');prepareIncidentalNo()}
+async function saveIncidental(){if(!canQsecEntry()){setMsg('incMsg','Only ADMIN, MANAGER or Q SEC can enter incidental RV/IV.');return}if(!activeCamp){setMsg('incMsg','Select a camp first.');return}const type=document.getElementById('incType').value,date=document.getElementById('incDate').value||today(),party=document.getElementById('incParty').value.trim(),invoice=document.getElementById('incInvoice').value.trim(),amount=+document.getElementById('incAmount').value||0,mode=document.getElementById('incMode').value,head=document.getElementById('incCodeHead').value.trim(),desc=document.getElementById('incDesc').value.trim(),no=document.getElementById('incNo').value;if(!party||amount<=0||!no){setMsg('incMsg','Party and positive amount are required.');return}const {error}=await sb.from('incidental_vouchers').insert({camp_id:activeCamp.id,voucher_type:type,voucher_no:no,voucher_date:date,party,invoice_number:invoice||null,description:desc||null,amount,mode,code_head:head||null,created_by:currentUser.id});if(error){setMsg('incMsg',error.message);return}setMsg('incMsg','Incidental voucher saved.',true);clearIncidental();await refreshAll()}
+function renderIncidental(){const el=document.getElementById('incidentalTable');if(!el)return;let h='<table><tr><th>Type</th><th>Voucher No</th><th>Date</th><th>Party</th><th>Invoice / Ref</th><th>Mode</th><th>Code Head</th><th>Amount</th><th>Description</th><th>Action</th></tr>';incidentals.forEach(x=>{h+=`<tr><td>${esc(x.voucher_type)}</td><td><b>${esc(x.voucher_no)}</b></td><td>${esc(x.voucher_date)}</td><td>${esc(x.party||'')}</td><td>${esc(x.invoice_number||'')}</td><td>${esc(x.mode||'')}</td><td>${esc(x.code_head||'')}</td><td>${money(x.amount)}</td><td>${esc(x.description||'')}</td><td>${canDelete()?`<button class="btn red" onclick="deleteIncidental('${x.id}')">Delete</button>`:'View'}</td></tr>`});h+='</table>';el.innerHTML=incidentals.length?h:'<div class="empty">No incidental RV/IV entries for this camp.</div>'}
+async function deleteIncidental(id){if(!canDelete())return alert('Only ADMIN/MANAGER can delete incidental vouchers.');if(!confirm('Delete this incidental voucher?'))return;const {error}=await sb.from('incidental_vouchers').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await refreshAll()}
+
+/* Cash Book */
+function setCashType(type){cashType=type;document.getElementById('cashReceiptTab').classList.toggle('active',type==='RECEIPT');document.getElementById('cashPaymentTab').classList.toggle('active',type==='PAYMENT');document.getElementById('cashSaveBtn').textContent='SAVE '+type+' VOUCHER';loadCashSources();prepareCashVoucherNo()}
+async function prepareCashVoucherNo(){if(!activeCamp){document.getElementById('cashVoucherNo').value='';return}const {data,error}=await sb.rpc('next_cashbook_voucher_no',{p_type:cashType});document.getElementById('cashVoucherNo').value=error?'':data}
+function cashSourceTypes(){return ['MESSING','INCIDENTAL_RV','INCIDENTAL_IV','POL_DRAWN','OTHER']}
+function renderCashSources(){const st=document.getElementById('cashSourceType');if(!st)return;const current=st.value||'MESSING';st.innerHTML=cashSourceTypes().map(x=>`<option value="${x}" ${x===current?'selected':''}>${x.replaceAll('_',' ')}</option>`).join('');loadCashSources()}
+function availableCashSources(type){if(type==='MESSING')return inInvoices.map(x=>({id:x.id,label:`${x.invoice_number} | ${x.invoice_date} | ${x.supplier||''}`,ref:x.invoice_number,party:x.supplier||'',amount:(x.stock_in_items||[]).reduce((s,r)=>s+(+r.amount||0),0)}));if(type==='INCIDENTAL_RV'||type==='INCIDENTAL_IV')return incidentals.filter(x=>x.voucher_type===type.split('_')[1]).map(x=>({id:x.id,label:`${x.voucher_no} | ${x.invoice_number||'-'} | ${x.party||''}`,ref:x.invoice_number||x.voucher_no,party:x.party||'',amount:+x.amount||0}));if(type==='POL_DRAWN')return polEntries.map(x=>({id:x.id,label:`${x.invoice_number} | ${x.entry_date} | ${x.petrol_bunk||''}`,ref:x.invoice_number,party:x.petrol_bunk||'',amount:+x.total_amount||0}));return []}
+function loadCashSources(){const type=document.getElementById('cashSourceType').value, sel=document.getElementById('cashSource'),list=availableCashSources(type);const inv=document.getElementById('cashInvoice'),party=document.getElementById('cashParty'),amt=document.getElementById('cashAmount');inv.value='';party.value='';amt.value='';inv.readOnly=true;party.readOnly=true;amt.readOnly=true;inv.classList.add('auto-field');party.classList.add('auto-field');amt.classList.add('calculated');sel.innerHTML='<option value="">Select source</option>'+list.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join('')+(type==='OTHER'?'<option value="OTHER">Manual / Other</option>':'');prepareCashVoucherNo()}
+function fillCashSource(){const type=document.getElementById('cashSourceType').value,id=document.getElementById('cashSource').value;if(type==='OTHER'){document.getElementById('cashInvoice').readOnly=false;document.getElementById('cashInvoice').classList.remove('auto-field');document.getElementById('cashParty').readOnly=false;document.getElementById('cashParty').classList.remove('auto-field');document.getElementById('cashAmount').readOnly=false;document.getElementById('cashAmount').classList.remove('calculated');document.getElementById('cashAmount').placeholder='Amount';return}const x=availableCashSources(type).find(a=>a.id===id);document.getElementById('cashInvoice').value=x?.ref||'';document.getElementById('cashParty').value=x?.party||'';document.getElementById('cashAmount').value=x?money(x.amount):''}
+async function saveCashbook(){if(!canAccountsEntry()){setMsg('cashMsg','Cash book receipt/payment entries are restricted to ACCOUNTS and ADMIN.');return}if(!activeCamp){setMsg('cashMsg','Select a camp first.');return}const sourceType=document.getElementById('cashSourceType').value,sourceId=document.getElementById('cashSource').value||null,sourceRef=document.getElementById('cashInvoice').value.trim(),party=document.getElementById('cashParty').value.trim(),amountRaw=document.getElementById('cashAmount').value.replace(/[^0-9.]/g,''),amount=+amountRaw||0;const date=document.getElementById('cashDate').value||today(),mode=document.getElementById('cashMode').value,head=document.getElementById('cashCodeHead').value.trim(),narr=document.getElementById('cashNarration').value.trim();if(amount<=0){setMsg('cashMsg','Valid amount is required.');return}const {error}=await sb.rpc('create_cashbook_entry',{p_entry_type:cashType,p_entry_date:date,p_source_type:sourceType,p_source_id:sourceId,p_reference_no:sourceRef||null,p_party:party||null,p_amount:amount,p_mode:mode,p_code_head:head||null,p_narration:narr||null});if(error){setMsg('cashMsg',error.message);return}setMsg('cashMsg',cashType+' voucher saved.',true);clearCashbookForm();await refreshAll()}
+function clearCashbookForm(){document.getElementById('cashDate').value=today();document.getElementById('cashSource').value='';document.getElementById('cashInvoice').value='';document.getElementById('cashParty').value='';document.getElementById('cashAmount').value='';document.getElementById('cashCodeHead').value='';document.getElementById('cashNarration').value='';setMsg('cashMsg','');prepareCashVoucherNo();loadCashSources()}
+function renderCashbook(){const el=document.getElementById('cashbookTable');if(!el)return;const r=cashbookEntries.filter(x=>x.entry_type==='RECEIPT').reduce((s,x)=>s+(+x.amount||0),0),p=cashbookEntries.filter(x=>x.entry_type==='PAYMENT').reduce((s,x)=>s+(+x.amount||0),0);document.getElementById('cashReceiptsTotal').textContent=money(r);document.getElementById('cashPaymentsTotal').textContent=money(p);document.getElementById('cashBalanceTotal').textContent=money(r-p);let h='<table><tr><th>Date</th><th>Type</th><th>Voucher No</th><th>Source</th><th>Invoice / Ref</th><th>Party</th><th>Mode</th><th>Code Head</th><th>Amount</th><th>Narration</th><th>Action</th></tr>';cashbookEntries.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.source_type)}</td><td>${esc(x.reference_no||'')}</td><td>${esc(x.party||'')}</td><td>${esc(x.mode||'')}</td><td>${esc(x.code_head||'')}</td><td>${money(x.amount)}</td><td>${esc(x.narration||'')}</td><td>${canAccountsEntry()?`<button class="btn red" onclick="deleteCashbook('${x.id}')">Delete</button>`:'View'}</td></tr>`);h+='</table>';el.innerHTML=cashbookEntries.length?h:'<div class="empty">No cash book receipt/payment entries for this camp.</div>'}
+async function deleteCashbook(id){if(!canAccountsEntry())return;if(!confirm('Delete this cash book entry?'))return;const {error}=await sb.from('cashbook_entries').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await refreshAll()}
+
+function initExtension(){
+  const d=document.getElementById('polDate');if(d)d.value=today();const cd=document.getElementById('cashDate');if(cd)cd.value=today();const id=document.getElementById('incDate');if(id)id.value=today();
+}
+
+async function start(){
+  document.getElementById('inDate').value=today();document.getElementById('outDate').value=today();populateVoucherSelects();document.getElementById('fromDate').value='';document.getElementById('toDate').value='';initExtension();
+  sb.auth.getSession().then(({data})=>{if(data.session){currentUser=data.session.user;loadApp()}});
+}
+
 start();
 </script>
 </body>
