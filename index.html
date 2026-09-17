@@ -594,7 +594,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -1136,7 +1136,7 @@ function clearCashbookForm(){
   document.getElementById('payDate').value=today();document.getElementById('payVoucherNo').value='';document.getElementById('cashPaymentCodeHead').value='';document.getElementById('cashSourceType').value='MESSING_RV';document.getElementById('cashPaymentNarration').value='';clearPaymentSourceFields();setMsg('paymentMsg','');hideReceiptAllocation();paymentHeadChanged();
 }
 function allocationSummary(x){
-  if(x.head_allocations){let a=typeof x.head_allocations==='string'?JSON.parse(x.head_allocations):x.head_allocations;const labels=[];Object.entries(a||{}).forEach(([k,v])=>{if(Number(v)>0)labels.push(`${k}: ${money(v)}`)});if(labels.length)return labels.join(' | ')}
+  if(x.entry_type==='RECEIPT'){const a=receiptAllocationObject(x);const labels=[];Object.entries(a||{}).forEach(([k,v])=>{if(Number(v)>0)labels.push(`${k}: ${money(v)}`)});if(labels.length)return labels.join(' | ')}
   return x.code_head||'';
 }
 function sourceDetailObject(x){let d=x?.source_details||{};if(typeof d==='string'){try{d=JSON.parse(d)}catch(_){d={}}}d=d||{};if(!d.to_whom_paid&&x?.party)d.to_whom_paid=x.party;if(!d.on_account&&x?.code_head)d.on_account=x.code_head;if(!d.source_reference&&x?.reference_no)d.source_reference=x.reference_no;return d}
@@ -1146,9 +1146,27 @@ function latestClosureBefore(date){return [...cashbookClosures].filter(x=>x.clos
 const CASH_HEADS=['Messing','INC','POL','Rank Pay','TA Cadets','TA/DA Civ Staff','Rent','Others'];
 function jsonObj(v){if(!v)return {};if(typeof v==='string'){try{return JSON.parse(v)}catch(_){return {}}}return v}
 function headZero(){const o={};CASH_HEADS.forEach(h=>o[h]=0);return o}
-function dayHeadValues(rows){const receipts=headZero(),payments=headZero();rows.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);Object.entries(a).forEach(([k,v])=>{if(receipts[k]!==undefined)receipts[k]+=Number(v)||0})}else if(e.entry_type==='PAYMENT'){if(payments[e.code_head]!==undefined)payments[e.code_head]+=Number(e.amount)||0}});return{receipts,payments}}
+function receiptHeadAllocation(e,head){
+  if(!e || e.entry_type!=='RECEIPT') return 0;
+  const a=jsonObj(e.head_allocations);
+  let v=Number(a[head]||0);
+  if(v>0) return v;
+  const d=jsonObj(e.source_details);
+  const da=jsonObj(d.head_allocations);
+  v=Number(da[head]||0);
+  if(v>0) return v;
+  // Legacy/single-head receipt fallback: older versions stored the head in code_head.
+  if(e.code_head===head && !Object.values(a).some(n=>Number(n)>0) && !Object.values(da).some(n=>Number(n)>0)) return Number(e.amount)||0;
+  return 0;
+}
+function receiptAllocationObject(e){
+  const out=headZero();
+  CASH_HEADS.forEach(h=>out[h]=receiptHeadAllocation(e,h));
+  return out;
+}
+function dayHeadValues(rows){const receipts=headZero(),payments=headZero();rows.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=receiptAllocationObject(e);Object.entries(a).forEach(([k,v])=>{if(receipts[k]!==undefined)receipts[k]+=Number(v)||0})}else if(e.entry_type==='PAYMENT'){if(payments[e.code_head]!==undefined)payments[e.code_head]+=Number(e.amount)||0}});return{receipts,payments}}
 function calculateDay(date){const prev=latestClosureBefore(date);let bfCash=prev?+prev.closing_cash:0,bfBank=prev?+prev.closing_bank:0,bfHeads=jsonObj(prev?.closing_heads);CASH_HEADS.forEach(h=>{if(bfHeads[h]==null)bfHeads[h]=0});let rc=0,rb=0,pc=0,pb=0,draw=0;const rows=cashbookEntries.filter(x=>x.entry_date===date);rows.forEach(e=>{const a=+e.amount||0;if(e.entry_type==='RECEIPT'){if(e.mode==='CASH')rc+=a;else rb+=a}else if(e.entry_type==='PAYMENT'){if(e.mode==='CASH')pc+=a;else pb+=a}else if(e.entry_type==='CASH_DRAWN')draw+=a});const hv=dayHeadValues(rows),cfHeads=headZero();CASH_HEADS.forEach(h=>cfHeads[h]=(Number(bfHeads[h])||0)+(Number(hv.receipts[h])||0)-(Number(hv.payments[h])||0));const cfCash=bfCash+rc-pc+draw,cfBank=bfBank+rb-pb-draw;return{bfCash,bfBank,rc,rb,pc,pb,draw,cfCash,cfBank,net:cfCash+cfBank,rows,closed:!!cashbookClosures.find(x=>x.close_date===date),bfHeads,headReceipts:hv.receipts,headPayments:hv.payments,cfHeads}}
-function currentHeadBalance(head,date=today()){let total=0;cashbookEntries.filter(e=>e.entry_date<=date).forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);total+=Number(a[head]||0)}else if(e.entry_type==='PAYMENT'&&e.code_head===head)total-=Number(e.amount||0)});return total}
+function currentHeadBalance(head,date=today()){let total=0;cashbookEntries.filter(e=>e.entry_date<=date).forEach(e=>{if(e.entry_type==='RECEIPT')total+=receiptHeadAllocation(e,head);else if(e.entry_type==='PAYMENT'&&e.code_head===head)total-=Number(e.amount||0)});return total}
 function currentSourceBalance(mode){let total=0;cashbookEntries.forEach(e=>{const a=Number(e.amount)||0;if(e.entry_type==='RECEIPT'&&e.mode===mode)total+=a;if(e.entry_type==='PAYMENT'&&e.mode===mode)total-=a;if(e.entry_type==='CASH_DRAWN'){if(mode==='CASH')total+=a;if(mode==='BANK')total-=a}});return total}
 function updatePaymentBalancePreview(){
   const mode=document.getElementById('cashPaymentMode')?.value||'CASH';
@@ -1188,7 +1206,7 @@ function showPage(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id)?.classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));btn?.classList.add('active');toggleMenu(false);if(id==='dashboard')renderDashboard();if(id==='reports')renderReports();
 }
 function renderAccountsDashboard(){
-  const cash=currentSourceBalance('CASH'),bank=currentSourceBalance('BANK');const ce=document.getElementById('accCashInHand'),be=document.getElementById('accCashAtBank');if(ce)ce.textContent=money(cash);if(be)be.textContent=money(bank);const allot={},paid={};CASH_HEADS.forEach(h=>{allot[h]=0;paid[h]=0});cashbookEntries.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);CASH_HEADS.forEach(h=>allot[h]+=Number(a[h]||0))}else if(e.entry_type==='PAYMENT'&&paid[e.code_head]!==undefined)paid[e.code_head]+=Number(e.amount||0)});let h='<table><tr><th>Code Head</th><th>Allotment / Receipt</th><th>Payments / Remitted</th><th>Balance</th></tr>';CASH_HEADS.forEach(head=>{const bal=allot[head]-paid[head];h+=`<tr><td><b>${esc(head)}</b></td><td>${money(allot[head])}</td><td>${money(paid[head])}</td><td><b>${money(bal)}</b></td></tr>`});h+='</table>';const el=document.getElementById('accountsHeadDashboard');if(el)el.innerHTML=h;const d=today(),s=calculateDay(d),set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};set('accDayCashReceipts',s.rc);set('accDayBankReceipts',s.rb);set('accDayCashPayments',s.pc);set('accDayBankPayments',s.pb);set('accDayCashDrawn',s.draw);set('accDayCashCF',s.cfCash);set('accDayBankCF',s.cfBank);const st=document.getElementById('accDayStatus');if(st)st.textContent=s.closed?'CLOSED':'OPEN';const cap=document.getElementById('accountsDayCaption');if(cap)cap.textContent='Day position: '+d;
+  const cash=currentSourceBalance('CASH'),bank=currentSourceBalance('BANK');const ce=document.getElementById('accCashInHand'),be=document.getElementById('accCashAtBank');if(ce)ce.textContent=money(cash);if(be)be.textContent=money(bank);const allot={},paid={};CASH_HEADS.forEach(h=>{allot[h]=0;paid[h]=0});cashbookEntries.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=receiptAllocationObject(e);CASH_HEADS.forEach(h=>allot[h]+=Number(a[h]||0))}else if(e.entry_type==='PAYMENT'&&paid[e.code_head]!==undefined)paid[e.code_head]+=Number(e.amount||0)});let h='<table><tr><th>Code Head</th><th>Allotment / Receipt</th><th>Payments / Remitted</th><th>Balance</th></tr>';CASH_HEADS.forEach(head=>{const bal=allot[head]-paid[head];h+=`<tr><td><b>${esc(head)}</b></td><td>${money(allot[head])}</td><td>${money(paid[head])}</td><td><b>${money(bal)}</b></td></tr>`});h+='</table>';const el=document.getElementById('accountsHeadDashboard');if(el)el.innerHTML=h;const d=today(),s=calculateDay(d),set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};set('accDayCashReceipts',s.rc);set('accDayBankReceipts',s.rb);set('accDayCashPayments',s.pc);set('accDayBankPayments',s.pb);set('accDayCashDrawn',s.draw);set('accDayCashCF',s.cfCash);set('accDayBankCF',s.cfBank);const st=document.getElementById('accDayStatus');if(st)st.textContent=s.closed?'CLOSED':'OPEN';const cap=document.getElementById('accountsDayCaption');if(cap)cap.textContent='Day position: '+d;
 }
 function renderDashboard(){
   const isAccounts=profile?.role==='ACCOUNTS';document.getElementById('accountsDashboard')?.classList.toggle('hidden',!isAccounts);document.getElementById('inventoryDashboard')?.classList.toggle('hidden',isAccounts);if(isAccounts){renderAccountsDashboard();return;}const ia=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0),iq=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0),oa=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0),oq=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0);document.getElementById('dInAmt').textContent=money(ia);document.getElementById('dOutAmt').textContent=money(oa);document.getElementById('dInQty').textContent=iq.toFixed(2);document.getElementById('dOutQty').textContent=oq.toFixed(2);document.getElementById('dItemCount').textContent=items.length+' items';let low=0,h=`<table><tr><th>Ledger</th><th>Item</th><th>Unit</th><th>Balance</th><th>Reorder</th><th>Status</th></tr>`;items.forEach(i=>{const b=balance(i),isLow=b<=+i.reorder_level;if(isLow)low++;h+=`<tr><td>${esc(i.ledger_page_no||'')}</td><td><b>${esc(i.name)}</b></td><td>${esc(i.unit||'')}</td><td>${b.toFixed(2)}</td><td>${(+i.reorder_level||0).toFixed(2)}</td><td><span class="status ${isLow?'low':'ok'}">${isLow?'LOW':'OK'}</span></td></tr>`});h+='</table>';document.getElementById('dashTable').innerHTML=items.length?h:"<div class='empty'>No inventory items yet.</div>";const pct=items.length?Math.round(low/items.length*100):0;document.getElementById('riskPct').textContent=pct+'%';document.getElementById('riskLegend').innerHTML=`<div><span class="status low">${low} Low stock</span></div><div style="margin-top:8px"><span class="status ok">${Math.max(items.length-low,0)} OK</span></div><p class="kpi-note">Maintain reorder levels to reduce stock-outs.</p>`;
