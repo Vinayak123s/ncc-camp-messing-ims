@@ -821,7 +821,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -2689,5 +2689,164 @@ window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview(
 })();
 </script>
 
+<script id="ims-v10-fix">
+/* NCC IMS V10 – robust source fetching, POL vehicle selection, day cashbook print/prepare */
+(function(){
+  const $=id=>document.getElementById(id);
+  const val=id=>String($(id)?.value||'');
+  const setv=(id,v)=>{const e=$(id);if(e)e.value=v==null?'':v};
+  const money10=v=>{try{return money(v)}catch(_){return '₹'+Number(v||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2})}};
+  const role10=()=>profile?.role||'VIEWER';
+  const heads10=['Messing','INC','POL','Rank Pay','TA Cadets','TA/DA Civ Staff','Rent','Others'];
+  const canon10=h=>{const k=String(h||'').trim().toUpperCase();return ({'MESSING':'Messing','INC':'INC','POL':'POL','RANK PAY':'Rank Pay','TA CADETS':'TA Cadets','TA/DA CIV':'TA/DA Civ Staff','TA/DA CIV STAFF':'TA/DA Civ Staff','TA DA CIV STAFF':'TA/DA Civ Staff','RENT':'Rent','OTHER':'Others','OTHERS':'Others'})[k]||String(h||'').trim()};
+  const parse10=v=>{if(v&&typeof v==='object')return v;try{return JSON.parse(v||'{}')}catch(_){return {}}};
+  const esc10=v=>typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  function sourcePaid10(type,id){
+    return (window.cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT' && String(e.source_type||'')===String(type||'') && String(e.source_id||'')===String(id)).reduce((s,e)=>s+Number(e.amount||0),0);
+  }
+
+  async function fetchMessingSources10(){
+    if(!activeCamp||!sb)return [];
+    const h=await sb.from('stock_in_invoices').select('*').eq('camp_id',activeCamp.id).order('invoice_date',{ascending:false}).order('created_at',{ascending:false});
+    if(h.error){console.warn('stock_in_invoices',h.error);return []}
+    const headers=h.data||[];
+    if(!headers.length)return [];
+    const ids=headers.map(x=>x.id);
+    const ri=await sb.from('stock_in_items').select('*').in('invoice_id',ids);
+    const rows=ri.data||[];
+    const itemIds=[...new Set(rows.map(r=>r.item_id).filter(Boolean))];
+    let itemMap=new Map();
+    if(itemIds.length){const ir=await sb.from('inventory_items').select('id,name,unit').in('id',itemIds);(ir.data||[]).forEach(x=>itemMap.set(String(x.id),x));}
+    return headers.map(h=>{
+      const items=rows.filter(r=>String(r.invoice_id)===String(h.id)).map(r=>{
+        const it=itemMap.get(String(r.item_id))||{};
+        const qty=Number(r.quantity)||0,rate=Number(r.rate)||0,amount=Number(r.amount)||(qty*rate);
+        return {name:it.name||r.item_name||r.description||'Item',unit:it.unit||r.unit||'',qty,rate,amount};
+      });
+      const gross=Number(h.total_amount)||items.reduce((s,i)=>s+i.amount,0);
+      const remaining=Math.max(0,gross-sourcePaid10('MESSING_RV',h.id));
+      return {id:h.id,label:`${h.invoice_number||''} | ${h.invoice_date||''} | ${h.supplier||''} | Balance ${money10(remaining)}`,ref:h.invoice_number||'',party:h.supplier||'',amount:remaining,date:h.invoice_date||'',onAccount:'MESSING',items};
+    }).filter(x=>x.amount>0);
+  }
+
+  async function fetchLinkedSources10(type){
+    if(type==='MESSING_RV')return fetchMessingSources10();
+    if(type==='INCIDENTAL_RV'){
+      return (window.incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()==='RV').map(x=>{
+        const items=(Array.isArray(x.items)?x.items:[]).map(i=>{const qty=Number(i.qty)||0,rate=Number(i.rate)||0;return {name:i.name||i.desc||i.item||'',unit:i.unit||'',qty,rate,amount:Number(i.amount)||(qty*rate)}});
+        const gross=Number(x.amount)||items.reduce((s,i)=>s+i.amount,0),remaining=Math.max(0,gross-sourcePaid10('INCIDENTAL_RV',x.id));
+        return {id:x.id,label:`${x.crv_no||x.voucher_no||''} | ${x.invoice_number||''} | ${x.party||''} | Balance ${money10(remaining)}`,ref:x.invoice_number||x.voucher_no||'',party:x.party||'',amount:remaining,date:x.voucher_date||'',onAccount:'INC',items};
+      }).filter(x=>x.amount>0);
+    }
+    if(type==='POL_DRAWN'){
+      return (window.polEntries||[]).map(x=>{const total=Number(x.total_amount)||(Number(x.litres||0)*Number(x.rate||0)),remaining=Math.max(0,total-sourcePaid10('POL_DRAWN',x.id));return {id:x.id,label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${money10(remaining)}`,ref:x.invoice_number||'',party:x.petrol_bunk||'',amount:remaining,date:x.entry_date||'',onAccount:'POL',items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:Number(x.litres||0),rate:Number(x.rate||0),amount:total}]};}).filter(x=>x.amount>0);
+    }
+    return [];
+  }
+
+  async function loadPaymentSources10(){
+    const code=canon10(val('cashPaymentCodeHead'));
+    const linked=['Messing','INC','POL'].includes(code);
+    const tw=$('cashSourceTypeWrap'),sw=$('cashSourceWrap');
+    if(!tw||!sw)return;
+    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');setv('cashSourceType','');setv('cashSource','');return;}
+    tw.classList.remove('hidden');sw.classList.remove('hidden');
+    const type=code==='Messing'?'MESSING_RV':code==='INC'?'INCIDENTAL_RV':'POL_DRAWN';
+    setv('cashSourceType',type);
+    const sel=$('cashSource');
+    if(!sel)return;
+    const cur=sel.value,list=await fetchLinkedSources10(type);
+    sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${esc10(x.id)}">${esc10(x.label)}</option>`).join('');
+    if(list.some(x=>String(x.id)===String(cur)))sel.value=cur;
+    const f=['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount'];f.forEach(id=>{const e=$(id);if(e)e.readOnly=true});
+    if(sel.value)await fillPaymentSource10();
+    if(typeof updatePaymentBalancePreview==='function')updatePaymentBalancePreview();
+  }
+
+  async function fillPaymentSource10(){
+    const type=val('cashSourceType'),id=val('cashSource'),list=await fetchLinkedSources10(type),x=list.find(a=>String(a.id)===String(id));
+    if(!x){['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(id=>setv(id,''));$('cashSourceDetails')?.classList.add('hidden');if(typeof updatePaymentBalancePreview==='function')updatePaymentBalancePreview();return;}
+    setv('cashInvoice',x.ref);setv('cashPaymentParty',x.party);setv('cashPaymentAccount',x.onAccount);setv('cashPaymentAmount',Number(x.amount).toFixed(2));setv('cashSourceDate',x.date);setv('cashSourceParty',x.party);setv('cashSourceTotal',Number(x.amount).toFixed(2));
+    const body=$('cashSourceItemsBody');if(body)body.innerHTML=(x.items||[]).map(i=>`<tr><td>${esc10(i.name)}</td><td>${esc10(i.unit)}</td><td>${i.qty}</td><td>${money10(i.rate)}</td><td>${money10(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
+    $('cashSourceDetails')?.classList.remove('hidden');if(typeof updatePaymentBalancePreview==='function')updatePaymentBalancePreview();
+  }
+
+  function paymentCodeChanged10(){loadPaymentSources10().catch(e=>console.error('loadPaymentSources10',e));}
+  window.paymentHeadChanged=paymentCodeChanged10;window.loadCashSources=paymentCodeChanged10;window.loadSources=paymentCodeChanged10;window.fillCashSource=()=>{fillPaymentSource10().catch(e=>console.error('fillPaymentSource10',e))};window.fillSource=window.fillCashSource;
+
+  function populatePOLSelect10(id,allLabel){
+    const s=$(id);if(!s)return;
+    const cur=s.value;const opts=polVehicles||[];s.innerHTML=`<option value="">${allLabel||'Select Vehicle'}</option>`+opts.map(v=>`<option value="${esc10(v.id)}">${esc10(v.vehicle_no)} - ${esc10(v.vehicle_type||'')}</option>`).join('');if(opts.some(v=>String(v.id)===String(cur)))s.value=cur;
+  }
+
+  function populatePOLSelectors10(){
+    populatePOLSelect10('detVehSelect','Select Vehicle');
+    populatePOLSelect10('diaryVehicle','Select Vehicle');
+    populatePOLSelect10('polVehSelect','Select Vehicle');
+    const rep=$('diaryReportVehicle');if(rep){const cur=rep.value;rep.innerHTML='<option value="">All Vehicles</option>'+(polVehicles||[]).map(v=>`<option value="${esc10(v.id)}">${esc10(v.vehicle_no)} - ${esc10(v.vehicle_type||'')}</option>`).join('');if((polVehicles||[]).some(v=>String(v.id)===String(cur)))rep.value=cur;}
+    const prep=$('polRepVehicle');if(prep){const cur=prep.value;prep.innerHTML='<option value="">All Vehicles</option>'+(polVehicles||[]).map(v=>`<option value="${esc10(v.id)}">${esc10(v.vehicle_no)} - ${esc10(v.vehicle_type||'')}</option>`).join('');if((polVehicles||[]).some(v=>String(v.id)===String(cur)))prep.value=cur;}
+  }
+
+  function loadCarDiaryVehicle10(){
+    const id=val('diaryVehicle'),v=(polVehicles||[]).find(x=>String(x.id)===String(id));if(!v)return;
+    const last=[...(window.carDiaryEntries||[])].filter(x=>String(x.vehicle_id)===String(v.id)||String(x.vehicle_no||'')===String(v.vehicle_no||'')).sort((a,b)=>String(b.entry_date||'').localeCompare(String(a.entry_date||''))||String(b.created_at||'').localeCompare(String(a.created_at||'')))[0];
+    setv('diaryOpeningKm',(last?.closing_km??v.initial_km_reading??v.km_reading??0));setv('diaryKpl',(Number(v.kpl||0)).toFixed(2));if(typeof calcDiary==='function')calcDiary();
+  }
+
+  function detState10(v,toDate){
+    const from=String(v.attached_from||''),to=String(toDate||today());
+    const match=(x)=>{const same=String(x.vehicle_id||'')===String(v.id)||String(x.vehicle_no||'')===String(v.vehicle_no||'');if(!same)return false;const d=String(x.entry_date||x.draw_date||'');return !d || ((!from||d>=from)&&(!to||d<=to));};
+    const draws=(window.polEntries||[]).filter(match),diary=(window.carDiaryEntries||[]).filter(match);
+    const drawn=draws.reduce((s,x)=>s+Number(x.litres||0),0),consumed=diary.reduce((s,x)=>s+Number(x.pol_consumed||0),0),kmRun=diary.reduce((s,x)=>s+Number(x.km_run||0),0);
+    const openingKm=Number(v.initial_km_reading??v.km_reading??0),initialTank=Number(v.initial_tank_balance??v.pol_balance??0),kpl=Number(v.kpl||0);
+    diary.sort((a,b)=>String(a.entry_date||'').localeCompare(String(b.entry_date||''))||String(a.created_at||'').localeCompare(String(b.created_at||'')));
+    const closing=diary.length?Number(diary[diary.length-1].closing_km||0):openingKm;
+    return {openingKm,initialTank,kpl,kmRun,consumed,drawn,tank:Math.max(0,initialTank+drawn-consumed),closing};
+  }
+
+  function loadVehicleDetachment10(){
+    const id=val('detVehSelect'),v=(polVehicles||[]).find(x=>String(x.id)===String(id));if(!v){['detVehType','detUnit','detAttachedFrom','detOpeningKm','detKmRun','detClosingKm','detKpl','detPolConsumed','detPolDrawn','detTankBalance'].forEach(k=>setv(k,''));return;}
+    const st=detState10(v,val('detAttachedTo')||today());
+    setv('detVehType',v.vehicle_type||'');setv('detUnit',v.unit||'');setv('detAttachedFrom',v.attached_from||'');setv('detOpeningKm',st.openingKm.toFixed(1));setv('detKmRun',st.kmRun.toFixed(1));setv('detClosingKm',st.closing.toFixed(1));setv('detKpl',st.kpl.toFixed(2));setv('detPolConsumed',st.consumed.toFixed(2));setv('detPolDrawn',st.drawn.toFixed(2));setv('detTankBalance',st.tank.toFixed(2));
+  }
+  window.loadVehicleDetachment=loadVehicleDetachment10;
+
+  function prepareDayCashbook10(){
+    const e=$('cashDayDate');if(!e)return; if(!e.value)e.value=today(); if(typeof renderDayClose==='function')renderDayClose(); const note=$('cashDayNote');if(note)note.textContent='Day prepared. Review B/F, receipts, payments, cash drawn and C/F before closing.';
+  }
+  function printDayCashbook10(){
+    const d=val('cashDayDate')||today(); if(typeof renderDayClose==='function')renderDayClose();
+    const s=typeof calculateDay==='function'?calculateDay(d):null,camp=activeCamp||{};if(!s)return;
+    const escp=esc10;const rows=s.rows||[];const receipts=rows.filter(x=>x.entry_type==='RECEIPT'),payments=rows.filter(x=>x.entry_type==='PAYMENT');let html=`<!doctype html><html><head><meta charset="utf-8"><title>Camp Cash Book ${escp(d)}</title><style>body{font-family:Arial,sans-serif;margin:18px;color:#111}h1,h2{text-align:center;margin:2px}table{width:100%;border-collapse:collapse;font-size:11px;margin-top:10px}th,td{border:1px solid #222;padding:4px;vertical-align:top}th{background:#e8eeee}.num{text-align:right}.title{margin-bottom:8px}.meta{text-align:center;font-size:11px;margin:8px 0}</style></head><body><div class="title"><h1>CAMP CASH BOOK</h1><h2>RECEIPTS AND PAYMENTS</h2><div class="meta">Camp: ${escp(camp.camp_name||'')} | Code: ${escp(camp.camp_code||'')} | Station: ${escp(camp.station||'')} | Date: ${escp(d)}</div></div><table><tr><th colspan="7">RECEIPTS</th><th colspan="8">PAYMENTS</th></tr><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Allocation</th><th>Date</th><th>PV No.</th><th>Source</th><th>Invoice / Ref</th><th>To Whom Paid</th><th>Mode</th><th>Head</th><th>Amount</th></tr>`;
+    const n=Math.max(receipts.length,payments.length,1);for(let i=0;i<n;i++){const r=receipts[i],p=payments[i],pd=p&&typeof sourceDetailObject==='function'?sourceDetailObject(p):{};html+=`<tr><td>${r?escp(r.entry_date):''}</td><td>${r?escp(r.voucher_number):''}</td><td>${r?escp(r.party||''):''}</td><td>${r?escp(r.reference_no||''):''}</td><td class="num">${r&&r.mode==='CASH'?money10(r.amount):''}</td><td class="num">${r&&r.mode==='BANK'?money10(r.amount):''}</td><td>${r&&typeof allocationSummary==='function'?escp(allocationSummary(r)):''}</td><td>${p?escp(p.entry_date):''}</td><td>${p?escp(p.voucher_number):''}</td><td>${p?escp(p.source_type||''):''}</td><td>${p?escp(p.reference_no||''):''}</td><td>${p?escp(pd.to_whom_paid||p.party||''):''}</td><td>${p?escp(p.mode||''):''}</td><td>${p?escp(canon10(p.code_head||'')):''}</td><td class="num">${p?money10(p.amount):''}</td></tr>`}
+    html+=`</table><table><tr><th></th><th>Cash</th><th>Bank</th></tr><tr><th>B/F</th><td class="num">${money10(s.bfCash)}</td><td class="num">${money10(s.bfBank)}</td></tr><tr><th>Total Receipts</th><td class="num">${money10(s.rc)}</td><td class="num">${money10(s.rb)}</td></tr><tr><th>Total Payments</th><td class="num">${money10(s.pc)}</td><td class="num">${money10(s.pb)}</td></tr><tr><th>Cash Drawn</th><td class="num">${money10(s.draw)}</td><td class="num">-${money10(s.draw)}</td></tr><tr><th>C/F</th><td class="num">${money10(s.cfCash)}</td><td class="num">${money10(s.cfBank)}</td></tr></table><h3>Code Head Carry Forward</h3><table><tr><th>Head</th><th>B/F</th><th>Receipts/Allotment</th><th>Payments</th><th>C/F</th></tr>${Object.keys(s.cfHeads||{}).map(h=>`<tr><td>${escp(h)}</td><td class="num">${money10(s.bfHeads[h])}</td><td class="num">${money10(s.dayReceipts[h])}</td><td class="num">${money10(s.dayPayments[h])}</td><td class="num">${money10(s.cfHeads[h])}</td></tr>`).join('')}</table><script>window.onload=function(){window.print();setTimeout(function(){window.close()},300)}<\/script></body></html>`;
+    const w=window.open('','_blank','width=1100,height=800');if(!w){alert('Please allow pop-ups for this site to print the Cash Book.');return;}w.document.open();w.document.write(html);w.document.close();
+  }
+  window.prepareDayCashbook=prepareDayCashbook10;window.printDayCashbook=printDayCashbook10;
+
+  async function syncFixed10(){
+    try{populatePOLSelectors10()}catch(e){console.warn(e)}
+    try{await loadPaymentSources10()}catch(e){console.warn(e)}
+    try{loadCarDiaryVehicle10()}catch(e){}
+    try{loadVehicleDetachment10()}catch(e){}
+  }
+  const oldRefresh10=window.refreshAll;
+  if(typeof oldRefresh10==='function'){
+    window.refreshAll=async function(){const r=await oldRefresh10.apply(this,arguments);setTimeout(()=>{syncFixed10()},30);return r;};
+  }
+  window.setPOLTab=(function(old){return function(tab){const r=old?old(tab):undefined;setTimeout(()=>{if(tab==='diary'||tab==='detach')syncFixed10()},40);return r}})(window.setPOLTab);
+
+  document.addEventListener('change',function(ev){
+    if(ev.target?.id==='cashPaymentCodeHead')paymentCodeChanged10();
+    if(ev.target?.id==='cashSource')fillPaymentSource10();
+    if(ev.target?.id==='detVehSelect')loadVehicleDetachment10();
+    if(ev.target?.id==='detAttachedTo')loadVehicleDetachment10();
+    if(ev.target?.id==='diaryVehicle')loadCarDiaryVehicle10();
+  });
+  window.addEventListener('load',()=>setTimeout(syncFixed10,250));
+  setTimeout(syncFixed10,500);
+})();
+</script>
 </body>
 </html>
