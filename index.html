@@ -286,7 +286,14 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 @media(max-width:650px){.rviv-reference .rviv-grid,.rviv-reference .rviv-item-grid,.rviv-reference .rviv-summary{grid-template-columns:1fr}.rviv-reference .rviv-wide{grid-column:auto}}
 </style>
 
-</head>
+<style id="pol-v4-css">
+.pol-section .auto-field[readonly],.pol-section .calculated[readonly]{opacity:.95}
+#polPrintSheet{font-family:Arial,sans-serif;color:#111}
+#polPrintSheet table{width:100%;border-collapse:collapse;font-size:11px;margin-top:14px}
+#polPrintSheet th,#polPrintSheet td{border:1px solid #555;padding:6px;text-align:left}
+#polPrintSheet th{background:#eee}
+#polPrintSheet h1,#polPrintSheet h2{text-align:center;margin:6px 0}
+</style></head>
 <body>
 
 <div id="loginView" class="login-shell">
@@ -515,7 +522,8 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
     <button class="module-tab active" data-poltab="vehicle" onclick="setPOLTab('vehicle')">1 • Vehicle Attachment</button>
     <button class="module-tab" data-poltab="drawn" onclick="setPOLTab('drawn')">2 • POL Drawn</button>
     <button class="module-tab" data-poltab="diary" onclick="setPOLTab('diary')">3 • Car Diary</button>
-    <button class="module-tab" data-poltab="report" onclick="setPOLTab('report')">4 • Reports</button>
+    <button class="module-tab" data-poltab="detach" onclick="setPOLTab('detach')">4 • Vehicle Detachment</button>
+    <button class="module-tab" data-poltab="report" onclick="setPOLTab('report')">5 • Reports</button>
   </div>
 
   <div id="polVehicleSection" class="pol-section">
@@ -532,7 +540,6 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
         <div class="field"><label>Tank Balance (Ltr)</label><input id="polBal" type="number" min="0" step="0.01" value="0"></div>
         <div class="field"><label>KPL (Km per Ltr) *</label><input id="polKPL" type="number" step="0.01" min="0.01"></div>
         <div class="field"><label>Attached From *</label><input id="polAttachedFrom" type="date"></div>
-        <div class="field"><label>Attached To</label><input id="polAttachedTo" type="date"></div>
         <div class="field"><label>Name of Unit *</label><input id="polUnit" placeholder="39 Kar Bn NCC"></div>
         <div class="field"><label>Driver Name *</label><input id="polDriver"></div>
         <div class="field"><label>Driver Contact</label><input id="polDriverContact"></div>
@@ -586,8 +593,31 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
     <div class="panel"><div class="toolbar"><select id="diaryReportVehicle"><option value="">All Vehicles</option></select><input id="diaryReportFrom" type="date"><input id="diaryReportTo" type="date"><button class="btn" onclick="renderCarDiaryRegister()">FILTER</button><button class="btn green" onclick="exportCarDiaryCSV()">EXPORT CSV</button></div><div class="tablewrap" style="margin-top:10px" id="carDiaryTable"></div></div>
   </div>
 
+  <div id="polDetachSection" class="pol-section hidden">
+    <div class="panel">
+      <div class="subhead"><div><h3>Vehicle Detachment Details</h3><div class="kpi-note">Vehicle closing details are calculated from the attachment record, Car Diary and POL Drawn register.</div></div>
+        <div class="actions"><button class="btn green" onclick="exportPOLDetachmentCSV()">EXPORT CSV</button><button class="btn dark" onclick="printPOLDetachmentReport()">PRINT / PDF</button></div></div>
+      <div class="form-grid">
+        <div class="field"><label>Vehicle Type</label><input id="detVehType" class="auto-field" readonly></div>
+        <div class="field"><label>Vehicle Number *</label><select id="detVehSelect" onchange="loadVehicleDetachment()"><option value="">Select Vehicle</option></select></div>
+        <div class="field"><label>Unit</label><input id="detUnit" class="auto-field" readonly></div>
+        <div class="field"><label>Attached From</label><input id="detAttachedFrom" class="auto-field" readonly></div>
+        <div class="field"><label>Attached To *</label><input id="detAttachedTo" type="date"></div>
+        <div class="field"><label>Opening KM</label><input id="detOpeningKm" class="auto-field" readonly></div>
+        <div class="field"><label>KM Run in Camp</label><input id="detKmRun" class="calculated" readonly></div>
+        <div class="field"><label>KM Closing</label><input id="detClosingKm" class="calculated" readonly></div>
+        <div class="field"><label>KPL</label><input id="detKpl" class="auto-field" readonly></div>
+        <div class="field"><label>POL Consumed (Ltr)</label><input id="detPolConsumed" class="calculated" readonly></div>
+        <div class="field"><label>POL Drawn Total (Ltr)</label><input id="detPolDrawn" class="calculated" readonly></div>
+        <div class="field"><label>Last Tank Balance (Ltr)</label><input id="detTankBalance" class="calculated" readonly></div>
+      </div>
+      <div class="actions"><button class="btn green" onclick="saveVehicleDetachment()">SAVE DETACHMENT</button><button class="btn ghost" onclick="clearVehicleDetachment()">CLEAR</button></div><div id="detMsg" class="msg"></div>
+    </div>
+    <div class="panel"><div class="toolbar"><input id="detSearch" placeholder="Search vehicle / unit..." oninput="renderDetachmentRegister()"><button class="btn green" onclick="exportPOLDetachmentCSV()">EXPORT CSV</button><button class="btn dark" onclick="printPOLDetachmentReport()">PRINT / PDF</button></div><div class="tablewrap" id="detachmentTable" style="margin-top:10px"></div></div>
+  </div>
+
   <div id="polReportSection" class="pol-section hidden">
-    <div class="panel"><div class="report-filter"><div class="field"><label>From Date</label><input id="polRepFrom" type="date"></div><div class="field"><label>To Date</label><input id="polRepTo" type="date"></div><div class="field"><label>Vehicle</label><select id="polRepVehicle"><option value="">All Vehicles</option></select></div><div class="field"><label>Report Type</label><select id="polRepType"><option value="vehicle">Vehicle Attachment</option><option value="drawn">POL Drawn</option><option value="diary">Car Diary</option></select></div></div><div class="actions"><button class="btn" onclick="renderPOLReport()">GENERATE REPORT</button><button class="btn green" onclick="exportPOLReportCSV()">EXPORT CSV</button><button class="btn dark" onclick="printPOLReport()">PRINT / PDF</button></div></div>
+    <div class="panel"><div class="report-filter"><div class="field"><label>From Date</label><input id="polRepFrom" type="date"></div><div class="field"><label>To Date</label><input id="polRepTo" type="date"></div><div class="field"><label>Vehicle</label><select id="polRepVehicle"><option value="">All Vehicles</option></select></div><div class="field"><label>Report Type</label><select id="polRepType"><option value="vehicle">Vehicle Attachment</option><option value="drawn">POL Drawn</option><option value="diary">Car Diary</option><option value="detach">Vehicle Detachment</option></select></div></div><div class="actions"><button class="btn" onclick="renderPOLReport()">GENERATE REPORT</button><button class="btn green" onclick="exportPOLReportCSV()">EXPORT CSV</button><button class="btn dark" onclick="printPOLReport()">PRINT / PDF</button></div></div>
     <div class="panel"><div id="polReportContent"></div></div>
   </div>
 </section>
@@ -785,7 +815,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -1957,5 +1987,149 @@ function renderDayClose(){
 setTimeout(()=>{try{renderAccountsDashboard();renderDayClose();updatePaymentBalancePreview();}catch(e){console.warn(e)}},300);
 
 </script>
+
+<script id="pol-v4-overrides">
+/* ================= POL V4: IMMUTABLE ATTACHMENT BASE + VEHICLE DETACHMENT ================= */
+function polInitialKm(v){ return Number(v.initial_km_reading ?? v.km_reading ?? 0); }
+function polInitialTank(v){ return Number(v.initial_tank_balance ?? v.pol_balance ?? 0); }
+function polDiaryRows(vehicleId){ return (window.carDiaryEntries||[]).filter(x=>String(x.vehicle_id)===String(vehicleId)); }
+function polDrawRows(vehicleId, excludeId){ return (window.polEntries||[]).filter(x=>String(x.vehicle_id)===String(vehicleId) && (!excludeId || String(x.id)!==String(excludeId))); }
+function polCurrentState(vehicleId, excludeDrawId){
+  const v=polVehicles.find(x=>String(x.id)===String(vehicleId));
+  if(!v) return {openingKm:0,currentKm:0,kmRun:0,kpl:0,consumed:0,drawn:0,tank:0,lastDiary:null};
+  const diaries=polDiaryRows(vehicleId).sort((a,b)=>String(a.entry_date).localeCompare(String(b.entry_date)) || String(a.created_at||'').localeCompare(String(b.created_at||'')));
+  const draws=polDrawRows(vehicleId,excludeDrawId);
+  const kmRun=diaries.reduce((s,x)=>s+Number(x.km_run||0),0);
+  const consumed=diaries.reduce((s,x)=>s+Number(x.pol_consumed||0),0);
+  const drawn=draws.reduce((s,x)=>s+Number(x.litres||0),0);
+  const lastDiary=diaries.length?diaries[diaries.length-1]:null;
+  const openingKm=polInitialKm(v);
+  const currentKm=lastDiary?Number(lastDiary.closing_km||openingKm):openingKm;
+  const tank=Math.max(0,polInitialTank(v)+drawn-consumed);
+  return {openingKm,currentKm,kmRun, kpl:Number(v.kpl||0), consumed, drawn, tank,lastDiary};
+}
+function setVehicleBaseLocked(lock){ ['polKM','polBal'].forEach(id=>{const e=document.getElementById(id);if(e){e.readOnly=lock;e.classList.toggle('auto-field',lock)}}); }
+function clearPOLVehicle(){
+  ['polVehNo','polUnit','polVehType','polKPL','polDriver','polAuth','polDriverContact','polKM','polBal','polAttachedFrom'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
+  const f=document.getElementById('polFuelType');if(f)f.value='Diesel';
+  setVehicleBaseLocked(false); window._editingPOLVehicleId=null; setMsg('polVehMsg','');
+}
+async function savePOLVehicle(){
+  if(!canQsecEntry()) return setMsg('polVehMsg','No entry permission for this role.');
+  if(!activeCamp) return setMsg('polVehMsg','Select an active camp first.');
+  const get=id=>document.getElementById(id)?.value||'';
+  const no=get('polVehNo').trim().toUpperCase(), unit=get('polUnit').trim(), type=get('polVehType'), fuel=get('polFuelType')||'Diesel', kpl=Number(get('polKPL')||0), driver=get('polDriver').trim(), auth=get('polAuth').trim(), from=get('polAttachedFrom')||null, km=Number(get('polKM')||0), tank=Number(get('polBal')||0);
+  if(!no||!unit||!type||kpl<=0||!driver||!auth) return setMsg('polVehMsg','Fill Vehicle No, Unit, Vehicle Type, KPL, Driver and Authority/Remarks.');
+  const existing=polVehicles.find(v=>String(v.id)===String(window._editingPOLVehicleId||'')) || polVehicles.find(v=>v.vehicle_no===no);
+  let error;
+  if(existing){
+    const payload={vehicle_no:no,unit,vehicle_type:type,kpl,driver_name:driver,authority_no:auth,fuel_type:fuel,attached_from:from,driver_contact:get('polDriverContact').trim()};
+    ({error}=await sb.from('pol_vehicles').update(payload).eq('id',existing.id).eq('camp_id',activeCamp.id));
+  }else{
+    const payload={camp_id:activeCamp.id,vehicle_no:no,unit,vehicle_type:type,km_reading:km,pol_balance:tank,initial_km_reading:km,initial_tank_balance:tank,kpl,driver_name:driver,authority_no:auth,fuel_type:fuel,attached_from:from,driver_contact:get('polDriverContact').trim()};
+    ({error}=await sb.from('pol_vehicles').insert(payload));
+  }
+  if(error) return setMsg('polVehMsg',error.message);
+  setMsg('polVehMsg','Vehicle attachment saved successfully.',true); clearPOLVehicle(); await refreshAll(); setPOLTab('vehicle');
+}
+function editPOLVehicle(id){
+  const v=polVehicles.find(x=>String(x.id)===String(id)); if(!v)return;
+  window._editingPOLVehicleId=v.id;
+  const map={polVehNo:'vehicle_no',polUnit:'unit',polVehType:'vehicle_type',polKPL:'kpl',polDriver:'driver_name',polAuth:'authority_no',polDriverContact:'driver_contact',polKM:'initial_km_reading',polBal:'initial_tank_balance',polAttachedFrom:'attached_from'};
+  Object.entries(map).forEach(([id,k])=>{const e=document.getElementById(id);if(e)e.value=v[k]??v[{initial_km_reading:'km_reading',initial_tank_balance:'pol_balance'}[k]]??''});
+  const f=document.getElementById('polFuelType');if(f)f.value=v.fuel_type||'Diesel'; setVehicleBaseLocked(true); setPOLTab('vehicle'); window.scrollTo({top:0,behavior:'smooth'});
+}
+function renderPOLVehicleRegister(){
+  const box=document.getElementById('polVehiclesTable'); if(!box)return;
+  const q=(document.getElementById('polVehicleSearch')?.value||'').toLowerCase(),tf=document.getElementById('polVehicleTypeFilter')?.value||'',ff=document.getElementById('polFuelFilter')?.value||'';
+  const rows=polVehicles.filter(v=>(!q||[v.vehicle_no,v.driver_name,v.unit].join(' ').toLowerCase().includes(q))&&(!tf||v.vehicle_type===tf)&&(!ff||v.fuel_type===ff));
+  let h='<table><tr><th>SL No</th><th>Vehicle Type</th><th>Vehicle No.</th><th>Fuel Type</th><th>Tank Balance</th><th>KPL</th><th>Driver</th><th>Attached From</th><th>Status</th><th>Action</th></tr>';
+  rows.forEach((v,i)=>{const st=polCurrentState(v.id);h+=`<tr><td>${i+1}</td><td>${esc(v.vehicle_type)}</td><td><b>${esc(v.vehicle_no)}</b></td><td>${esc(v.fuel_type||'-')}</td><td>${polInitialTank(v).toFixed(2)}</td><td>${Number(v.kpl||0).toFixed(2)}</td><td>${esc(v.driver_name||'')}</td><td>${esc(v.attached_from||'-')}</td><td><span class="status ok">ATTACHED</span></td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:''}</td></tr>`});
+  h+='</table>'; box.innerHTML=rows.length?h:'<div class="empty">No vehicle attachment records.</div>';
+  const vals=[rows.length,rows.filter(v=>v.fuel_type==='Diesel').length,rows.filter(v=>v.fuel_type==='Petrol').length];['polKpiVehicles','polKpiDiesel','polKpiPetrol'].forEach((id,i)=>{const e=document.getElementById(id);if(e)e.textContent=vals[i]});
+  const selects=['polRepVehicle','diaryVehicle','diaryReportVehicle','detVehSelect'];selects.forEach(id=>{const e=document.getElementById(id);if(!e)return;const cur=e.value;e.innerHTML='<option value="">'+(id==='diaryReportVehicle'?'All Vehicles':(id==='polRepVehicle'?'All Vehicles':'Select Vehicle'))+'</option>'+polVehicles.map(v=>`<option value="${v.id}" ${String(v.id)===String(cur)?'selected':''}>${esc(v.vehicle_no)} - ${esc(v.vehicle_type)}</option>`).join('')});
+}
+function currentPOLVehicleForEntry(){const id=document.getElementById('polVehSelect')?.value||''; return polVehicles.find(v=>String(v.id)===String(id));}
+function loadPOLVehicle(){const v=currentPOLVehicleForEntry();if(!v){document.getElementById('polPrev').value='0.00';document.getElementById('polPresent').value='0.00';document.getElementById('polVehicleInfo').textContent='No vehicle selected.';return}const st=polCurrentState(v.id);document.getElementById('polPrev').value=st.tank.toFixed(2);document.getElementById('polPresent').value=st.tank.toFixed(2);document.getElementById('polVehicleInfo').textContent=`Vehicle Type: ${v.vehicle_type} | Unit: ${v.unit} | Opening KM: ${st.openingKm.toFixed(1)} | Current KM: ${st.currentKm.toFixed(1)} | Current POL Balance: ${st.tank.toFixed(2)} Ltr | KPL: ${Number(v.kpl||0).toFixed(2)} | Driver: ${v.driver_name||''}`;}
+function calcPOL(){const p=+document.getElementById('polPrev').value||0,l=+document.getElementById('polLitres').value||0,r=+document.getElementById('polRate').value||0;document.getElementById('polPresent').value=(p+l).toFixed(2);document.getElementById('polAmount').value=money(l*r)}
+async function savePOLEntry(id=null){
+  if(!canQsecEntry())return setMsg('polMsg','No entry permission for this role.');
+  const v=currentPOLVehicleForEntry(); const fuel=document.getElementById('polFuel').value,invoice=document.getElementById('polInvoice').value.trim(),bunk=document.getElementById('polBunk').value.trim(),litres=+document.getElementById('polLitres').value||0,rate=+document.getElementById('polRate').value||0,date=document.getElementById('polDate').value||today();
+  if(!v||!fuel||!invoice||!bunk||litres<=0||rate<=0)return setMsg('polMsg','Fill all required POL entry fields.');
+  const {error}=await sb.rpc('save_pol_drawn_entry_v4',{p_id:id,p_vehicle_id:v.id,p_fuel_type:fuel,p_invoice_number:invoice,p_petrol_bunk:bunk,p_litres:litres,p_rate:rate,p_entry_date:date});
+  if(error)return setMsg('polMsg',error.message); setMsg('polMsg','POL entry saved successfully.',true);clearPOLEntry();await refreshAll();setPOLTab('drawn');
+}
+async function deletePOLEntryV4(id){if(!canDelete())return alert('No delete permission.');const {error}=await sb.rpc('delete_pol_drawn_entry_v4',{p_id:id});if(error)return alert(error.message);await refreshAll();setPOLTab('drawn')}
+
+/* Vehicle detachment */
+window.polDetachmentEntries=[];
+async function loadPOLDetachments(){
+  if(!activeCamp||!sb){window.polDetachmentEntries=[];renderDetachmentRegister();return}
+  const {data,error}=await sb.from('pol_vehicle_detachments').select('*').eq('camp_id',activeCamp.id).order('attached_to',{ascending:false}).order('created_at',{ascending:false});
+  if(error){console.warn('pol_vehicle_detachments',error);window.polDetachmentEntries=[]}else window.polDetachmentEntries=data||[];
+  renderDetachmentRegister();
+}
+function loadVehicleDetachment(){
+  const id=document.getElementById('detVehSelect')?.value||'';const v=polVehicles.find(x=>String(x.id)===String(id));
+  if(!v)return;
+  const st=polCurrentState(v.id);
+  document.getElementById('detVehType').value=v.vehicle_type||'';document.getElementById('detUnit').value=v.unit||'';document.getElementById('detAttachedFrom').value=v.attached_from||'';document.getElementById('detOpeningKm').value=st.openingKm.toFixed(1);document.getElementById('detKmRun').value=st.kmRun.toFixed(1);document.getElementById('detClosingKm').value=st.currentKm.toFixed(1);document.getElementById('detKpl').value=Number(v.kpl||0).toFixed(2);document.getElementById('detPolConsumed').value=st.consumed.toFixed(2);document.getElementById('detPolDrawn').value=st.drawn.toFixed(2);document.getElementById('detTankBalance').value=st.tank.toFixed(2);
+}
+async function saveVehicleDetachment(){
+  if(!canQsecEntry())return setMsg('detMsg','No entry permission for this role.'); if(!activeCamp)return setMsg('detMsg','Select an active camp first.');
+  const id=document.getElementById('detVehSelect')?.value||'',v=polVehicles.find(x=>String(x.id)===String(id)),to=document.getElementById('detAttachedTo')?.value||'';if(!v||!to)return setMsg('detMsg','Select vehicle and Attached To date.');
+  const {openingKm,currentKm,kmRun,kpl,consumed,drawn,tank}=polCurrentState(v.id);
+  const {error}=await sb.rpc('save_pol_vehicle_detachment_v1',{p_vehicle_id:v.id,p_attached_to:to});if(error)return setMsg('detMsg',error.message);setMsg('detMsg','Vehicle detachment saved successfully.',true);clearVehicleDetachment();await loadPOLDetachments();
+}
+function clearVehicleDetachment(){['detVehSelect','detVehType','detUnit','detAttachedFrom','detAttachedTo','detOpeningKm','detKmRun','detClosingKm','detKpl','detPolConsumed','detPolDrawn','detTankBalance'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});setMsg('detMsg','')}
+function renderDetachmentRegister(){const box=document.getElementById('detachmentTable');if(!box)return;const q=(document.getElementById('detSearch')?.value||'').toLowerCase();const rows=(window.polDetachmentEntries||[]).filter(x=>(!q||[x.vehicle_no,x.unit,x.vehicle_type].join(' ').toLowerCase().includes(q)));let h='<table><tr><th>SL</th><th>Vehicle</th><th>Type</th><th>Unit</th><th>Attached From</th><th>Attached To</th><th>Opening KM</th><th>KM Run</th><th>Closing KM</th><th>KPL</th><th>POL Consumed</th><th>POL Drawn</th><th>Tank Balance</th><th>Action</th></tr>';rows.forEach((x,i)=>h+=`<tr><td>${i+1}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.vehicle_type)}</td><td>${esc(x.unit)}</td><td>${esc(x.attached_from||'')}</td><td>${esc(x.attached_to||'')}</td><td>${(+x.opening_km||0).toFixed(1)}</td><td>${(+x.km_run_camp||0).toFixed(1)}</td><td>${(+x.closing_km||0).toFixed(1)}</td><td>${(+x.kpl||0).toFixed(2)}</td><td>${(+x.pol_consumed||0).toFixed(2)}</td><td>${(+x.pol_drawn_total||0).toFixed(2)}</td><td>${(+x.tank_balance||0).toFixed(2)}</td><td>${canDelete()?`<button class="btn red" onclick="deleteVehicleDetachment('${x.id}')">Delete</button>`:'View'}</td></tr>`);h+='</table>';box.innerHTML=rows.length?h:'<div class="empty">No vehicle detachment records.</div>'}
+async function deleteVehicleDetachment(id){if(!canDelete())return alert('No delete permission.');const {error}=await sb.rpc('delete_pol_vehicle_detachment_v1',{p_id:id});if(error)return alert(error.message);await loadPOLDetachments()}
+
+/* Robust CSV/PDF printing */
+function downloadCSV(rows,name){const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+function printTableReport(title,headers,rows){const w=window.open('','_blank','width=1100,height=800');if(!w){alert('Please allow pop-ups to print the report.');return}const th=headers.map(h=>`<th>${esc(h)}</th>`).join('');const tr=rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('');w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center;font-size:20px;margin:0 0 4px}h2{text-align:center;font-size:13px;margin:0 0 18px;color:#555}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}footer{margin-top:25px;text-align:center;font-size:10px;color:#555}</style></head><body><h1>${esc(title)}</h1><h2>${esc(activeCamp?.camp_name||'NCC CAMP MESSING IMS')}</h2><table><tr>${th}</tr>${tr}</table><footer>Developed by Vinayak Shanmukhanavar</footer></body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},300)}
+function exportPOLVehicleCSV(){downloadCSV([['SL No','Vehicle Type','Vehicle No','Fuel Type','Opening KM','Tank Balance','KPL','Driver','Attached From'],...polVehicles.map((v,i)=>{const st=polCurrentState(v.id);return [i+1,v.vehicle_type,v.vehicle_no,v.fuel_type||'',polInitialKm(v),polInitialTank(v),v.kpl,v.driver_name||'',v.attached_from||'']} )],'POL_Vehicle_Attachment.csv')}
+function printPOLVehicleReport(){const rows=polVehicles.map((v,i)=>{const st=polCurrentState(v.id);return [i+1,v.vehicle_no,v.vehicle_type,v.fuel_type||'',polInitialKm(v).toFixed(1),polInitialTank(v).toFixed(2),v.kpl,v.driver_name||'',v.attached_from||'']});printTableReport('POL Vehicle Attachment Report',['SL','Vehicle No','Type','Fuel','Opening KM','Tank Balance','KPL','Driver','Attached From'],rows)}
+function exportCarDiaryCSV(){const rows=[['Date','Vehicle','Nature','Purpose','From','To','Opening KM','KM Run','Closing KM','KPL','POL Consumed'],...(window.carDiaryEntries||[]).map(x=>[x.entry_date,x.vehicle_no,x.nature_of_duty,x.purpose_of_duty,x.from_location,x.to_location,x.opening_km,x.km_run,x.closing_km,x.kpl,x.pol_consumed])];downloadCSV(rows,'POL_Car_Diary_Report.csv')}
+function printCarDiaryReport(){const rows=[...(window.carDiaryEntries||[])].map(x=>[x.entry_date,x.vehicle_no,x.nature_of_duty,x.purpose_of_duty,x.from_location,x.to_location,x.opening_km,x.km_run,x.closing_km,x.kpl,x.pol_consumed]);printTableReport('POL Car Diary Report',['Date','Vehicle','Nature','Purpose','From','To','Opening KM','KM Run','Closing KM','KPL','POL Consumed'],rows)}
+function exportPOLCSV(){downloadCSV([['Date','Vehicle No','Fuel Type','Invoice','Petrol Bunk','Previous Fuel','Drawn Ltr','Present Fuel','Rate','Total Amount'],...polEntries.map(x=>[x.entry_date,x.vehicle_no,x.fuel_type,x.invoice_number,x.petrol_bunk,x.previous_fuel,x.litres,x.present_fuel,x.rate,x.total_amount])],'POL_Drawn_Register.csv')}
+function printPOLDrawnReport(){const rows=polEntries.map(x=>[x.entry_date,x.vehicle_no,x.fuel_type,x.invoice_number,x.petrol_bunk,x.previous_fuel,x.litres,x.present_fuel,x.rate,x.total_amount]);printTableReport('POL Drawn Report',['Date','Vehicle','Fuel','Invoice','Petrol Bunk','Previous Fuel','Drawn Ltr','Present Fuel','Rate','Amount'],rows)}
+function exportPOLDetachmentCSV(){downloadCSV([['SL','Vehicle No','Type','Unit','Attached From','Attached To','Opening KM','KM Run','Closing KM','KPL','POL Consumed','POL Drawn','Tank Balance'],...(window.polDetachmentEntries||[]).map((x,i)=>[i+1,x.vehicle_no,x.vehicle_type,x.unit,x.attached_from,x.attached_to,x.opening_km,x.km_run_camp,x.closing_km,x.kpl,x.pol_consumed,x.pol_drawn_total,x.tank_balance])],'POL_Vehicle_Detachment_Report.csv')}
+function printPOLDetachmentReport(){const rows=(window.polDetachmentEntries||[]).map(x=>[x.vehicle_no,x.vehicle_type,x.unit,x.attached_from,x.attached_to,x.opening_km,x.km_run_camp,x.closing_km,x.kpl,x.pol_consumed,x.pol_drawn_total,x.tank_balance]);printTableReport('POL Vehicle Detachment Report',['Vehicle No','Type','Unit','Attached From','Attached To','Opening KM','KM Run','Closing KM','KPL','POL Consumed','POL Drawn','Tank Balance'],rows)}
+function renderPOLReport(){
+  const el=document.getElementById('polReportContent');if(!el)return;const type=document.getElementById('polRepType')?.value||'vehicle',vid=document.getElementById('polRepVehicle')?.value||'',from=document.getElementById('polRepFrom')?.value||'',to=document.getElementById('polRepTo')?.value||'';
+  if(type==='detach'){const rows=(window.polDetachmentEntries||[]).filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.attached_to>=from)&&(!to||x.attached_to<=to));el.innerHTML='<table><tr><th>SL</th><th>Vehicle</th><th>Type</th><th>Unit</th><th>Attached From</th><th>Attached To</th><th>Opening KM</th><th>KM Run</th><th>Closing KM</th><th>KPL</th><th>POL Consumed</th><th>POL Drawn</th><th>Tank Balance</th></tr>'+rows.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.vehicle_type)}</td><td>${esc(x.unit)}</td><td>${esc(x.attached_from||'')}</td><td>${esc(x.attached_to||'')}</td><td>${x.opening_km}</td><td>${x.km_run_camp}</td><td>${x.closing_km}</td><td>${x.kpl}</td><td>${x.pol_consumed}</td><td>${x.pol_drawn_total}</td><td>${x.tank_balance}</td></tr>`).join('')+'</table>';return}
+  /* preserve existing rendering for other types */
+  const t=document.getElementById('polRepType'); if(t&&t.value!=='detach'){ const oldType=t.value; const rows=oldType==='vehicle'?polVehicles.filter(x=>!vid||String(x.id)===String(vid)).map((x,i)=>{const st=polCurrentState(x.id);return [i+1,x.vehicle_no,x.vehicle_type,x.fuel_type||'',st.tank,x.kpl,x.driver_name,x.attached_from||'']}):oldType==='drawn'?polEntries.filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to)).map(x=>[x.entry_date,x.vehicle_no,x.fuel_type,x.invoice_number,x.petrol_bunk,x.previous_fuel,x.litres,x.present_fuel,x.rate,x.total_amount]):(window.carDiaryEntries||[]).filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to)).map(x=>[x.entry_date,x.vehicle_no,x.nature_of_duty,x.purpose_of_duty,x.from_location,x.to_location,x.opening_km,x.km_run,x.closing_km,x.kpl,x.pol_consumed]);const head=oldType==='vehicle'?['SL','Vehicle','Type','Fuel','Tank Balance','KPL','Driver','Attached From']:oldType==='drawn'?['Date','Vehicle','Fuel','Invoice','Bunk','Previous','Drawn','Present','Rate','Amount']:['Date','Vehicle','Nature','Purpose','From','To','Opening KM','KM Run','Closing KM','KPL','POL Consumed'];el.innerHTML='<table><tr>'+head.map(h=>`<th>${h}</th>`).join('')+'</tr>'+rows.map(r=>'<tr>'+r.map(c=>`<td>${esc(c)}</td>`).join('')+'</tr>').join('')+'</table>';}
+}
+function exportPOLReportCSV(){const type=document.getElementById('polRepType')?.value||'vehicle',vid=document.getElementById('polRepVehicle')?.value||'',from=document.getElementById('polRepFrom')?.value||'',to=document.getElementById('polRepTo')?.value||'';if(type==='detach')return exportPOLDetachmentCSV();if(type==='vehicle')return exportPOLVehicleCSV();if(type==='drawn')return exportPOLCSV();return exportCarDiaryCSV()}
+function printPOLReport(){renderPOLReport();setTimeout(()=>{const box=document.getElementById('polReportContent');const w=window.open('','_blank','width=1100,height=800');if(!w)return;w.document.write(`<!doctype html><html><head><title>POL Report</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px}th{background:#eee}</style></head><body><h2 style="text-align:center">NCC CAMP MESSING IMS - POL REPORT</h2>${box?.innerHTML||''}</body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},300)},100)}
+
+function setPOLTab(tab){
+  const map={vehicle:'polVehicleSection',drawn:'polDrawnSection',diary:'polDiarySection',detach:'polDetachSection',report:'polReportSection'};
+  document.querySelectorAll('[data-poltab]').forEach(b=>b.classList.toggle('active',b.dataset.poltab===tab)); Object.values(map).forEach(id=>document.getElementById(id)?.classList.add('hidden')); document.getElementById(map[tab])?.classList.remove('hidden');
+  if(tab==='vehicle')renderPOLVehicleRegister(); if(tab==='drawn'){renderPOL();loadPOLVehicleSelect();} if(tab==='diary'){loadPOLVehicleSelect();loadCarDiary();renderCarDiaryRegister();} if(tab==='detach'){loadPOLVehicleSelect();loadPOLDetachments();} if(tab==='report'){loadPOLDetachments();renderPOLReport()}
+}
+
+/* Override diary persistence: attachment opening KM/tank remain immutable. */
+async function saveCarDiary(){
+  if(!canQsecEntry())return setMsg('diaryMsg','No entry permission.'); if(!activeCamp)return setMsg('diaryMsg','Select an active camp first.');
+  const vid=document.getElementById('diaryVehicle')?.value||'',v=polVehicles.find(x=>String(x.id)===String(vid)); if(!v)return setMsg('diaryMsg','Select a vehicle.');
+  const km=Number(document.getElementById('diaryKmRun')?.value||0),purpose=(document.getElementById('diaryPurpose')?.value||'').trim(),from=(document.getElementById('diaryFrom')?.value||'').trim(),to=(document.getElementById('diaryTo')?.value||'').trim();
+  if(km<0||!purpose||!from||!to)return setMsg('diaryMsg','Enter valid KM Run, Purpose, From and To.');
+  const {error}=await sb.rpc('save_pol_car_diary_v4',{p_vehicle_id:vid,p_entry_date:document.getElementById('diaryDate')?.value||today(),p_nature_of_duty:document.getElementById('diaryNature')?.value||'Camp Duty',p_purpose_of_duty:purpose,p_from_location:from,p_to_location:to,p_km_run:km,p_remarks:(document.getElementById('diaryRemarks')?.value||'').trim()});
+  if(error)return setMsg('diaryMsg',error.message); setMsg('diaryMsg','Car diary entry saved successfully.',true); const keep=vid; await loadCarDiary(); document.getElementById('diaryVehicle').value=keep; loadDiaryVehicle(); ['diaryKmRun','diaryPurpose','diaryFrom','diaryTo','diaryRemarks'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''}); calcDiary();
+}
+function loadDiaryVehicle(){const id=document.getElementById('diaryVehicle')?.value||'';if(!id)return;const v=polVehicles.find(x=>String(x.id)===String(id));if(!v)return;const st=polCurrentState(id);document.getElementById('diaryOpeningKm').value=st.currentKm.toFixed(1);document.getElementById('diaryKpl').value=Number(v.kpl||0).toFixed(2);calcDiary()}
+function renderCarDiaryRegister(){const el=document.getElementById('carDiaryTable');if(!el)return;let rows=[...(window.carDiaryEntries||[])];const v=document.getElementById('diaryReportVehicle')?.value||'',from=document.getElementById('diaryReportFrom')?.value||'',to=document.getElementById('diaryReportTo')?.value||'';if(v)rows=rows.filter(x=>String(x.vehicle_id)===String(v));if(from)rows=rows.filter(x=>x.entry_date>=from);if(to)rows=rows.filter(x=>x.entry_date<=to);let h='<table><tr><th>Date</th><th>Vehicle</th><th>Nature</th><th>Purpose</th><th>From</th><th>To</th><th>Opening KM</th><th>KM Run</th><th>Closing KM</th><th>KPL</th><th>POL Consumed</th><th>Action</th></tr>';rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.nature_of_duty)}</td><td>${esc(x.purpose_of_duty)}</td><td>${esc(x.from_location)}</td><td>${esc(x.to_location)}</td><td>${(+x.opening_km||0).toFixed(1)}</td><td>${(+x.km_run||0).toFixed(1)}</td><td>${(+x.closing_km||0).toFixed(1)}</td><td>${(+x.kpl||0).toFixed(2)}</td><td>${(+x.pol_consumed||0).toFixed(2)}</td><td>${canDelete()?`<button class="btn red" onclick="deleteCarDiary('${x.id}')">Delete</button>`:'View'}</td></tr>`);h+='</table>';el.innerHTML=rows.length?h:'<div class="empty">No car diary entries.</div>'}
+
+/* Load detachment and keep reports current */
+const _oldRefreshAllV4 = refreshAll;
+async function refreshAll(){await _oldRefreshAllV4();await loadPOLDetachments();}
+
+/* Make immutable baseline visible in vehicle form after edit */
+window.setTimeout(()=>{setVehicleBaseLocked(false);},0);
+</script>
+
 </body>
 </html>
