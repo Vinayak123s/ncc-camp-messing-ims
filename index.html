@@ -739,10 +739,16 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
         <div class="source-items"><table><thead><tr><th>Purchased Item / Particular</th><th>A/u</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody id="cashSourceItemsBody"></tbody></table></div>
       </div>
       <div id="cashPaymentBalances" class="balance-preview">
+        <div class="balance-card"><span>Current Cash Balance</span><b id="payCashCurrent">₹0.00</b></div>
         <div class="balance-card"><span>Current Bank Balance</span><b id="payBankCurrent">₹0.00</b></div>
         <div class="balance-card"><span>Current Head Balance</span><b id="payHeadCurrent">₹0.00</b></div>
+        <div class="balance-card"><span>Cash / Bank After Payment</span><b id="payCashBankAfter">₹0.00</b></div>
         <div class="balance-card"><span>Bank Balance After Payment</span><b id="payBankAfter">₹0.00</b></div>
         <div class="balance-card"><span>Head Balance After Payment</span><b id="payHeadAfter">₹0.00</b></div>
+      </div>
+      <div class="source-details" style="margin-top:10px">
+        <h4 style="margin:0 0 8px">Recent Cash Drawn Entries</h4>
+        <div id="cashDrawnPreview" class="tablewrap"></div>
       </div>
       <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveCashbook()">SAVE PAYMENT</button><button class="btn ghost" onclick="clearCashbookForm()">CLEAR</button></div>
       <div id="paymentMsg" class="msg"></div>
@@ -815,7 +821,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -2129,6 +2135,114 @@ async function refreshAll(){await _oldRefreshAllV4();await loadPOLDetachments();
 
 /* Make immutable baseline visible in vehicle form after edit */
 window.setTimeout(()=>{setVehicleBaseLocked(false);},0);
+
+/* ===== CASH BOOK V5 FINAL OVERRIDES ===== */
+const CASH_HEAD_ALIASES = {
+  'MESSING':'Messing','INC':'INC','POL':'POL','RANK PAY':'Rank Pay',
+  'TA CADETS':'TA Cadets','TA/DA CIV STAFF':'TA/DA Civ Staff','TA/DA CIV':'TA/DA Civ Staff',
+  'TA DA CIV STAFF':'TA/DA Civ Staff','RENT':'Rent','OTHERS':'Others','OTHER':'Others'
+};
+function canonicalCashHead(h){ const k=String(h||'').trim().toUpperCase(); return CASH_HEAD_ALIASES[k]||String(h||'').trim(); }
+function getAlloc(e){
+  let v=e?.head_allocations;
+  if(typeof v==='string'){try{v=JSON.parse(v)}catch(_){v={}}}
+  v=v&&typeof v==='object'?v:{};
+  const out={Messing:0,INC:0,POL:0,'Rank Pay':0,'TA Cadets':0,'TA/DA Civ Staff':0,Rent:0,Others:0};
+  Object.entries(v).forEach(([k,val])=>{const c=canonicalCashHead(k); if(Object.prototype.hasOwnProperty.call(out,c)) out[c]+=Number(val)||0;});
+  return out;
+}
+function cashHeadBalance(head,date=today()){
+  const h=canonicalCashHead(head); let total=0;
+  (cashbookEntries||[]).filter(e=>e.entry_date<=date).forEach(e=>{
+    if(e.entry_type==='RECEIPT') total+=Number(getAlloc(e)[h]||0);
+    else if(e.entry_type==='PAYMENT' && canonicalCashHead(e.code_head)===h) total-=Number(e.amount||0);
+  });
+  return total;
+}
+function cashBalanceAsOf(date=today()){
+  let cash=0,bank=0;
+  (cashbookEntries||[]).filter(e=>e.entry_date<=date).forEach(e=>{
+    const a=Number(e.amount)||0;
+    if(e.entry_type==='RECEIPT'){if(e.mode==='CASH')cash+=a; else if(e.mode==='BANK')bank+=a;}
+    else if(e.entry_type==='PAYMENT'){if(e.mode==='CASH')cash-=a; else if(e.mode==='BANK')bank-=a;}
+    else if(e.entry_type==='CASH_DRAWN'){cash+=a;bank-=a;}
+  });
+  return {cash,bank};
+}
+function updateCashDrawnPreview(){
+  const el=document.getElementById('cashDrawnPreview'); if(!el)return;
+  const rows=(cashbookEntries||[]).filter(e=>e.entry_type==='CASH_DRAWN').slice().sort((a,b)=>String(b.entry_date).localeCompare(String(a.entry_date))||String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,8);
+  if(!rows.length){el.innerHTML='<div class="empty">No cash drawn entries recorded.</div>';return;}
+  el.innerHTML='<table><tr><th>Date</th><th>CD No.</th><th>Bank / Cheque Ref</th><th>Purpose</th><th>Amount</th></tr>'+rows.map(x=>`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.voucher_number||'')}</td><td>${esc(x.reference_no||'')}</td><td>${esc(sourceDetailObject(x).on_account||x.narration||'')}</td><td>${money(x.amount)}</td></tr>`).join('')+'</table>';
+}
+function updatePaymentBalancePreview(){
+  const mode=document.getElementById('cashPaymentMode')?.value||'CASH';
+  const head=canonicalCashHead(document.getElementById('cashPaymentCodeHead')?.value||'');
+  const date=document.getElementById('payDate')?.value||today();
+  const {cash,bank}=cashBalanceAsOf(date);
+  const headBal=head?cashHeadBalance(head,date):0;
+  const raw=String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,'');
+  const amt=Number(raw)||0;
+  const afterCash=mode==='CASH'?cash-amt:cash;
+  const afterBank=mode==='BANK'?bank-amt:bank;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=money(v)};
+  set('payCashCurrent',cash);set('payBankCurrent',bank);set('payHeadCurrent',headBal);set('payCashBankAfter',mode==='CASH'?afterCash:afterBank);set('payBankAfter',afterBank);set('payHeadAfter',headBal-amt);
+  ['payCashBankAfter','payBankAfter','payHeadAfter'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const n=Number(String(el.textContent).replace(/[^0-9.-]/g,''));el.classList.toggle('balance-good',n>=0);el.classList.toggle('balance-bad',n<0)});
+  const srcType=document.getElementById('cashSourceType')?.value||''; const srcId=document.getElementById('cashSource')?.value||'';
+  const src=(srcType&&srcId)?availablePaymentSources(srcType).find(x=>String(x.id)===String(srcId)):null;
+  const note=document.getElementById('paymentBalanceNote'); if(note)note.textContent=`Cash in Hand: ${money(cash)} | Bank Balance: ${money(bank)} | ${head||'Head'} Balance: ${money(headBal)}${src?' | Source Remaining: '+money(src.amount):''}`;
+  updateCashDrawnPreview();
+}
+async function saveReceiptAllocation(){
+  if(!canAccountsEntry())return setMsg('receiptAllocationMsg','Only ACCOUNTS/ADMIN can distribute a receipt.');
+  if(!pendingReceiptAllocationId)return setMsg('receiptAllocationMsg','Save a receipt first.');
+  const allocations=receiptAllocationValues(); const total=Object.values(allocations).reduce((s,v)=>s+(Number(v)||0),0); const expected=Number(pendingReceiptAllocationAmount||0);
+  if(Math.abs(total-expected)>0.01)return setMsg('receiptAllocationMsg',`Allocation must equal receipt amount. Allocated ${money(total)} of ${money(expected)}.`);
+  const {error}=await sb.rpc('save_cashbook_receipt_distribution_v2',{p_entry_id:pendingReceiptAllocationId,p_allocations:allocations});
+  if(error)return setMsg('receiptAllocationMsg',error.message);
+  setMsg('receiptAllocationMsg','Distribution saved successfully.',true); hideReceiptAllocation(); await refreshAll(); updatePaymentBalancePreview();
+}
+async function saveCashbook(){
+  if(cashType!=='PAYMENT'){
+    return window._origSaveCashbookV5.apply(this,arguments);
+  }
+  if(!canAccountsEntry())return setMsg('paymentMsg','Cash Book entry is restricted to ACCOUNTS and ADMIN.');
+  if(!activeCamp)return setMsg('paymentMsg','Select a camp first.');
+  const date=document.getElementById('payDate').value||today();
+  const voucher=document.getElementById('payVoucherNo').value.trim();
+  const head=canonicalCashHead(document.getElementById('cashPaymentCodeHead').value||'');
+  const sourceType=document.getElementById('cashSourceType').value||'';
+  const sourceId=['MESSING_RV','INCIDENTAL_RV','POL_DRAWN'].includes(sourceType)?(document.getElementById('cashSource').value||null):null;
+  const ref=document.getElementById('cashInvoice').value.trim();
+  const party=document.getElementById('cashPaymentParty').value.trim();
+  const amt=Number(String(document.getElementById('cashPaymentAmount').value||'').replace(/[^0-9.]/g,''))||0;
+  const mode=document.getElementById('cashPaymentMode').value||'CASH';
+  const narr=document.getElementById('cashPaymentNarration').value.trim();
+  if(!voucher||!date||!head||amt<=0)return setMsg('paymentMsg','Enter Date, PV No., Code Head and valid amount.');
+  if(['MESSING','INC','POL'].includes(head)&&!sourceId)return setMsg('paymentMsg','Select the linked source invoice / voucher.');
+  if(['MESSING','INC','POL'].includes(head)&&sourceId){
+    const src=availablePaymentSources(sourceType).find(x=>String(x.id)===String(sourceId));
+    if(!src)return setMsg('paymentMsg','Selected source is no longer available. Refresh and select again.');
+    if(amt>Number(src.amount)+0.005)return setMsg('paymentMsg',`Payment exceeds source balance ${money(src.amount)}.`);
+    if(!ref)document.getElementById('cashInvoice').value=src.ref||'';
+  }
+  const bal=cashBalanceAsOf(date),hb=cashHeadBalance(head,date);
+  const sourceBal=mode==='BANK'?bal.bank:bal.cash;
+  if(amt>sourceBal+0.005)return setMsg('paymentMsg',`Insufficient ${mode} balance. Available: ${money(sourceBal)}.`);
+  if(amt>hb+0.005)return setMsg('paymentMsg',`Insufficient ${head} head balance. Available: ${money(hb)}.`);
+  if(!['MESSING','INC','POL'].includes(head)&&(ref===''||party===''))return setMsg('paymentMsg','Enter Invoice/Reference and To Whom Paid for this account head.');
+  const {error}=await sb.rpc('save_cashbook_payment_v2',{p_voucher_number:voucher,p_entry_date:date,p_source_type:sourceType||'OTHER',p_source_id:sourceId,p_reference_no:ref||null,p_party:party||null,p_amount:amt,p_mode:mode,p_code_head:head,p_narration:narr||null});
+  if(error)return setMsg('paymentMsg',error.message);
+  setMsg('paymentMsg','Payment voucher saved successfully.',true); clearCashbookForm(); await refreshAll(); updatePaymentBalancePreview();
+}
+const _origSaveCashbookV5=window.saveCashbook;
+window._origSaveCashbookV5=_origSaveCashbookV5;
+window.saveCashbook=saveCashbook;
+window.saveReceiptAllocation=saveReceiptAllocation;
+window.updatePaymentBalancePreview=updatePaymentBalancePreview;
+window.updateCashDrawnPreview=updateCashDrawnPreview;
+window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview()}catch(e){}},250);
+
 </script>
 
 </body>
