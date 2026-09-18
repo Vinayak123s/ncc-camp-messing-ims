@@ -4,7 +4,116 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NCC Camp Messing IMS</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+/* ================= FINAL GENERATED OVERRIDES ================= */
+function toggleModuleGroup(btn,id){
+  const el=document.getElementById(id);if(!el)return; const open=el.classList.toggle('open');
+  const a=btn.querySelector('.group-arrow'); if(a)a.textContent=open?'▾':'▸';
+  if(side.classList.contains('expanded')) return;
+}
+function setPOLTab(tab){
+  document.querySelectorAll('[data-poltab]').forEach(b=>b.classList.toggle('active',b.dataset.poltab===tab));
+  const map={vehicle:'polVehicleSection',drawn:'polDrawnSection',diary:'polDiarySection',report:'polReportSection'};
+  Object.entries(map).forEach(([k,id])=>document.getElementById(id)?.classList.toggle('hidden',k!==tab));
+  if(tab==='vehicle')renderPOLVehicleRegister();
+  if(tab==='drawn'){renderPOL();loadPOLVehicleSelect()}
+  if(tab==='diary'){loadDiaryVehicle();renderCarDiaryRegister()}
+  if(tab==='report'){renderPOLReport()}
+}
+function renderPOLVehicleRegister(){
+  const box=document.getElementById('polVehiclesTable');if(!box)return;
+  const s=(document.getElementById('polVehicleSearch')?.value||'').toLowerCase(), tf=document.getElementById('polVehicleTypeFilter')?.value||'', ff=document.getElementById('polFuelFilter')?.value||'';
+  const rows=polVehicles.filter(v=>(!s||[v.vehicle_no,v.driver_name,v.unit].join(' ').toLowerCase().includes(s))&&(!tf||v.vehicle_type===tf)&&(!ff||(v.fuel_type||'')===ff));
+  let h='<table><tr><th>SL No</th><th>Vehicle Type</th><th>Vehicle No.</th><th>Make / Model</th><th>Fuel Type</th><th>KPL</th><th>Driver</th><th>Attached From</th><th>Attached To</th><th>Status</th><th>Action</th></tr>';
+  rows.forEach((v,i)=>{h+=`<tr><td>${i+1}</td><td>${esc(v.vehicle_type)}</td><td><b>${esc(v.vehicle_no)}</b></td><td>${esc(v.make_model||'-')}</td><td>${esc(v.fuel_type||'-')}</td><td>${(+v.kpl||0).toFixed(2)}</td><td>${esc(v.driver_name||'')}</td><td>${esc(v.attached_from||'-')}</td><td>${esc(v.attached_to||'-')}</td><td><span class="status ok">ACTIVE</span></td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:''}</td></tr>`});h+='</table>';box.innerHTML=rows.length?h:'<div class="empty">No vehicle attachment records.</div>';
+  const dv=rows.filter(v=>(v.fuel_type||'')==='Diesel').length,pv=rows.filter(v=>(v.fuel_type||'')==='Petrol').length;
+  ['polKpiVehicles','polKpiDiesel','polKpiPetrol'].forEach((id,val)=>{const e=document.getElementById(id);if(e)e.textContent=[rows.length,dv,pv][val]});
+  const selects=['polRepVehicle','diaryVehicle','diaryReportVehicle'];selects.forEach(id=>{const e=document.getElementById(id);if(!e)return;const cur=e.value;e.innerHTML='<option value="">'+(id==='diaryReportVehicle'?'All Vehicles':'Select Vehicle')+'</option>'+polVehicles.map(v=>`<option value="${v.id}" ${v.id===cur?'selected':''}>${esc(v.vehicle_no)} - ${esc(v.vehicle_type)}</option>`).join('')});
+  const badge=document.getElementById('polCampBadge');if(badge)badge.textContent=activeCamp?.camp_name||'—';
+}
+function exportPOLVehicleCSV(){const rows=[['SL No','Vehicle Type','Vehicle No','Make/Model','Fuel Type','KPL','Driver','Attached From','Attached To'],...polVehicles.map((v,i)=>[i+1,v.vehicle_type,v.vehicle_no,v.make_model||'',v.fuel_type||'',v.kpl||'',v.driver_name||'',v.attached_from||'',v.attached_to||''])];downloadCSV(rows,'POL_Vehicle_Attachment.csv')}
+function printPOLVehicleReport(){setPOLTab('vehicle');window.print()}
+function printPOLDrawnReport(){setPOLTab('drawn');window.print()}
+
+// Enhanced vehicle save/edit payload while retaining legacy database columns.
+const _oldSavePOLVehicle=savePOLVehicle;
+async function savePOLVehicle(){
+  if(!canQsecEntry()){setMsg('polVehMsg','No entry permission for this role.');return}
+  if(!activeCamp){setMsg('polVehMsg','Select a camp first.');return}
+  const payload={camp_id:activeCamp.id,vehicle_no:document.getElementById('polVehNo').value.trim().toUpperCase(),unit:document.getElementById('polUnit').value.trim(),vehicle_type:document.getElementById('polVehType').value,km_reading:+document.getElementById('polKM').value||0,pol_balance:+document.getElementById('polBal').value||0,kpl:+document.getElementById('polKPL').value||0,driver_name:document.getElementById('polDriver').value.trim(),authority_no:document.getElementById('polAuth').value.trim(),fuel_type:document.getElementById('polFuelType').value,make_model:document.getElementById('polMakeModel').value.trim(),year_mfg:document.getElementById('polYearMfg').value.trim(),attached_from:document.getElementById('polAttachedFrom').value||null,attached_to:document.getElementById('polAttachedTo').value||null,driver_contact:document.getElementById('polDriverContact').value.trim()};
+  if(!payload.vehicle_no||!payload.unit||!payload.vehicle_type||payload.kpl<=0||!payload.driver_name||!payload.authority_no){setMsg('polVehMsg','Fill all required vehicle fields.');return}
+  let q;
+  const existing=polVehicles.find(v=>v.vehicle_no===payload.vehicle_no);
+  if(existing) q=sb.from('pol_vehicles').update(payload).eq('id',existing.id).eq('camp_id',activeCamp.id); else q=sb.from('pol_vehicles').insert(payload);
+  const {error}=await q;if(error){setMsg('polVehMsg',error.message);return}
+  setMsg('polVehMsg','Vehicle saved.',true);clearPOLVehicle();await refreshAll();setPOLTab('vehicle');
+}
+function clearPOLVehicle(){['polVehNo','polUnit','polVehType','polKPL','polDriver','polAuth','polMakeModel','polYearMfg','polAttachedFrom','polAttachedTo','polDriverContact','polKM'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});if(document.getElementById('polFuelType'))document.getElementById('polFuelType').value='Diesel';setMsg('polVehMsg','')}
+function editPOLVehicle(id){const v=polVehicles.find(x=>x.id===id);if(!v)return;['polVehNo','polUnit','polVehType','polKPL','polDriver','polAuth','polMakeModel','polYearMfg','polAttachedFrom','polAttachedTo','polDriverContact','polKM'].forEach(id=>{const key={polVehNo:'vehicle_no',polUnit:'unit',polVehType:'vehicle_type',polKPL:'kpl',polDriver:'driver_name',polAuth:'authority_no',polMakeModel:'make_model',polYearMfg:'year_mfg',polAttachedFrom:'attached_from',polAttachedTo:'attached_to',polDriverContact:'driver_contact',polKM:'km_reading'}[id];const e=document.getElementById(id);if(e)e.value=v[key]??''});if(document.getElementById('polFuelType'))document.getElementById('polFuelType').value=v.fuel_type||'Diesel';setPOLTab('vehicle');window.scrollTo({top:0,behavior:'smooth'})}
+
+async function loadCarDiary(){
+  if(!activeCamp){window.carDiaryEntries=[];renderCarDiaryRegister();return}
+  const {data,error}=await sb.from('pol_car_diary').select('*').eq('camp_id',activeCamp.id).order('entry_date',{ascending:false}).order('created_at',{ascending:false});
+  if(error){console.warn(error);window.carDiaryEntries=[]}else window.carDiaryEntries=data||[];
+  renderCarDiaryRegister();
+}
+function loadDiaryVehicle(){const id=document.getElementById('diaryVehicle')?.value;if(!id)return;const v=polVehicles.find(x=>x.id===id);if(!v)return;const last=(window.carDiaryEntries||[]).find(x=>x.vehicle_id===id);document.getElementById('diaryOpeningKm').value=last?last.closing_km:(v.km_reading||0);document.getElementById('diaryKpl').value=(+v.kpl||0).toFixed(2);calcDiary()}
+function calcDiary(){const o=+document.getElementById('diaryOpeningKm')?.value||0,k=+document.getElementById('diaryKmRun')?.value||0,kpl=+document.getElementById('diaryKpl')?.value||0;document.getElementById('diaryClosingKm').value=(o+k).toFixed(1);document.getElementById('diaryPolConsumed').value=kpl>0?(k/kpl).toFixed(2):'0.00'}
+async function saveCarDiary(){if(!canQsecEntry()){setMsg('diaryMsg','No entry permission.');return}const vid=document.getElementById('diaryVehicle').value, v=polVehicles.find(x=>x.id===vid);if(!v){setMsg('diaryMsg','Select vehicle.');return}const km=+document.getElementById('diaryKmRun').value||0;if(km<0){setMsg('diaryMsg','KM Run must be valid.');return}const payload={camp_id:activeCamp.id,vehicle_id:vid,vehicle_no:v.vehicle_no,entry_date:document.getElementById('diaryDate').value||today(),nature_of_duty:document.getElementById('diaryNature').value,purpose_of_duty:document.getElementById('diaryPurpose').value.trim(),from_location:document.getElementById('diaryFrom').value.trim(),to_location:document.getElementById('diaryTo').value.trim(),opening_km:+document.getElementById('diaryOpeningKm').value||0,km_run:km,closing_km:+document.getElementById('diaryClosingKm').value||0,kpl:+document.getElementById('diaryKpl').value||0,pol_consumed:+document.getElementById('diaryPolConsumed').value||0,remarks:document.getElementById('diaryRemarks').value.trim()};if(!payload.purpose_of_duty||!payload.from_location||!payload.to_location){setMsg('diaryMsg','Purpose, From and To are required.');return}const {error}=await sb.from('pol_car_diary').insert(payload);if(error){setMsg('diaryMsg',error.message);return}setMsg('diaryMsg','Car diary entry saved.',true);clearCarDiary();await loadCarDiary()}
+function clearCarDiary(){['diaryVehicle','diaryNature','diaryPurpose','diaryFrom','diaryTo','diaryOpeningKm','diaryKmRun','diaryClosingKm','diaryKpl','diaryPolConsumed','diaryRemarks'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});if(document.getElementById('diaryDate'))document.getElementById('diaryDate').value=today();setMsg('diaryMsg','')}
+function renderCarDiaryRegister(){const el=document.getElementById('carDiaryTable');if(!el)return;let rows=[...(window.carDiaryEntries||[])];const v=document.getElementById('diaryReportVehicle')?.value||'',from=document.getElementById('diaryReportFrom')?.value||'',to=document.getElementById('diaryReportTo')?.value||'';if(v)rows=rows.filter(x=>x.vehicle_id===v);if(from)rows=rows.filter(x=>x.entry_date>=from);if(to)rows=rows.filter(x=>x.entry_date<=to);let h='<table><tr><th>Date</th><th>Vehicle</th><th>Nature</th><th>Purpose</th><th>From</th><th>To</th><th>Opening KM</th><th>KM Run</th><th>Closing KM</th><th>KPL</th><th>POL Consumed</th><th>Action</th></tr>';rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.nature_of_duty)}</td><td>${esc(x.purpose_of_duty)}</td><td>${esc(x.from_location)}</td><td>${esc(x.to_location)}</td><td>${(+x.opening_km||0).toFixed(1)}</td><td>${(+x.km_run||0).toFixed(1)}</td><td>${(+x.closing_km||0).toFixed(1)}</td><td>${(+x.kpl||0).toFixed(2)}</td><td>${(+x.pol_consumed||0).toFixed(2)}</td><td>${canDelete()?`<button class="btn red" onclick="deleteCarDiary('${x.id}')">Delete</button>`:'View'}</td></tr>`);h+='</table>';el.innerHTML=rows.length?h:'<div class="empty">No car diary entries.</div>'}
+async function deleteCarDiary(id){if(!canDelete())return alert('Only ADMIN/MANAGER can delete car diary entries.');if(!confirm('Delete car diary entry?'))return;const {error}=await sb.from('pol_car_diary').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await loadCarDiary()}
+function exportCarDiaryCSV(){const rows=[['Date','Vehicle','Nature','Purpose','From','To','Opening KM','KM Run','Closing KM','KPL','POL Consumed'],...(window.carDiaryEntries||[]).map(x=>[x.entry_date,x.vehicle_no,x.nature_of_duty,x.purpose_of_duty,x.from_location,x.to_location,x.opening_km,x.km_run,x.closing_km,x.kpl,x.pol_consumed])];downloadCSV(rows,'Car_Diary_Report.csv')}
+function printCarDiaryReport(){setPOLTab('diary');window.print()}
+function renderPOLReport(){const el=document.getElementById('polReportContent');if(!el)return;const type=document.getElementById('polRepType')?.value||'vehicle',vid=document.getElementById('polRepVehicle')?.value||'',from=document.getElementById('polRepFrom')?.value||'',to=document.getElementById('polRepTo')?.value||'';let h='';if(type==='vehicle'){let rows=polVehicles.filter(x=>!vid||x.id===vid);h='<table><tr><th>SL</th><th>Vehicle</th><th>Type</th><th>Fuel</th><th>KPL</th><th>Driver</th><th>Attached From</th><th>Attached To</th></tr>';rows.forEach((x,i)=>h+=`<tr><td>${i+1}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.vehicle_type)}</td><td>${esc(x.fuel_type||'-')}</td><td>${(+x.kpl||0).toFixed(2)}</td><td>${esc(x.driver_name)}</td><td>${esc(x.attached_from||'-')}</td><td>${esc(x.attached_to||'-')}</td></tr>`);h+='</table>'} else if(type==='drawn'){let rows=polEntries.filter(x=>(!vid||x.vehicle_id===vid)&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to));h='<table><tr><th>Date</th><th>Vehicle</th><th>Fuel</th><th>Invoice</th><th>Bunk</th><th>Prev</th><th>Drawn</th><th>Present</th><th>Rate</th><th>Amount</th></tr>';rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.fuel_type)}</td><td>${esc(x.invoice_number)}</td><td>${esc(x.petrol_bunk)}</td><td>${(+x.previous_fuel||0).toFixed(2)}</td><td>${(+x.litres||0).toFixed(2)}</td><td>${(+x.present_fuel||0).toFixed(2)}</td><td>${money(x.rate)}</td><td>${money(x.total_amount)}</td></tr>`);h+='</table>'} else {renderCarDiaryRegister();h=document.getElementById('carDiaryTable')?.innerHTML||''}el.innerHTML=h||'<div class="empty">No records found.</div>'}
+function exportPOLReportCSV(){const type=document.getElementById('polRepType')?.value||'vehicle';if(type==='vehicle')return exportPOLVehicleCSV();if(type==='diary')return exportCarDiaryCSV();exportPOLCSV()}
+function printPOLReport(){renderPOLReport();window.print()}
+function downloadCSV(rows,name){const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500)}
+
+function toggleRVOtherAuthority(){const other=document.getElementById('rvAuthoritySelect')?.value==='OTHER';['rvAuthorityName','rvAuthorityLetter'].forEach(id=>{const e=document.getElementById(id);if(e){e.disabled=!other;if(!other)e.value=''}})}
+async function nextCRVNo(){if(!activeCamp)return;const {data,error}=await sb.rpc('next_incidental_crv_no');document.getElementById('rvCrv').value=error?'':data}
+function finalFiscal(){const y=new Date().getFullYear(),m=new Date().getMonth()+1,s=m>=4?y:y-1;return String(s).slice(-2)+'-'+String(s+1).slice(-2)}
+async function nextCIVNo(category){if(!activeCamp)return;const {data,error}=await sb.rpc('next_incidental_civ_no',{p_category:category});document.getElementById('ivNoAuto').value=error?'':data}
+function rvAuthorityValue(){const s=document.getElementById('rvAuthoritySelect')?.value;if(s==='OTHER'){const n=document.getElementById('rvAuthorityName').value.trim(),l=document.getElementById('rvAuthorityLetter').value.trim();return n+(l?' | Letter No: '+l:'')}return 'Camp Commandant'}
+
+function clearIncidentalRV(){rvEditingId=null;['rvInvoice','rvParty','rvAddress','rvStation','rvDesc','rvAuthorityName','rvAuthorityLetter'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});document.getElementById('rvDate').value=today();document.getElementById('rvAuthoritySelect').value='CAMP COMMANDANT';toggleRVOtherAuthority();document.getElementById('rvGstMode').value='inclusive';document.getElementById('rvGstRate').value='';document.getElementById('rvItems').innerHTML='';document.getElementById('rvSubtotal').value='₹0.00';document.getElementById('rvGstAmount').value='₹0.00';document.getElementById('rvAmount').value='₹0.00';setMsg('rvMsg','');addRVItem({});nextCRVNo()}
+function addRVItem(item={}){addIncItemGeneric('rvItems',item)}
+function renderIncidentalRV(){const el=document.getElementById('incidentalRVTable');if(!el)return;const q=(document.getElementById('rvSearch')?.value||'').toLowerCase();let rows=incidentals.filter(x=>x.voucher_type==='RV'&&(!q||[x.invoice_number,x.party].join(' ').toLowerCase().includes(q)));let h='<table><tr><th>SL</th><th>Invoice No.</th><th>Date</th><th>CRV No.</th><th>Vendor</th><th>Items</th><th>Total</th><th>Action</th></tr>';rows.forEach((x,i)=>h+=`<tr><td>${i+1}</td><td>${esc(x.invoice_number||'')}</td><td>${esc(x.voucher_date)}</td><td>${esc(x.crv_no||x.voucher_no)}</td><td>${esc(x.party||'')}</td><td>${(x.items||[]).length}</td><td>${money(x.amount)}</td><td><button class="btn ghost" onclick="editIncidentalRV('${x.id}')">Edit</button> <button class="btn green" onclick="printIncidental('${x.id}')">Generate</button> ${canDelete()?`<button class="btn red" onclick="deleteIncidental('${x.id}')">Delete</button>`:''}</td></tr>`);h+='</table>';el.innerHTML=rows.length?h:'<div class="empty">No Incidental RV entries for this camp.</div>'}
+async function saveIncidentalRV(){
+  if(!canQsecEntry())return setMsg('rvMsg','No entry permission.');if(!activeCamp)return setMsg('rvMsg','Select a camp first.');const items=readIncItems('rvItems');if(!items.length)return setMsg('rvMsg','Add at least one item.');
+  calcIncFor('rv','rvItems');const party=document.getElementById('rvParty').value.trim(),invoice=document.getElementById('rvInvoice').value.trim();const authority=rvAuthorityValue();const total=+(document.getElementById('rvAmount').value.replace(/[^0-9.]/g,''))||0;if(!party||!invoice||total<=0||!authority)return setMsg('rvMsg','Fill the required RV fields.');
+  if(document.getElementById('rvAuthoritySelect').value==='OTHER'&&!document.getElementById('rvAuthorityName').value.trim())return setMsg('rvMsg','Enter the other authority name.');
+  const no=document.getElementById('rvNoAuto').value||`INC-RV-${String(Date.now()).slice(-3)}`;
+  const {error}=await sb.rpc('save_incidental_voucher',{p_id:rvEditingId,p_type:'RV',p_voucher_no:no,p_voucher_date:document.getElementById('rvDate').value||today(),p_party:party,p_invoice_number:invoice,p_vendor_address:document.getElementById('rvAddress').value.trim(),p_station:document.getElementById('rvStation').value.trim(),p_crv_no:document.getElementById('rvCrv').value,p_authority:authority,p_unit:null,p_items:items,p_subtotal:+(document.getElementById('rvSubtotal').value.replace(/[^0-9.]/g,''))||0,p_gst_mode:document.getElementById('rvGstMode').value,p_gst_rate:+document.getElementById('rvGstRate').value||0,p_gst_amount:+(document.getElementById('rvGstAmount').value.replace(/[^0-9.]/g,''))||0,p_amount:total,p_mode:'CASH',p_code_head:null,p_description:document.getElementById('rvDesc').value.trim()});if(error){setMsg('rvMsg',error.message);return}setMsg('rvMsg','RV saved successfully.',true);const id=rvEditingId;clearIncidentalRV();rvEditingId=null;await refreshAll();}
+function generateCurrentRV(){const x=incidentals.find(a=>a.voucher_type==='RV'&&(rvEditingId?String(a.id)===String(rvEditingId):a.invoice_number===document.getElementById('rvInvoice').value.trim()));if(x)printIncidental(x.id);else alert('Save the RV first, then Generate.')}
+function editIncidentalRV(id){const x=incidentals.find(a=>a.id===id&&a.voucher_type==='RV');if(!x)return;rvEditingId=id;document.getElementById('rvNoAuto').value=x.voucher_no;document.getElementById('rvDate').value=x.voucher_date;document.getElementById('rvInvoice').value=x.invoice_number||'';document.getElementById('rvParty').value=x.party||'';document.getElementById('rvAddress').value=x.vendor_address||'';document.getElementById('rvStation').value=x.station||'';document.getElementById('rvCrv').value=x.crv_no||'';if((x.authority||'').toLowerCase().startsWith('camp commandant'))document.getElementById('rvAuthoritySelect').value='CAMP COMMANDANT';else{document.getElementById('rvAuthoritySelect').value='OTHER';document.getElementById('rvAuthorityName').value=x.authority||'';toggleRVOtherAuthority()}document.getElementById('rvDesc').value=x.description||'';document.getElementById('rvGstMode').value=x.gst_mode||'inclusive';document.getElementById('rvGstRate').value=x.gst_rate||'';document.getElementById('rvItems').innerHTML='';(x.items||[]).forEach(addRVItem);recalcIncidentalForms();showPage('incidentalRV',document.querySelector('[data-page="incidentalRV"]'))}
+
+function incRVStock(){const received={};incidentals.filter(x=>x.voucher_type==='RV').forEach(r=>(r.items||[]).forEach(it=>{const k=[it.desc,it.unit,it.type,it.page].join('|');if(!received[k])received[k]={...it,received:0,issued:0};received[k].received+=+it.qty||0}));incidentals.filter(x=>x.voucher_type==='IV').forEach(r=>(r.items||[]).forEach(it=>{const k=[it.desc,it.unit,it.type,it.page].join('|');if(received[k])received[k].issued+=+it.qty||0}));return Object.entries(received).map(([key,x])=>({...x,key,balance:Math.max(0,(+x.received||0)-(+x.issued||0))})).filter(x=>x.balance>0)}
+function fillIVSourceSelect(){const s=document.getElementById('ivSourceItem');if(!s)return;const cur=s.value;s.innerHTML='<option value="">Select item</option>'+incRVStock().map(x=>`<option value="${esc(x.key)}" ${cur===x.key?'selected':''}>${esc(x.desc)} | ${esc(x.unit)} | Bal: ${x.balance} | Page: ${esc(x.page||'')}</option>`).join('')}
+function loadIVSourceItem(){const v=document.getElementById('ivSourceItem').value,x=incRVStock().find(y=>y.key===v);document.getElementById('ivAutoUnit').value=x?.unit||'';document.getElementById('ivAutoBalance').value=x?x.balance.toFixed(2):'0.00';document.getElementById('ivAutoPage').value=x?.page||''}
+function addSelectedIVItem(){const key=document.getElementById('ivSourceItem').value,x=incRVStock().find(y=>y.key===key),q=+document.getElementById('ivIssueQty').value||0;if(!x)return setMsg('ivMsgInc','Select an item.');if(q<=0||q>x.balance)return setMsg('ivMsgInc','Issue quantity must be within available balance.');if([...document.querySelectorAll('#ivItemsInc .rviv-item')].some(r=>r.dataset.key===key))return setMsg('ivMsgInc','Item already added.');const wrap=document.createElement('div');wrap.className='rviv-item';wrap.dataset.key=key;wrap.innerHTML=`<div class="rviv-item-grid"><div class="field"><label>Nomenclature</label><input class="ix-desc" readonly value="${esc(x.desc)}"></div><div class="field"><label>A/u</label><input class="ix-unit" readonly value="${esc(x.unit)}"></div><div class="field"><label>Exp / N-Exp</label><input class="ix-type" readonly value="${esc(x.type)}"></div><div class="field"><label>Qty</label><input class="ix-qty" readonly value="${q}"></div><div class="field"><label>Rate</label><input class="ix-rate" readonly value="${x.rate||0}"></div><div class="field"><label>Page No.</label><input class="ix-page" readonly value="${esc(x.page||'')}"></div><div class="field"><label>Remarks</label><input class="ix-remarks" value="${esc(document.getElementById('ivIssueRemarks').value||'')}"></div><button type="button" class="btn red" onclick="this.closest('.rviv-item').remove()">Remove</button></div>`;document.getElementById('ivItemsInc').appendChild(wrap);document.getElementById('ivIssueQty').value='';document.getElementById('ivIssueRemarks').value='';document.getElementById('ivSourceItem').value='';loadIVSourceItem()}
+async function saveIncidentalIV(){
+  if(!canQsecEntry())return setMsg('ivMsgInc','No entry permission.');if(!activeCamp)return setMsg('ivMsgInc','Select a camp first.');const rows=[...document.querySelectorAll('#ivItemsInc .rviv-item')];if(!rows.length)return setMsg('ivMsgInc','Add at least one issue item.');const items=rows.map(r=>({desc:r.querySelector('.ix-desc').value.trim(),unit:r.querySelector('.ix-unit').value,type:r.querySelector('.ix-type').value,qty:+r.querySelector('.ix-qty').value||0,rate:+r.querySelector('.ix-rate').value||0,page:r.querySelector('.ix-page').value.trim(),authorised:'',remarks:r.querySelector('.ix-remarks').value.trim()}));const category=items.some(x=>x.type==='Non-Expendable')?'N-EXP':'EXP';if(!document.getElementById('ivNoAuto').value)await nextCIVNo(category);const no=document.getElementById('ivNoAuto').value;const authority='Camp Commandant';const {error}=await sb.rpc('save_incidental_voucher',{p_id:ivEditingId,p_type:'IV',p_voucher_no:no,p_voucher_date:document.getElementById('ivDateInc').value||today(),p_party:document.getElementById('ivPartyInc')?.value.trim()||document.getElementById('ivUnitInc').value.trim(),p_invoice_number:null,p_vendor_address:null,p_station:document.getElementById('ivStationInc').value.trim(),p_crv_no:null,p_authority:authority,p_unit:document.getElementById('ivUnitInc').value.trim(),p_items:items,p_subtotal:items.reduce((s,x)=>s+x.qty*x.rate,0),p_gst_mode:'inclusive',p_gst_rate:0,p_gst_amount:0,p_amount:items.reduce((s,x)=>s+x.qty*x.rate,0),p_mode:'CASH',p_code_head:null,p_description:''});if(error){setMsg('ivMsgInc',error.message);return}setMsg('ivMsgInc','IV saved successfully.',true);clearIncidentalIV();await refreshAll()}
+function clearIncidentalIV(){ivEditingId=null;['ivUnitInc','ivStationInc','ivAutoUnit','ivAutoBalance','ivAutoPage','ivIssueQty','ivIssueRemarks'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});document.getElementById('ivDateInc').value=today();document.getElementById('ivItemsInc').innerHTML='';setMsg('ivMsgInc','');fillIVSourceSelect();nextCIVNo('EXP')}
+function generateCurrentIV(){const x=incidentals.find(a=>a.voucher_type==='IV'&&(ivEditingId?String(a.id)===String(ivEditingId):a.voucher_no===document.getElementById('ivNoAuto').value));if(x)printIncidental(x.id);else alert('Save the IV first, then Generate.')}
+function editIncidentalIV(id){const x=incidentals.find(a=>a.id===id&&a.voucher_type==='IV');if(!x)return;ivEditingId=id;document.getElementById('ivNoAuto').value=x.voucher_no;document.getElementById('ivDateInc').value=x.voucher_date;document.getElementById('ivUnitInc').value=x.unit||'';document.getElementById('ivStationInc').value=x.station||'';document.getElementById('ivItemsInc').innerHTML='';(x.items||[]).forEach(item=>{const wrap=document.createElement('div');wrap.className='rviv-item';wrap.dataset.key=[item.desc,item.unit,item.type,item.page].join('|');wrap.innerHTML=`<div class="rviv-item-grid"><div class="field"><label>Nomenclature</label><input class="ix-desc" readonly value="${esc(item.desc)}"></div><div class="field"><label>A/u</label><input class="ix-unit" readonly value="${esc(item.unit)}"></div><div class="field"><label>Exp / N-Exp</label><input class="ix-type" readonly value="${esc(item.type)}"></div><div class="field"><label>Qty</label><input class="ix-qty" readonly value="${item.qty}"></div><div class="field"><label>Rate</label><input class="ix-rate" readonly value="${item.rate||0}"></div><div class="field"><label>Page No.</label><input class="ix-page" readonly value="${esc(item.page||'')}"></div><div class="field"><label>Remarks</label><input class="ix-remarks" value="${esc(item.remarks||'')}"></div></div>`;document.getElementById('ivItemsInc').appendChild(wrap)});showPage('incidentalIV',document.querySelector('[data-page="incidentalIV"]'))}
+function exportIncidentalCSV(type){const rows=[['No','Date','Invoice','CRV','Party','Items','Amount'],...incidentals.filter(x=>x.voucher_type===type).map(x=>[x.voucher_no,x.voucher_date,x.invoice_number||'',x.crv_no||'',x.party||'',(x.items||[]).length,x.amount])];downloadCSV(rows, type==='RV'?'Incidental_RV_Report.csv':'Incidental_IV_Report.csv')}
+
+// Extend refreshAll to pull car diary and refresh the redesigned modules after every camp change.
+const _baseRefreshAll=refreshAll;
+async function refreshAll(){await _baseRefreshAll();await loadCarDiary();fillIVSourceSelect();nextCRVNo();if(document.getElementById('ivNoAuto') && !ivEditingId)nextCIVNo('EXP');renderPOLVehicleRegister()}
+
+// Add optional display fields that may not be in the current table until the migration is run.
+async function loadAppExtensions(){try{await loadCarDiary()}catch(e){}setPOLTab('vehicle');toggleRVOtherAuthority();fillIVSourceSelect();nextCRVNo();nextCIVNo('EXP')}
+
+// Keep role navigation consistent with grouped modules.
+const _baseApplyRoleUI=applyRoleUI;
+function applyRoleUI(){_baseApplyRoleUI();const role=profile?.role||'VIEWER';const showMess=['ADMIN','MANAGER','Q_SEC'].includes(role),showInc=['ADMIN','MANAGER','Q_SEC'].includes(role),showPol=['ADMIN','MANAGER','Q_SEC'].includes(role);document.querySelector('.messing-group')?.style.setProperty('display',showMess?'block':'none');document.querySelector('.incident-group')?.style.setProperty('display',showInc?'block':'none');document.querySelector('.pol-group')?.style.setProperty('display',showPol?'block':'none');document.querySelector('.global-reports-nav')?.style.setProperty('display',role==='VIEWER'?'flex':'none');}
+
+// Save page state after first authenticated load.
+setTimeout(()=>{if(window.profile)loadAppExtensions()},250);
+
+</script>
 <style>
 :root{
  --nav:#101722;--nav2:#182230;--accent:#19b4c6;--accent2:#41d8e6;--gold:#e4a623;
@@ -121,6 +230,34 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 }
 
 .accounts-dash .metric b,.accounts-report .metric b{font-size:28px}.report-total-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}.report-total-grid>div{background:#101a25;border:1px solid #2b3d50;border-radius:8px;padding:10px;color:#dce8f3}.report-total-grid span{display:block;color:#8ea2b6;margin-top:4px;font-weight:800}.accounts-report table td,.accounts-report table th{white-space:nowrap}.accounts-report .cash-report-head{text-align:center;margin-bottom:12px}@media(max-width:900px){.report-total-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* FINAL UI – grouped modules, tabs, car diary, polished panels */
+.nav-group{margin:3px 0;position:relative}
+.nav-parent{position:relative}
+.nav-parent .group-arrow{margin-left:auto;display:none;font-size:12px;opacity:.75}
+.sidebar.expanded .nav-parent .group-arrow{display:inline}
+.subnav{display:none;margin:0 0 5px;padding-left:8px}
+.nav-group:hover .subnav,.nav-group.open .subnav{display:block}
+.subnav .nav{font-size:12px;padding:9px 8px;margin:1px 0;background:rgba(16,32,48,.45)}
+.subnav .nav .ni{font-size:14px}
+@media(max-width:650px){.nav-group.open .subnav{display:block}}
+.module-banner{background:linear-gradient(120deg,#102a40,#0f1c29);border:1px solid #284258;border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.module-banner .crumb{color:#7fddea;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.module-banner h2{margin:3px 0 0;font-size:22px}
+.module-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.module-tab{border:1px solid #2f4659;background:#132130;color:#dce8f3;border-radius:8px;padding:10px 14px;font-weight:900;cursor:pointer}
+.module-tab.active{background:#0f92a8;border-color:#20c9df;color:#fff}
+.pol-section.hidden,.inc-section.hidden{display:none!important}
+.side-pill{padding:5px 8px;border-radius:999px;background:#112635;border:1px solid #2a475e;color:#a9d8e8;font-size:10px;font-weight:800}
+.card-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.summary-card{background:linear-gradient(145deg,#112231,#0c151f);border:1px solid #263949;border-radius:10px;padding:14px}
+.summary-card span{display:block;color:#91a8ba;font-size:11px;font-weight:800}.summary-card b{display:block;font-size:25px;margin-top:7px}
+.diary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.report-filter{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.source-tag{display:inline-block;padding:4px 7px;border-radius:6px;background:#0f3445;color:#6ddcf0;font-size:10px;font-weight:900}
+@media(max-width:1050px){.card-grid-3{grid-template-columns:1fr 1fr}.diary-grid,.report-filter{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.card-grid-3,.diary-grid,.report-filter{grid-template-columns:1fr}}
+
 </style>
 <style id="cashbook-final-css">
 .source-details{margin-top:12px;padding:12px;border:1px solid #334155;border-radius:8px;background:#0f1925}.source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.source-items{margin-top:12px;overflow:auto}.source-items table{width:100%;border-collapse:collapse;font-size:12px}.source-items th,.source-items td{border:1px solid #334155;padding:7px;text-align:left;white-space:nowrap}.source-items th{background:#1a2939;color:#e8f0f8}.balance-preview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}.balance-card{padding:10px;border:1px solid #334155;border-radius:8px;background:#0b1420}.balance-card span{display:block;font-size:11px;color:#8fa4b8}.balance-card b{display:block;margin-top:4px;font-size:14px}.balance-good{color:#64d68f}.balance-bad{color:#ff7b86}.head-balance-wrap{margin-top:15px;overflow:auto}.head-balance-wrap table{width:100%;border-collapse:collapse;font-size:12px}.head-balance-wrap th,.head-balance-wrap td{border:1px solid #334155;padding:7px;white-space:nowrap}.head-balance-wrap th{background:#163042;color:#fff}@media(max-width:900px){.source-grid,.balance-preview{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.source-grid,.balance-preview{grid-template-columns:1fr}}</style>
@@ -187,16 +324,38 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
   <button class="hamb" onclick="toggleMenu()">☰</button>
   <div class="side-brand"><div class="nc" id="ncLogo">NC</div><div class="side-name">NCC CAMP<br>MESSING</div></div>
   <button class="nav active" data-page="dashboard" onclick="showPage('dashboard',this)"><span class="ni">⌂</span><span class="nl">Home / Dashboard</span></button>
-<button class="nav camp-nav" data-page="camp" onclick="showPage('camp',this)"><span class="ni">🏕</span><span class="nl">Camp Details</span></button>
-  <button class="nav messing-nav" data-page="messing" onclick="showPage('messing',this)"><span class="ni">🍚</span><span class="nl">Messing</span></button>
-  <button class="nav" data-page="inventory" onclick="showPage('inventory',this)"><span class="ni">▦</span><span class="nl">Inventory Master</span></button>
-  <button class="nav stockin-nav" data-page="stockin" onclick="showPage('stockin',this)"><span class="ni">↓</span><span class="nl">Stock In / Purchase</span></button>
-  <button class="nav stockout-nav" data-page="stockout" onclick="showPage('stockout',this)"><span class="ni">↑</span><span class="nl">Stock Out / Issue</span></button>
-  <button class="nav pol-nav" data-page="pol" onclick="showPage('pol',this)"><span class="ni">⛽</span><span class="nl">POL Drawn</span></button>
-  <button class="nav incident-nav" data-page="incidentalRV" onclick="showPage('incidentalRV',this)"><span class="ni">↘</span><span class="nl">Incidental RV</span></button>
-  <button class="nav incident-nav" data-page="incidentalIV" onclick="showPage('incidentalIV',this)"><span class="ni">↗</span><span class="nl">Incidental IV</span></button>
+  <button class="nav camp-nav" data-page="camp" onclick="showPage('camp',this)"><span class="ni">🏕</span><span class="nl">Camp Details</span></button>
+
+  <div class="nav-group messing-group">
+    <button class="nav nav-parent messing-nav" type="button" onclick="toggleModuleGroup(this,'messingSubnav')"><span class="ni">🍚</span><span class="nl">Messing</span><span class="group-arrow">▸</span></button>
+    <div id="messingSubnav" class="subnav">
+      <button class="nav" data-page="inventory" onclick="showPage('inventory',this)"><span class="ni">▦</span><span class="nl">Inventory Master</span></button>
+      <button class="nav" data-page="stockin" onclick="showPage('stockin',this)"><span class="ni">↓</span><span class="nl">Stock In / Purchase</span></button>
+      <button class="nav" data-page="stockout" onclick="showPage('stockout',this)"><span class="ni">↑</span><span class="nl">Stock Out / Issue</span></button>
+      <button class="nav" data-page="reports" onclick="showPage('reports',this)"><span class="ni">▤</span><span class="nl">Reports</span></button>
+    </div>
+  </div>
+
+  <div class="nav-group incident-group">
+    <button class="nav nav-parent incident-main-nav" type="button" onclick="toggleModuleGroup(this,'incidentSubnav')"><span class="ni">🧾</span><span class="nl">Incidental</span><span class="group-arrow">▸</span></button>
+    <div id="incidentSubnav" class="subnav">
+      <button class="nav incident-nav" data-page="incidentalRV" onclick="showPage('incidentalRV',this)"><span class="ni">↘</span><span class="nl">Incidental RV</span></button>
+      <button class="nav incident-nav" data-page="incidentalIV" onclick="showPage('incidentalIV',this)"><span class="ni">↗</span><span class="nl">Incidental IV</span></button>
+    </div>
+  </div>
+
+  <div class="nav-group pol-group">
+    <button class="nav nav-parent pol-main-nav" type="button" onclick="toggleModuleGroup(this,'polSubnav')"><span class="ni">⛽</span><span class="nl">POL</span><span class="group-arrow">▸</span></button>
+    <div id="polSubnav" class="subnav">
+      <button class="nav pol-nav" data-page="pol" onclick="showPage('pol',this);setTimeout(()=>setPOLTab('vehicle'),30)"><span class="ni">🚙</span><span class="nl">Vehicle Attachment</span></button>
+      <button class="nav pol-nav" data-page="pol" onclick="showPage('pol',this);setTimeout(()=>setPOLTab('drawn'),30)"><span class="ni">⛽</span><span class="nl">POL Drawn</span></button>
+      <button class="nav pol-nav" data-page="pol" onclick="showPage('pol',this);setTimeout(()=>setPOLTab('diary'),30)"><span class="ni">📘</span><span class="nl">Car Diary</span></button>
+      <button class="nav pol-nav" data-page="pol" onclick="showPage('pol',this);setTimeout(()=>setPOLTab('report'),30)"><span class="ni">▤</span><span class="nl">Reports</span></button>
+    </div>
+  </div>
+
   <button class="nav cash-nav" data-page="cashbook" onclick="showPage('cashbook',this)"><span class="ni">₹</span><span class="nl">Cash Book</span></button>
-  <button class="nav" data-page="reports" onclick="showPage('reports',this)"><span class="ni">▤</span><span class="nl">Reports</span></button>
+  <button class="nav global-reports-nav" data-page="reports" onclick="showPage('reports',this)"><span class="ni">▤</span><span class="nl">Reports</span></button>
   <button class="nav adminonly" data-page="users" onclick="showPage('users',this)"><span class="ni">♟</span><span class="nl">User Management</span></button>
   <div class="side-footer"><button class="nav logout" onclick="signOut()"><span class="ni">↪</span><span class="nl">Logout</span></button></div>
 </aside>
@@ -351,99 +510,133 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 </section>
 
 <section id="pol" class="page">
-  <div class="section-head"><div><h1>POL Drawn</h1><p>Vehicle attachment, petrol/diesel drawn, bunk details, previous and present fuel balance.</p></div><div class="actions"><button class="btn dark" onclick="exportPOLCSV()">EXPORT CSV</button><button class="btn ghost" onclick="window.print()">PRINT / PDF</button></div></div>
-  <div class="panel"><div class="pol-form">
-    <h3>Vehicle Attachment</h3>
-    <div class="pol-grid">
-      <div class="field"><label>Vehicle Number *</label><input id="polVehNo" placeholder="KA-01-AB-1234"></div>
-      <div class="field"><label>Name of Unit *</label><input id="polUnit" placeholder="Name of Unit"></div>
-      <div class="field"><label>Vehicle Type *</label><select id="polVehType"><option value="">Select</option><option>Bolero</option><option>Canter</option><option>Gypsy</option><option>Motor Cycle</option></select></div>
-      <div class="field"><label>KM Rdg *</label><input id="polKM" type="number" min="0" step="0.1"></div>
-      <div class="field"><label>POL Balance (Ltr) *</label><input id="polBal" type="number" min="0" step="0.01"></div>
-      <div class="field"><label>KPL *</label><input id="polKPL" type="number" min="0.01" step="0.01"></div>
-      <div class="field"><label>Driver Name *</label><input id="polDriver"></div>
-      <div class="field" style="grid-column:span 2"><label>Authority / Movement Order *</label><input id="polAuth"></div>
+  <div class="module-banner"><div><div class="crumb">POL • Petrol, Oil & Lubricants</div><h2>POL Management</h2><div class="muted">Vehicle attachment, POL drawn, car diary and filtered reports.</div></div><div class="side-pill">Active Camp: <span id="polCampBadge">—</span></div></div>
+  <div class="module-tabs">
+    <button class="module-tab active" data-poltab="vehicle" onclick="setPOLTab('vehicle')">1 • Vehicle Attachment</button>
+    <button class="module-tab" data-poltab="drawn" onclick="setPOLTab('drawn')">2 • POL Drawn</button>
+    <button class="module-tab" data-poltab="diary" onclick="setPOLTab('diary')">3 • Car Diary</button>
+    <button class="module-tab" data-poltab="report" onclick="setPOLTab('report')">4 • Reports</button>
+  </div>
+
+  <div id="polVehicleSection" class="pol-section">
+    <div class="card-grid-3" style="margin-bottom:14px">
+      <div class="summary-card"><span>Total Vehicles</span><b id="polKpiVehicles">0</b></div>
+      <div class="summary-card"><span>Diesel Vehicles</span><b id="polKpiDiesel">0</b></div>
+      <div class="summary-card"><span>Petrol Vehicles</span><b id="polKpiPetrol">0</b></div>
     </div>
-    <div class="actions" style="margin-top:12px"><button class="btn" onclick="savePOLVehicle()">SAVE VEHICLE</button><button class="btn ghost" onclick="clearPOLVehicle()">CLEAR</button></div>
-    <div id="polVehMsg" class="msg"></div>
-  </div></div>
-  <div class="panel"><div class="pol-form">
-    <h3>POL Drawn Entry</h3>
-    <div class="pol-grid">
-      <div class="field"><label>Vehicle Number *</label><select id="polVehSelect" onchange="loadPOLVehicle()"><option value="">Select Vehicle</option></select></div>
-      <div class="field"><label>Fuel Type *</label><select id="polFuel"><option value="">Select</option><option>Petrol</option><option>Diesel</option></select></div>
-      <div class="field"><label>Invoice Number *</label><input id="polInvoice" placeholder="Invoice Number"></div>
-      <div class="field"><label>Petrol Bunk Details *</label><input id="polBunk" placeholder="Petrol bunk / pump"></div>
-      <div class="field"><label>Previous Fuel (Ltr)</label><input id="polPrev" class="auto-field" readonly value="0.00"></div>
-      <div class="field"><label>Fuel Drawn (Ltr) *</label><input id="polLitres" type="number" min="0.01" step="0.01" oninput="calcPOL()"></div>
-      <div class="field"><label>Present Fuel (Ltr)</label><input id="polPresent" class="calculated" readonly value="0.00"></div>
-      <div class="field"><label>Rate / Ltr *</label><input id="polRate" type="number" min="0.01" step="0.01" oninput="calcPOL()"></div>
-      <div class="field"><label>Total Amount</label><input id="polAmount" class="calculated" readonly value="₹0.00"></div>
-      <div class="field"><label>Date</label><input id="polDate" type="date"></div>
+    <div class="panel"><div class="subhead"><div><h3>Vehicle Attachment Details</h3><div class="kpi-note">Add and manage vehicles attached to the active camp.</div></div><div class="actions"><button class="btn" onclick="clearPOLVehicle()">＋ ADD VEHICLE</button><button class="btn green" onclick="exportPOLVehicleCSV()">EXPORT CSV</button><button class="btn dark" onclick="printPOLVehicleReport()">PRINT / PDF</button></div></div>
+      <div class="form-grid">
+        <div class="field"><label>Vehicle Type *</label><select id="polVehType"><option value="">Select</option><option>Bolero</option><option>Canter</option><option>Gypsy</option><option>Motor Cycle</option></select></div>
+        <div class="field"><label>Vehicle Number *</label><input id="polVehNo" placeholder="KA-01-G-1234"></div>
+        <div class="field"><label>Make / Model</label><input id="polMakeModel" placeholder="Make / Model"></div>
+        <div class="field"><label>Year of Mfg.</label><input id="polYearMfg" placeholder="2026"></div>
+        <div class="field"><label>Fuel Type *</label><select id="polFuelType"><option>Diesel</option><option>Petrol</option></select></div>
+        <div class="field"><label>KPL (Km per Ltr) *</label><input id="polKPL" type="number" step="0.01" min="0.01"></div>
+        <div class="field"><label>Attached From *</label><input id="polAttachedFrom" type="date"></div>
+        <div class="field"><label>Attached To</label><input id="polAttachedTo" type="date"></div>
+        <div class="field"><label>Name of Unit *</label><input id="polUnit" placeholder="39 Kar Bn NCC"></div>
+        <div class="field"><label>Driver Name *</label><input id="polDriver"></div>
+        <div class="field"><label>Driver Contact</label><input id="polDriverContact"></div>
+        <div class="field"><label>Opening KM</label><input id="polKM" type="number" step="0.1" min="0"></div>
+        <div class="field" style="grid-column:span 3"><label>Authority / Remarks</label><input id="polAuth" placeholder="Authority / remarks"></div>
+        <input id="polBal" type="hidden" value="0">
+      </div>
+      <div class="actions"><button class="btn green" onclick="savePOLVehicle()">SAVE VEHICLE</button><button class="btn ghost" onclick="clearPOLVehicle()">CLEAR</button></div><div id="polVehMsg" class="msg"></div>
     </div>
-    <div class="pol-info" id="polVehicleInfo">No vehicle selected.</div>
-    <div class="actions" style="margin-top:12px"><button id="polSaveBtn" class="btn" onclick="savePOLEntry()">SAVE POL ENTRY</button><button class="btn ghost" onclick="clearPOLEntry()">CLEAR</button></div>
-    <div id="polMsg" class="msg"></div>
-  </div></div>
-  <div class="panel pol-list"><div class="subhead"><h3 style="margin:0">Vehicle Register</h3></div><div class="tablewrap" id="polVehiclesTable"></div></div>
-  <div class="panel pol-list"><div class="subhead"><h3 style="margin:0">POL Drawn Register</h3></div><div class="tablewrap" id="polEntriesTable"></div></div>
+    <div class="panel"><div class="toolbar"><input id="polVehicleSearch" placeholder="Search vehicle / driver..." oninput="renderPOLVehicleRegister()"><select id="polVehicleTypeFilter" onchange="renderPOLVehicleRegister()"><option value="">All Vehicle Types</option><option>Bolero</option><option>Canter</option><option>Gypsy</option><option>Motor Cycle</option></select><select id="polFuelFilter" onchange="renderPOLVehicleRegister()"><option value="">All Fuel Types</option><option>Diesel</option><option>Petrol</option></select></div><div class="tablewrap" id="polVehiclesTable" style="margin-top:10px"></div></div>
+  </div>
+
+  <div id="polDrawnSection" class="pol-section hidden">
+    <div class="panel"><div class="subhead"><div><h3>POL Drawn Details</h3><div class="kpi-note">Petrol/Diesel drawn against a vehicle; previous and present fuel are maintained automatically.</div></div><div class="actions"><button class="btn green" onclick="exportPOLCSV()">EXPORT CSV</button><button class="btn dark" onclick="printPOLDrawnReport()">PRINT / PDF</button></div></div>
+      <div class="form-grid">
+        <div class="field"><label>Vehicle Number *</label><select id="polVehSelect" onchange="loadPOLVehicle()"><option value="">Select Vehicle</option></select></div>
+        <div class="field"><label>Fuel Type *</label><select id="polFuel"><option>Petrol</option><option>Diesel</option></select></div>
+        <div class="field"><label>Invoice Number *</label><input id="polInvoice"></div>
+        <div class="field"><label>Petrol Bunk Details *</label><input id="polBunk"></div>
+        <div class="field"><label>Previous Fuel (Ltr)</label><input id="polPrev" class="auto-field" readonly value="0.00"></div>
+        <div class="field"><label>Fuel Drawn (Ltr) *</label><input id="polLitres" type="number" min="0.01" step="0.01" oninput="calcPOL()"></div>
+        <div class="field"><label>Present Fuel (Ltr)</label><input id="polPresent" class="calculated" readonly value="0.00"></div>
+        <div class="field"><label>Rate / Ltr *</label><input id="polRate" type="number" min="0.01" step="0.01" oninput="calcPOL()"></div>
+        <div class="field"><label>Total Amount</label><input id="polAmount" class="calculated" readonly value="₹0.00"></div>
+        <div class="field"><label>Date</label><input id="polDate" type="date"></div>
+      </div>
+      <div class="pol-info" id="polVehicleInfo">No vehicle selected.</div>
+      <div class="actions"><button id="polSaveBtn" class="btn green" onclick="savePOLEntry()">SAVE POL ENTRY</button><button class="btn ghost" onclick="clearPOLEntry()">CLEAR</button></div><div id="polMsg" class="msg"></div>
+    </div>
+    <div class="panel"><div class="tablewrap" id="polEntriesTable"></div></div>
+  </div>
+
+  <div id="polDiarySection" class="pol-section hidden">
+    <div class="panel"><div class="subhead"><div><h3>Car Diary</h3><div class="kpi-note">Opening KM is auto-fetched. Closing KM = Opening KM + KM Run. POL consumed = KM Run / KPL.</div></div><button class="btn dark" onclick="printCarDiaryReport()">PRINT / PDF</button></div>
+      <div class="diary-grid">
+        <div class="field"><label>Vehicle Number *</label><select id="diaryVehicle" onchange="loadDiaryVehicle()"><option value="">Select Vehicle</option></select></div>
+        <div class="field"><label>Date *</label><input id="diaryDate" type="date"></div>
+        <div class="field"><label>Nature of Duty *</label><select id="diaryNature"><option>Camp Duty</option><option>Routine Camp Movement</option><option>Transport of Stores</option><option>Training / Exercise</option><option>Other Duty</option></select></div>
+        <div class="field"><label>Purpose of Duty *</label><input id="diaryPurpose" placeholder="Purpose of duty"></div>
+        <div class="field"><label>From *</label><input id="diaryFrom"></div>
+        <div class="field"><label>To *</label><input id="diaryTo"></div>
+        <div class="field"><label>Opening KM</label><input id="diaryOpeningKm" class="auto-field" readonly></div>
+        <div class="field"><label>KM Run *</label><input id="diaryKmRun" type="number" min="0" step="0.1" oninput="calcDiary()"></div>
+        <div class="field"><label>Closing KM</label><input id="diaryClosingKm" class="calculated" readonly></div>
+        <div class="field"><label>KPL</label><input id="diaryKpl" class="auto-field" readonly></div>
+        <div class="field"><label>POL Consumed (Ltr)</label><input id="diaryPolConsumed" class="calculated" readonly></div>
+        <div class="field"><label>Remarks</label><input id="diaryRemarks"></div>
+      </div>
+      <div class="actions"><button class="btn green" onclick="saveCarDiary()">SAVE DIARY ENTRY</button><button class="btn ghost" onclick="clearCarDiary()">CLEAR</button></div><div id="diaryMsg" class="msg"></div>
+    </div>
+    <div class="panel"><div class="toolbar"><select id="diaryReportVehicle"><option value="">All Vehicles</option></select><input id="diaryReportFrom" type="date"><input id="diaryReportTo" type="date"><button class="btn" onclick="renderCarDiaryRegister()">FILTER</button><button class="btn green" onclick="exportCarDiaryCSV()">EXPORT CSV</button></div><div class="tablewrap" style="margin-top:10px" id="carDiaryTable"></div></div>
+  </div>
+
+  <div id="polReportSection" class="pol-section hidden">
+    <div class="panel"><div class="report-filter"><div class="field"><label>From Date</label><input id="polRepFrom" type="date"></div><div class="field"><label>To Date</label><input id="polRepTo" type="date"></div><div class="field"><label>Vehicle</label><select id="polRepVehicle"><option value="">All Vehicles</option></select></div><div class="field"><label>Report Type</label><select id="polRepType"><option value="vehicle">Vehicle Attachment</option><option value="drawn">POL Drawn</option><option value="diary">Car Diary</option></select></div></div><div class="actions"><button class="btn" onclick="renderPOLReport()">GENERATE REPORT</button><button class="btn green" onclick="exportPOLReportCSV()">EXPORT CSV</button><button class="btn dark" onclick="printPOLReport()">PRINT / PDF</button></div></div>
+    <div class="panel"><div id="polReportContent"></div></div>
+  </div>
 </section>
 
 
 
 <section id="incidentalRV" class="page">
-  <div class="section-head"><div><h1>Incidental Receipt Voucher (RV)</h1><p>Separate fresh camp-wise incidental receipt voucher screen.</p></div></div>
-  <div class="rviv-reference">
-    <div class="rviv-head"><h2>Receipt / RV Entry</h2></div>
-    <div class="rviv-card">
-      <div class="rviv-grid">
-        <div class="field"><label>Invoice Number *</label><input id="rvInvoice" required></div>
-        <div class="field"><label>Date *</label><input id="rvDate" type="date" required></div>
-        <div class="field"><label>Vendor Name *</label><input id="rvParty" required></div>
-        <div class="field"><label>Vendor Address *</label><input id="rvAddress" required></div>
-        <div class="field"><label>Station *</label><input id="rvStation" required></div>
-        <div class="field"><label>RV No. (Auto)</label><input id="rvNoAuto" class="auto-field" readonly></div>
-        <div class="field"><label>CRV No.</label><input id="rvCrv"></div>
-        <div class="field"><label>Authority *</label><input id="rvAuthority" required></div>
-        <div class="field"><label>Mode</label><select id="rvMode"><option>CASH</option><option>BANK</option></select></div>
-        <div class="field"><label>Code Head</label><input id="rvCodeHead" placeholder="Code head"></div>
-        <div class="rviv-wide field"><label>Receipt Items</label><div id="rvItems" class="rviv-items"></div><div class="actions" style="margin-top:8px"><button class="btn" type="button" onclick="addRVItem()">＋ ADD ITEM</button></div></div>
-        <div class="field"><label>GST Mode</label><select id="rvGstMode"><option value="inclusive">Inclusive GST</option><option value="exclusive">Exclusive GST</option></select></div>
-        <div class="field"><label>GST Rate (%)</label><input id="rvGstRate" type="number" min="0" step="any"></div>
-        <div class="field"><label>Subtotal</label><input id="rvSubtotal" class="calculated" readonly></div>
-        <div class="field"><label>GST Amount</label><input id="rvGstAmount" class="calculated" readonly></div>
-        <div class="field"><label>Total Amount</label><input id="rvAmount" class="calculated" readonly></div>
-        <div class="rviv-wide field"><label>General Remarks</label><textarea id="rvDesc"></textarea></div>
-      </div>
-      <div class="actions"><button class="btn" onclick="saveIncidentalRV()">SAVE / UPDATE RV</button><button class="btn ghost" onclick="clearIncidentalRV()">CLEAR</button></div>
-      <div id="rvMsg" class="msg"></div>
+  <div class="module-banner"><div><div class="crumb">INCIDENTAL • RECEIPT</div><h2>Incidental Receipt Voucher (RV)</h2><div class="muted">Fresh camp-wise receipt voucher with auto CRV numbering and printable official format.</div></div><div class="side-pill">CRV / 39KAR / FY / CAMP / Auto</div></div>
+  <div class="panel">
+    <div class="form-grid">
+      <div class="field"><label>Invoice Number *</label><input id="rvInvoice"></div>
+      <div class="field"><label>Date *</label><input id="rvDate" type="date"></div>
+      <div class="field"><label>Vendor Name *</label><input id="rvParty"></div>
+      <div class="field"><label>Vendor Address *</label><input id="rvAddress"></div>
+      <div class="field"><label>Station *</label><input id="rvStation"></div>
+      <div class="field"><label>CRV No. (Auto)</label><input id="rvCrv" class="auto-field" readonly></div>
+      <div class="field"><label>Authority *</label><select id="rvAuthoritySelect" onchange="toggleRVOtherAuthority()"><option value="CAMP COMMANDANT">Camp Commandant</option><option value="OTHER">Other</option></select></div>
+      <div class="field"><label>Other Authority Name</label><input id="rvAuthorityName" disabled placeholder="Enter main authority"></div>
+      <div class="field"><label>Other Letter No.</label><input id="rvAuthorityLetter" disabled placeholder="Enter letter no."></div>
+      <input id="rvNoAuto" type="hidden">
     </div>
-    <div class="rviv-card"><h3>Saved Incidental RV Register</h3><div id="incidentalRVTable"></div></div>
+    <div class="formbox" style="margin-top:14px"><div class="subhead"><div><h3>Receipt Items</h3><div class="kpi-note">Nomenclature, A/u, Exp/N-Exp, Qty, Rate, Page No., Authorised Units and Remarks.</div></div><button class="btn" type="button" onclick="addRVItem()">＋ ADD ITEM</button></div><div id="rvItems" class="rviv-items"></div></div>
+    <div class="form-grid" style="margin-top:14px"><div class="field"><label>GST Mode</label><select id="rvGstMode"><option value="inclusive">Inclusive GST</option><option value="exclusive">Exclusive GST</option></select></div><div class="field"><label>GST Rate (%)</label><input id="rvGstRate" type="number" min="0" step="any"></div><div class="field"><label>Subtotal</label><input id="rvSubtotal" class="calculated" readonly></div><div class="field"><label>GST Amount</label><input id="rvGstAmount" class="calculated" readonly></div><div class="field"><label>Total Amount</label><input id="rvAmount" class="calculated" readonly></div><div class="field" style="grid-column:span 3"><label>General Remarks</label><textarea id="rvDesc"></textarea></div></div>
+    <div class="actions"><button class="btn green" onclick="saveIncidentalRV()">SAVE / UPDATE RV</button><button class="btn green" onclick="generateCurrentRV()">GENERATE RV</button><button class="btn ghost" onclick="clearIncidentalRV()">CLEAR</button></div><div id="rvMsg" class="msg"></div>
   </div>
+  <div class="panel"><div class="toolbar"><input id="rvSearch" placeholder="Search invoice / vendor..." oninput="renderIncidentalRV()"><button class="btn green" onclick="exportIncidentalCSV('RV')">EXPORT CSV</button></div><div id="incidentalRVTable" style="margin-top:10px"></div></div>
 </section>
 
 <section id="incidentalIV" class="page">
-  <div class="section-head"><div><h1>Incidental Issue Voucher (IV)</h1><p>Separate fresh camp-wise incidental issue voucher screen.</p></div></div>
-  <div class="rviv-reference">
-    <div class="rviv-head"><h2>IV / Issue Entry</h2></div>
-    <div class="rviv-card">
-      <div class="rviv-grid">
-        <div class="field"><label>IV No. (Auto)</label><input id="ivNoAuto" class="auto-field" readonly></div>
-        <div class="field"><label>Date *</label><input id="ivDateInc" type="date" required></div>
-        <div class="field"><label>Unit *</label><input id="ivUnitInc" required></div>
-        <div class="field"><label>Station</label><input id="ivStationInc"></div>
-        <div class="field"><label>Authority *</label><input id="ivAuthorityInc" required></div>
-        <div class="field"><label>Party / Receiving Unit</label><input id="ivPartyInc"></div>
-        <div class="rviv-wide field"><label>Issue Items</label><div id="ivItemsInc" class="rviv-items"></div><div class="actions" style="margin-top:8px"><button class="btn" type="button" onclick="addIVItem()">＋ ADD ITEM</button></div></div>
-        <div class="field"><label>Mode</label><select id="ivModeInc"><option>CASH</option><option>BANK</option></select></div>
-        <div class="field"><label>Code Head</label><input id="ivCodeHeadInc" placeholder="Code head"></div>
-        <div class="rviv-wide field"><label>Description / Remarks</label><textarea id="ivDescInc"></textarea></div>
-      </div>
-      <div class="actions"><button class="btn" onclick="saveIncidentalIV()">SAVE / UPDATE IV</button><button class="btn ghost" onclick="clearIncidentalIV()">CLEAR</button></div>
-      <div id="ivMsgInc" class="msg"></div>
+  <div class="module-banner"><div><div class="crumb">INCIDENTAL • ISSUE</div><h2>Incidental Issue Voucher (IV)</h2><div class="muted">Items are fetched from the active camp's Incidental RV register and issued against available balance.</div></div><div class="side-pill">CIV / 39KAR / FY / EXP or N-EXP / Auto</div></div>
+  <div class="panel">
+    <div class="form-grid">
+      <div class="field"><label>IV No. (Auto)</label><input id="ivNoAuto" class="auto-field" readonly></div>
+      <div class="field"><label>Date *</label><input id="ivDateInc" type="date"></div>
+      <div class="field"><label>Unit / Receiving Unit *</label><input id="ivUnitInc"></div>
+      <div class="field"><label>Station</label><input id="ivStationInc"></div>
+      <div class="field"><label>Authority *</label><div class="badge" style="display:flex;align-items:center;height:40px">CAMP COMMANDANT</div></div>
+      <div class="field"><label>Item from Incidental RV *</label><select id="ivSourceItem" onchange="loadIVSourceItem()"><option value="">Select item</option></select></div>
+      <div class="field"><label>A/u</label><input id="ivAutoUnit" class="auto-field" readonly></div>
+      <div class="field"><label>Balance</label><input id="ivAutoBalance" class="calculated" readonly></div>
+      <div class="field"><label>Page No.</label><input id="ivAutoPage" class="auto-field" readonly></div>
+      <div class="field"><label>Qty Issue *</label><input id="ivIssueQty" type="number" min="0.01" step="any"></div>
+      <div class="field"><label>Remarks</label><input id="ivIssueRemarks" placeholder="Optional"></div>
     </div>
-    <div class="rviv-card"><h3>Saved Incidental IV Register</h3><div id="incidentalIVTable"></div></div>
+    <div class="formbox" style="margin-top:14px"><div class="subhead"><h3>Issue Items</h3><button class="btn" type="button" onclick="addSelectedIVItem()">＋ ADD ITEM</button></div><div id="ivItemsInc" class="rviv-items"></div></div>
+    <div class="actions"><button class="btn green" onclick="saveIncidentalIV()">SAVE / UPDATE IV</button><button class="btn green" onclick="generateCurrentIV()">GENERATE IV</button><button class="btn ghost" onclick="clearIncidentalIV()">CLEAR</button></div><div id="ivMsgInc" class="msg"></div>
   </div>
+  <div class="panel"><div class="toolbar"><input id="ivSearch" placeholder="Search IV / unit..." oninput="renderIncidentalIV()"><button class="btn green" onclick="exportIncidentalCSV('IV')">EXPORT CSV</button></div><div id="incidentalIVTable" style="margin-top:10px"></div></div>
 </section>
 
 
@@ -594,7 +787,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -1136,7 +1329,7 @@ function clearCashbookForm(){
   document.getElementById('payDate').value=today();document.getElementById('payVoucherNo').value='';document.getElementById('cashPaymentCodeHead').value='';document.getElementById('cashSourceType').value='MESSING_RV';document.getElementById('cashPaymentNarration').value='';clearPaymentSourceFields();setMsg('paymentMsg','');hideReceiptAllocation();paymentHeadChanged();
 }
 function allocationSummary(x){
-  if(x.entry_type==='RECEIPT'){const a=receiptAllocationObject(x);const labels=[];Object.entries(a||{}).forEach(([k,v])=>{if(Number(v)>0)labels.push(`${k}: ${money(v)}`)});if(labels.length)return labels.join(' | ')}
+  if(x.head_allocations){let a=typeof x.head_allocations==='string'?JSON.parse(x.head_allocations):x.head_allocations;const labels=[];Object.entries(a||{}).forEach(([k,v])=>{if(Number(v)>0)labels.push(`${k}: ${money(v)}`)});if(labels.length)return labels.join(' | ')}
   return x.code_head||'';
 }
 function sourceDetailObject(x){let d=x?.source_details||{};if(typeof d==='string'){try{d=JSON.parse(d)}catch(_){d={}}}d=d||{};if(!d.to_whom_paid&&x?.party)d.to_whom_paid=x.party;if(!d.on_account&&x?.code_head)d.on_account=x.code_head;if(!d.source_reference&&x?.reference_no)d.source_reference=x.reference_no;return d}
@@ -1146,27 +1339,9 @@ function latestClosureBefore(date){return [...cashbookClosures].filter(x=>x.clos
 const CASH_HEADS=['Messing','INC','POL','Rank Pay','TA Cadets','TA/DA Civ Staff','Rent','Others'];
 function jsonObj(v){if(!v)return {};if(typeof v==='string'){try{return JSON.parse(v)}catch(_){return {}}}return v}
 function headZero(){const o={};CASH_HEADS.forEach(h=>o[h]=0);return o}
-function receiptHeadAllocation(e,head){
-  if(!e || e.entry_type!=='RECEIPT') return 0;
-  const a=jsonObj(e.head_allocations);
-  let v=Number(a[head]||0);
-  if(v>0) return v;
-  const d=jsonObj(e.source_details);
-  const da=jsonObj(d.head_allocations);
-  v=Number(da[head]||0);
-  if(v>0) return v;
-  // Legacy/single-head receipt fallback: older versions stored the head in code_head.
-  if(e.code_head===head && !Object.values(a).some(n=>Number(n)>0) && !Object.values(da).some(n=>Number(n)>0)) return Number(e.amount)||0;
-  return 0;
-}
-function receiptAllocationObject(e){
-  const out=headZero();
-  CASH_HEADS.forEach(h=>out[h]=receiptHeadAllocation(e,h));
-  return out;
-}
-function dayHeadValues(rows){const receipts=headZero(),payments=headZero();rows.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=receiptAllocationObject(e);Object.entries(a).forEach(([k,v])=>{if(receipts[k]!==undefined)receipts[k]+=Number(v)||0})}else if(e.entry_type==='PAYMENT'){if(payments[e.code_head]!==undefined)payments[e.code_head]+=Number(e.amount)||0}});return{receipts,payments}}
+function dayHeadValues(rows){const receipts=headZero(),payments=headZero();rows.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);Object.entries(a).forEach(([k,v])=>{if(receipts[k]!==undefined)receipts[k]+=Number(v)||0})}else if(e.entry_type==='PAYMENT'){if(payments[e.code_head]!==undefined)payments[e.code_head]+=Number(e.amount)||0}});return{receipts,payments}}
 function calculateDay(date){const prev=latestClosureBefore(date);let bfCash=prev?+prev.closing_cash:0,bfBank=prev?+prev.closing_bank:0,bfHeads=jsonObj(prev?.closing_heads);CASH_HEADS.forEach(h=>{if(bfHeads[h]==null)bfHeads[h]=0});let rc=0,rb=0,pc=0,pb=0,draw=0;const rows=cashbookEntries.filter(x=>x.entry_date===date);rows.forEach(e=>{const a=+e.amount||0;if(e.entry_type==='RECEIPT'){if(e.mode==='CASH')rc+=a;else rb+=a}else if(e.entry_type==='PAYMENT'){if(e.mode==='CASH')pc+=a;else pb+=a}else if(e.entry_type==='CASH_DRAWN')draw+=a});const hv=dayHeadValues(rows),cfHeads=headZero();CASH_HEADS.forEach(h=>cfHeads[h]=(Number(bfHeads[h])||0)+(Number(hv.receipts[h])||0)-(Number(hv.payments[h])||0));const cfCash=bfCash+rc-pc+draw,cfBank=bfBank+rb-pb-draw;return{bfCash,bfBank,rc,rb,pc,pb,draw,cfCash,cfBank,net:cfCash+cfBank,rows,closed:!!cashbookClosures.find(x=>x.close_date===date),bfHeads,headReceipts:hv.receipts,headPayments:hv.payments,cfHeads}}
-function currentHeadBalance(head,date=today()){let total=0;cashbookEntries.filter(e=>e.entry_date<=date).forEach(e=>{if(e.entry_type==='RECEIPT')total+=receiptHeadAllocation(e,head);else if(e.entry_type==='PAYMENT'&&e.code_head===head)total-=Number(e.amount||0)});return total}
+function currentHeadBalance(head,date=today()){let total=0;cashbookEntries.filter(e=>e.entry_date<=date).forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);total+=Number(a[head]||0)}else if(e.entry_type==='PAYMENT'&&e.code_head===head)total-=Number(e.amount||0)});return total}
 function currentSourceBalance(mode){let total=0;cashbookEntries.forEach(e=>{const a=Number(e.amount)||0;if(e.entry_type==='RECEIPT'&&e.mode===mode)total+=a;if(e.entry_type==='PAYMENT'&&e.mode===mode)total-=a;if(e.entry_type==='CASH_DRAWN'){if(mode==='CASH')total+=a;if(mode==='BANK')total-=a}});return total}
 function updatePaymentBalancePreview(){
   const mode=document.getElementById('cashPaymentMode')?.value||'CASH';
@@ -1206,7 +1381,7 @@ function showPage(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id)?.classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));btn?.classList.add('active');toggleMenu(false);if(id==='dashboard')renderDashboard();if(id==='reports')renderReports();
 }
 function renderAccountsDashboard(){
-  const cash=currentSourceBalance('CASH'),bank=currentSourceBalance('BANK');const ce=document.getElementById('accCashInHand'),be=document.getElementById('accCashAtBank');if(ce)ce.textContent=money(cash);if(be)be.textContent=money(bank);const allot={},paid={};CASH_HEADS.forEach(h=>{allot[h]=0;paid[h]=0});cashbookEntries.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=receiptAllocationObject(e);CASH_HEADS.forEach(h=>allot[h]+=Number(a[h]||0))}else if(e.entry_type==='PAYMENT'&&paid[e.code_head]!==undefined)paid[e.code_head]+=Number(e.amount||0)});let h='<table><tr><th>Code Head</th><th>Allotment / Receipt</th><th>Payments / Remitted</th><th>Balance</th></tr>';CASH_HEADS.forEach(head=>{const bal=allot[head]-paid[head];h+=`<tr><td><b>${esc(head)}</b></td><td>${money(allot[head])}</td><td>${money(paid[head])}</td><td><b>${money(bal)}</b></td></tr>`});h+='</table>';const el=document.getElementById('accountsHeadDashboard');if(el)el.innerHTML=h;const d=today(),s=calculateDay(d),set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};set('accDayCashReceipts',s.rc);set('accDayBankReceipts',s.rb);set('accDayCashPayments',s.pc);set('accDayBankPayments',s.pb);set('accDayCashDrawn',s.draw);set('accDayCashCF',s.cfCash);set('accDayBankCF',s.cfBank);const st=document.getElementById('accDayStatus');if(st)st.textContent=s.closed?'CLOSED':'OPEN';const cap=document.getElementById('accountsDayCaption');if(cap)cap.textContent='Day position: '+d;
+  const cash=currentSourceBalance('CASH'),bank=currentSourceBalance('BANK');const ce=document.getElementById('accCashInHand'),be=document.getElementById('accCashAtBank');if(ce)ce.textContent=money(cash);if(be)be.textContent=money(bank);const allot={},paid={};CASH_HEADS.forEach(h=>{allot[h]=0;paid[h]=0});cashbookEntries.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);CASH_HEADS.forEach(h=>allot[h]+=Number(a[h]||0))}else if(e.entry_type==='PAYMENT'&&paid[e.code_head]!==undefined)paid[e.code_head]+=Number(e.amount||0)});let h='<table><tr><th>Code Head</th><th>Allotment / Receipt</th><th>Payments / Remitted</th><th>Balance</th></tr>';CASH_HEADS.forEach(head=>{const bal=allot[head]-paid[head];h+=`<tr><td><b>${esc(head)}</b></td><td>${money(allot[head])}</td><td>${money(paid[head])}</td><td><b>${money(bal)}</b></td></tr>`});h+='</table>';const el=document.getElementById('accountsHeadDashboard');if(el)el.innerHTML=h;const d=today(),s=calculateDay(d),set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};set('accDayCashReceipts',s.rc);set('accDayBankReceipts',s.rb);set('accDayCashPayments',s.pc);set('accDayBankPayments',s.pb);set('accDayCashDrawn',s.draw);set('accDayCashCF',s.cfCash);set('accDayBankCF',s.cfBank);const st=document.getElementById('accDayStatus');if(st)st.textContent=s.closed?'CLOSED':'OPEN';const cap=document.getElementById('accountsDayCaption');if(cap)cap.textContent='Day position: '+d;
 }
 function renderDashboard(){
   const isAccounts=profile?.role==='ACCOUNTS';document.getElementById('accountsDashboard')?.classList.toggle('hidden',!isAccounts);document.getElementById('inventoryDashboard')?.classList.toggle('hidden',isAccounts);if(isAccounts){renderAccountsDashboard();return;}const ia=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0),iq=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0),oa=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0),oq=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0);document.getElementById('dInAmt').textContent=money(ia);document.getElementById('dOutAmt').textContent=money(oa);document.getElementById('dInQty').textContent=iq.toFixed(2);document.getElementById('dOutQty').textContent=oq.toFixed(2);document.getElementById('dItemCount').textContent=items.length+' items';let low=0,h=`<table><tr><th>Ledger</th><th>Item</th><th>Unit</th><th>Balance</th><th>Reorder</th><th>Status</th></tr>`;items.forEach(i=>{const b=balance(i),isLow=b<=+i.reorder_level;if(isLow)low++;h+=`<tr><td>${esc(i.ledger_page_no||'')}</td><td><b>${esc(i.name)}</b></td><td>${esc(i.unit||'')}</td><td>${b.toFixed(2)}</td><td>${(+i.reorder_level||0).toFixed(2)}</td><td><span class="status ${isLow?'low':'ok'}">${isLow?'LOW':'OK'}</span></td></tr>`});h+='</table>';document.getElementById('dashTable').innerHTML=items.length?h:"<div class='empty'>No inventory items yet.</div>";const pct=items.length?Math.round(low/items.length*100):0;document.getElementById('riskPct').textContent=pct+'%';document.getElementById('riskLegend').innerHTML=`<div><span class="status low">${low} Low stock</span></div><div style="margin-top:8px"><span class="status ok">${Math.max(items.length-low,0)} OK</span></div><p class="kpi-note">Maintain reorder levels to reduce stock-outs.</p>`;
