@@ -750,7 +750,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
         <div class="daybox"><span>Net Balance</span><b id="dayNet">₹0.00</b></div>
       </div>
       <div id="cashDayNote" class="cash-close-note">Close the day after all Accounts entries are complete. The next day's B/F is taken from the previous day's C/F.</div>
-      <div class="actions" style="margin-top:12px"><button class="btn" onclick="prepareDayCashbook()">PREPARE DAY</button><button class="btn gold" onclick="closeCashbookDay()">CLOSE DAY</button><button class="btn ghost" onclick="printDayCashbook()">PRINT / PDF</button></div>
+      <div class="actions" style="margin-top:12px"><button class="btn" onclick="prepareDayCashbook()">PREPARE DAY</button><button class="btn gold" onclick="closeCashbookDay()">CLOSE DAY</button><button id="reopenDayBtn" class="btn red" onclick="reopenCashbookDay()" style="display:none">OPEN DAY</button><button class="btn ghost" onclick="printDayCashbook()">PRINT / PDF</button></div>
       <div class="tablewrap" style="margin-top:14px" id="dayEntriesTable"></div>
     </div>
   </div>
@@ -785,7 +785,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -1556,6 +1556,249 @@ function exportPOLReportCSV(){
   const rows=[...(window.carDiaryEntries||[])].filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to));downloadCSV([['Date','Vehicle','Nature','Purpose','From','To','Opening KM','KM Run','Closing KM','KPL','POL Consumed'],...rows.map(x=>[x.entry_date,x.vehicle_no,x.nature_of_duty,x.purpose_of_duty,x.from_location,x.to_location,x.opening_km,x.km_run,x.closing_km,x.kpl,x.pol_consumed])],'POL_Car_Diary_Report.csv');
 }
 function printPOLReport(){renderPOLReport();window.print()}
+
+
+/* ===== V2 FINAL STABILITY / ERROR FIXES ===== */
+async function nextCRVNo(){
+  const el=document.getElementById('rvCrv');
+  if(!el || !activeCamp || !sb) return;
+  const {data,error}=await sb.rpc('next_incidental_crv_no_fixed');
+  if(error){
+    console.error('nextCRVNo_fixed',error);
+    if(el) el.value='';
+    return;
+  }
+  el.value=data||'';
+}
+async function nextCIVNo(category){
+  const el=document.getElementById('ivNoAuto');
+  if(!el || !activeCamp || !sb) return;
+  const {data,error}=await sb.rpc('next_incidental_civ_no_fixed',{p_category:category||'EXP'});
+  if(error){
+    console.error('nextCIVNo_fixed',error);
+    if(el) el.value='';
+    return;
+  }
+  el.value=data||'';
+}
+
+async function saveIncidentalRV(){
+  if(!canQsecEntry()) return setMsg('rvMsg','Only ADMIN, MANAGER or Q SEC can enter Incidental RV.');
+  if(!activeCamp) return setMsg('rvMsg','Select an active camp first.');
+  const items=readIncItems('rvItems');
+  if(!items.length) return setMsg('rvMsg','Add at least one receipt item.');
+  calcIncFor('rv','rvItems');
+  const invoice=(document.getElementById('rvInvoice')?.value||'').trim();
+  const party=(document.getElementById('rvParty')?.value||'').trim();
+  const address=(document.getElementById('rvAddress')?.value||'').trim();
+  const station=(document.getElementById('rvStation')?.value||'').trim();
+  const authority=typeof rvAuthorityValue==='function'
+    ? rvAuthorityValue()
+    : ((document.getElementById('rvAuthoritySelect')?.value||'CAMP COMMANDANT')==='OTHER'
+       ? ((document.getElementById('rvAuthorityName')?.value||'').trim()+' / '+(document.getElementById('rvAuthorityLetter')?.value||'').trim()).trim()
+       : 'Camp Commandant');
+  const total=Number(String(document.getElementById('rvAmount')?.value||'').replace(/[^0-9.]/g,''))||0;
+  const subtotal=Number(String(document.getElementById('rvSubtotal')?.value||'').replace(/[^0-9.]/g,''))||0;
+  const gstAmount=Number(String(document.getElementById('rvGstAmount')?.value||'').replace(/[^0-9.]/g,''))||0;
+  const crv=(document.getElementById('rvCrv')?.value||'').trim();
+  if(!invoice||!party||!station||!authority||!crv||total<=0) return setMsg('rvMsg','Enter Invoice, Vendor, Station, Authority and at least one valid item.');
+  if((document.getElementById('rvAuthoritySelect')?.value||'')==='OTHER' && !(document.getElementById('rvAuthorityName')?.value||'').trim())
+    return setMsg('rvMsg','Enter the Other Authority name.');
+  const {data,error}=await sb.rpc('save_incidental_voucher_fixed',{
+    p_id:rvEditingId||null,
+    p_type:'RV',
+    p_voucher_no:crv,
+    p_voucher_date:document.getElementById('rvDate')?.value||today(),
+    p_party:party,
+    p_invoice_number:invoice,
+    p_vendor_address:address||null,
+    p_station:station,
+    p_crv_no:crv,
+    p_authority:authority,
+    p_unit:null,
+    p_items:items,
+    p_subtotal:subtotal,
+    p_gst_mode:document.getElementById('rvGstMode')?.value||'inclusive',
+    p_gst_rate:+document.getElementById('rvGstRate')?.value||0,
+    p_gst_amount:gstAmount,
+    p_amount:total,
+    p_description:document.getElementById('rvDesc')?.value.trim()||''
+  });
+  if(error){console.error('saveIncidentalRV_fixed',error);return setMsg('rvMsg',error.message)}
+  rvEditingId=data;
+  setMsg('rvMsg','Incidental RV saved successfully. You can now click GENERATE RV.',true);
+  await refreshAll();
+  renderIncidentalRV();
+}
+
+async function saveIncidentalIV(){
+  if(!canQsecEntry()) return setMsg('ivMsgInc','Only ADMIN, MANAGER or Q SEC can enter Incidental IV.');
+  if(!activeCamp) return setMsg('ivMsgInc','Select an active camp first.');
+  const rows=[...document.querySelectorAll('#ivItemsInc .rviv-item')];
+  if(!rows.length) return setMsg('ivMsgInc','Add at least one issue item.');
+  const items=rows.map(r=>({
+    desc:r.querySelector('.ix-desc')?.value.trim()||'',
+    unit:r.querySelector('.ix-unit')?.value||'',
+    type:r.querySelector('.ix-type')?.value||'Expendable',
+    qty:+r.querySelector('.ix-qty')?.value||0,
+    rate:+r.querySelector('.ix-rate')?.value||0,
+    page:r.querySelector('.ix-page')?.value.trim()||'',
+    authorised:r.querySelector('.ix-authorised')?.value.trim()||'',
+    remarks:r.querySelector('.ix-remarks')?.value.trim()||''
+  })).filter(x=>x.desc && x.qty>0);
+  if(!items.length) return setMsg('ivMsgInc','Add at least one valid issue item.');
+  const category=items.some(x=>String(x.type).toLowerCase().includes('non'))?'N-EXP':'EXP';
+  if(!ivEditingId && !(document.getElementById('ivNoAuto')?.value||'').trim()) await nextCIVNo(category);
+  const no=(document.getElementById('ivNoAuto')?.value||'').trim();
+  const unit=(document.getElementById('ivUnitInc')?.value||'').trim();
+  const station=(document.getElementById('ivStationInc')?.value||'').trim();
+  if(!no||!unit) return setMsg('ivMsgInc','IV number and Receiving Unit are required.');
+  const total=items.reduce((s,x)=>s+(x.qty*x.rate),0);
+  const {data,error}=await sb.rpc('save_incidental_voucher_fixed',{
+    p_id:ivEditingId||null,
+    p_type:'IV',
+    p_voucher_no:no,
+    p_voucher_date:document.getElementById('ivDateInc')?.value||today(),
+    p_party:unit,
+    p_invoice_number:null,
+    p_vendor_address:null,
+    p_station:station||null,
+    p_crv_no:null,
+    p_authority:'Camp Commandant',
+    p_unit:unit,
+    p_items:items,
+    p_subtotal:total,
+    p_gst_mode:'inclusive',
+    p_gst_rate:0,
+    p_gst_amount:0,
+    p_amount:total,
+    p_description:''
+  });
+  if(error){console.error('saveIncidentalIV_fixed',error);return setMsg('ivMsgInc',error.message)}
+  ivEditingId=data;
+  setMsg('ivMsgInc','Incidental IV saved successfully.',true);
+  await refreshAll();
+  renderIncidentalIV();
+}
+
+function generateCurrentRV(){
+  let x=null;
+  if(rvEditingId) x=incidentals.find(a=>String(a.id)===String(rvEditingId));
+  if(!x){
+    const crv=(document.getElementById('rvCrv')?.value||'').trim();
+    if(crv) x=incidentals.find(a=>a.voucher_type==='RV' && String(a.crv_no||a.voucher_no)===crv);
+  }
+  if(!x) return alert('Save the RV first, then Generate.');
+  printIncidental(x.id);
+}
+function generateCurrentIV(){
+  let x=null;
+  if(ivEditingId) x=incidentals.find(a=>String(a.id)===String(ivEditingId));
+  if(!x){
+    const no=(document.getElementById('ivNoAuto')?.value||'').trim();
+    if(no) x=incidentals.find(a=>a.voucher_type==='IV' && String(a.voucher_no)===no);
+  }
+  if(!x) return alert('Save the IV first, then Generate.');
+  printIncidental(x.id);
+}
+
+async function saveReceiptAllocation(){
+  if(!canAccountsEntry()) return setMsg('receiptAllocationMsg','Only ACCOUNTS/ADMIN can distribute a receipt.');
+  if(!pendingReceiptAllocationId) return setMsg('receiptAllocationMsg','Save a receipt first.');
+  const allocations=receiptAllocationValues();
+  const total=Object.values(allocations).reduce((s,v)=>s+(Number(v)||0),0);
+  const expected=Number(pendingReceiptAllocationAmount||0);
+  if(Math.abs(total-expected)>0.01)
+    return setMsg('receiptAllocationMsg',`Allocation must equal receipt amount. Allocated ${money(total)} of ${money(expected)}.`);
+  const {error}=await sb.rpc('save_cashbook_receipt_distribution',{p_entry_id:pendingReceiptAllocationId,p_allocations:allocations});
+  if(error){console.error('save_cashbook_receipt_distribution',error);return setMsg('receiptAllocationMsg',error.message)}
+  setMsg('receiptAllocationMsg','Distribution saved successfully.',true);
+  hideReceiptAllocation();
+  await refreshAll();
+}
+
+async function saveCarDiary(){
+  if(!canQsecEntry()) return setMsg('diaryMsg','No entry permission.');
+  if(!activeCamp) return setMsg('diaryMsg','Select an active camp first.');
+  const vid=document.getElementById('diaryVehicle')?.value||'';
+  const v=polVehicles.find(x=>String(x.id)===String(vid));
+  if(!v) return setMsg('diaryMsg','Select a vehicle.');
+  const payload={
+    p_vehicle_id:vid,
+    p_entry_date:document.getElementById('diaryDate')?.value||today(),
+    p_nature_of_duty:document.getElementById('diaryNature')?.value||'Camp Duty',
+    p_purpose_of_duty:(document.getElementById('diaryPurpose')?.value||'').trim(),
+    p_from_location:(document.getElementById('diaryFrom')?.value||'').trim(),
+    p_to_location:(document.getElementById('diaryTo')?.value||'').trim(),
+    p_km_run:+document.getElementById('diaryKmRun')?.value||0,
+    p_remarks:(document.getElementById('diaryRemarks')?.value||'').trim()
+  };
+  if(!payload.p_purpose_of_duty||!payload.p_from_location||!payload.p_to_location)
+    return setMsg('diaryMsg','Purpose, From and To are required.');
+  if(payload.p_km_run<0) return setMsg('diaryMsg','KM Run must be valid.');
+  const {error}=await sb.rpc('save_pol_car_diary_fixed',payload);
+  if(error){console.error('save_pol_car_diary_fixed',error);return setMsg('diaryMsg',error.message)}
+  setMsg('diaryMsg','Car diary entry saved successfully.',true);
+  clearCarDiary();
+  await loadCarDiary();
+}
+
+function loadDiaryVehicle(){
+  const id=document.getElementById('diaryVehicle')?.value||'';
+  if(!id) return;
+  const v=polVehicles.find(x=>String(x.id)===String(id));
+  if(!v) return;
+  const last=[...(window.carDiaryEntries||[])].filter(x=>String(x.vehicle_id)===String(id))
+    .sort((a,b)=>String(b.entry_date).localeCompare(String(a.entry_date)))[0];
+  document.getElementById('diaryOpeningKm').value=(last?last.closing_km:(v.km_reading||0));
+  document.getElementById('diaryKpl').value=(+v.kpl||0).toFixed(2);
+  calcDiary();
+}
+
+async function closeCashbookDay(){
+  if(!canAccountsEntry()) return alert('Only ACCOUNTS/ADMIN can close the Cash Book day.');
+  if(!activeCamp) return alert('Select an active camp first.');
+  const d=document.getElementById('cashDayDate').value||today();
+  if(calculateDay(d).closed) return alert('Day is already closed.');
+  if(!confirm(`Close Cash Book for ${d}? No further entries will be allowed for this date.`)) return;
+  const {data,error}=await sb.rpc('close_cashbook_day',{p_close_date:d});
+  if(error){console.error('close_cashbook_day',error);return alert(error.message)}
+  await refreshAll(); renderDayClose();
+  alert(`Day closed. Closing Cash: ${money(data.closing_cash)} | Closing Bank: ${money(data.closing_bank)}`);
+}
+async function reopenCashbookDay(){
+  if(profile?.role!=='ADMIN') return alert('Only ADMIN can reopen a closed Cash Book day.');
+  if(!activeCamp) return alert('Select an active camp first.');
+  const d=document.getElementById('cashDayDate').value||today();
+  if(!calculateDay(d).closed) return alert('This day is already OPEN.');
+  if(!confirm(`Re-open Cash Book for ${d}? This removes the day-close lock so corrections can be made.`)) return;
+  const {error}=await sb.rpc('reopen_cashbook_day_fixed',{p_close_date:d});
+  if(error){console.error('reopen_cashbook_day_fixed',error);return alert(error.message)}
+  await refreshAll(); renderDayClose();
+  alert(`Cash Book day ${d} is OPEN again.`);
+}
+function renderDayClose(){
+  const d=document.getElementById('cashDayDate')?.value||today(),s=calculateDay(d);
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};
+  set('bfCash',s.bfCash);set('bfBank',s.bfBank);set('dayReceiptCash',s.rc);set('dayReceiptBank',s.rb);
+  set('dayPaymentCash',s.pc);set('dayPaymentBank',s.pb);set('dayCashDrawn',s.draw);set('cfCash',s.cfCash);set('cfBank',s.cfBank);set('dayNet',s.net);
+  const st=document.getElementById('cashDayStatus');if(st)st.value=s.closed?'CLOSED':'OPEN';
+  const note=document.getElementById('cashDayNote');if(note)note.textContent=s.closed?'Day is CLOSED. ADMIN can reopen it for correction.':'Close the day after all Accounts entries are complete. The next day B/F comes from the previous day C/F.';
+  const btn=document.getElementById('reopenDayBtn');if(btn)btn.style.display=(profile?.role==='ADMIN'&&s.closed)?'inline-block':'none';
+  const closeBtn=document.querySelector('#cashDayWrap button[onclick="closeCashbookDay()"]');if(closeBtn)closeBtn.style.display=s.closed?'none':'inline-block';
+}
+function renderAccountsReports(){
+  if(profile?.role!=='ACCOUNTS' && profile?.role!=='ADMIN') return;
+  const d=document.getElementById('accReportDate')?.value||today(),s=calculateDay(d);
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};
+  set('accRepCash',s.cfCash);set('accRepBank',s.cfBank);set('accRepReceipts',s.rc+s.rb);set('accRepPayments',s.pc+s.pb);
+  /* retain existing report renderer below if page-specific markup is present */
+  const el=document.getElementById('accountsReportContent');
+  if(el && !el.innerHTML.trim()) el.innerHTML='<div class="empty">No Accounts report data for the selected date.</div>';
+}
+
+/* Ensure the day-close controls are correct immediately after role UI refresh. */
+setTimeout(()=>{try{renderDayClose()}catch(_){ }},50);
 
 </script>
 </body>
