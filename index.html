@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>NCC Camp</title>
+<title>NCC Camp Messing IMS</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
 /* ================= FINAL GENERATED OVERRIDES ================= */
 function toggleModuleGroup(btn,id){
@@ -24,14 +24,14 @@ function renderPOLVehicleRegister(){
   const box=document.getElementById('polVehiclesTable');if(!box)return;
   const s=(document.getElementById('polVehicleSearch')?.value||'').toLowerCase(), tf=document.getElementById('polVehicleTypeFilter')?.value||'', ff=document.getElementById('polFuelFilter')?.value||'';
   const rows=polVehicles.filter(v=>(!s||[v.vehicle_no,v.driver_name,v.unit].join(' ').toLowerCase().includes(s))&&(!tf||v.vehicle_type===tf)&&(!ff||(v.fuel_type||'')===ff));
-  let h='<table><tr><th>SL No</th><th>Vehicle Type</th><th>Vehicle No.</th><th>Make / Model</th><th>Fuel Type</th><th>KPL</th><th>Driver</th><th>Attached From</th><th>Attached To</th><th>Status</th><th>Action</th></tr>';
-  rows.forEach((v,i)=>{h+=`<tr><td>${i+1}</td><td>${esc(v.vehicle_type)}</td><td><b>${esc(v.vehicle_no)}</b></td><td>${esc(v.make_model||'-')}</td><td>${esc(v.fuel_type||'-')}</td><td>${(+v.kpl||0).toFixed(2)}</td><td>${esc(v.driver_name||'')}</td><td>${esc(v.attached_from||'-')}</td><td>${esc(v.attached_to||'-')}</td><td><span class="status ok">ACTIVE</span></td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:''}</td></tr>`});h+='</table>';box.innerHTML=rows.length?h:'<div class="empty">No vehicle attachment records.</div>';
+  let h='<table><tr><th>SL No</th><th>Vehicle Type</th><th>Vehicle No.</th><th>Fuel Type</th><th>Tank Balance</th><th>KPL</th><th>Driver</th><th>Attached From</th><th>Attached To</th><th>Status</th><th>Action</th></tr>';
+  rows.forEach((v,i)=>{h+=`<tr><td>${i+1}</td><td>${esc(v.vehicle_type)}</td><td><b>${esc(v.vehicle_no)}</b></td><td>${esc(v.fuel_type||'-')}</td><td>${(+v.pol_balance||0).toFixed(2)}</td><td>${(+v.kpl||0).toFixed(2)}</td><td>${esc(v.driver_name||'')}</td><td>${esc(v.attached_from||'-')}</td><td>${esc(v.attached_to||'-')}</td><td><span class="status ok">ACTIVE</span></td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:''}</td></tr>`});h+='</table>';box.innerHTML=rows.length?h:'<div class="empty">No vehicle attachment records.</div>';
   const dv=rows.filter(v=>(v.fuel_type||'')==='Diesel').length,pv=rows.filter(v=>(v.fuel_type||'')==='Petrol').length;
   ['polKpiVehicles','polKpiDiesel','polKpiPetrol'].forEach((id,val)=>{const e=document.getElementById(id);if(e)e.textContent=[rows.length,dv,pv][val]});
   const selects=['polRepVehicle','diaryVehicle','diaryReportVehicle'];selects.forEach(id=>{const e=document.getElementById(id);if(!e)return;const cur=e.value;e.innerHTML='<option value="">'+(id==='diaryReportVehicle'?'All Vehicles':'Select Vehicle')+'</option>'+polVehicles.map(v=>`<option value="${v.id}" ${v.id===cur?'selected':''}>${esc(v.vehicle_no)} - ${esc(v.vehicle_type)}</option>`).join('')});
   const badge=document.getElementById('polCampBadge');if(badge)badge.textContent=activeCamp?.camp_name||'—';
 }
-function exportPOLVehicleCSV(){const rows=[['SL No','Vehicle Type','Vehicle No','Make/Model','Fuel Type','KPL','Driver','Attached From','Attached To'],...polVehicles.map((v,i)=>[i+1,v.vehicle_type,v.vehicle_no,v.make_model||'',v.fuel_type||'',v.kpl||'',v.driver_name||'',v.attached_from||'',v.attached_to||''])];downloadCSV(rows,'POL_Vehicle_Attachment.csv')}
+function exportPOLVehicleCSV(){const rows=[['SL No','Vehicle Type','Vehicle No','Fuel Type','Tank Balance','KPL','Driver','Attached From','Attached To'],...polVehicles.map((v,i)=>[i+1,v.vehicle_type,v.vehicle_no,v.fuel_type||'',v.pol_balance||0,v.kpl||'',v.driver_name||'',v.attached_from||'',v.attached_to||''])];downloadCSV(rows,'POL_Vehicle_Attachment.csv')}
 function printPOLVehicleReport(){setPOLTab('vehicle');window.print()}
 function printPOLDrawnReport(){setPOLTab('drawn');window.print()}
 
@@ -528,9 +528,8 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="form-grid">
         <div class="field"><label>Vehicle Type *</label><select id="polVehType"><option value="">Select</option><option>Bolero</option><option>Canter</option><option>Gypsy</option><option>Motor Cycle</option></select></div>
         <div class="field"><label>Vehicle Number *</label><input id="polVehNo" placeholder="KA-01-G-1234"></div>
-        <div class="field"><label>Make / Model</label><input id="polMakeModel" placeholder="Make / Model"></div>
-        <div class="field"><label>Year of Mfg.</label><input id="polYearMfg" placeholder="2026"></div>
         <div class="field"><label>Fuel Type *</label><select id="polFuelType"><option>Diesel</option><option>Petrol</option></select></div>
+        <div class="field"><label>Tank Balance (Ltr)</label><input id="polBal" type="number" min="0" step="0.01" value="0"></div>
         <div class="field"><label>KPL (Km per Ltr) *</label><input id="polKPL" type="number" step="0.01" min="0.01"></div>
         <div class="field"><label>Attached From *</label><input id="polAttachedFrom" type="date"></div>
         <div class="field"><label>Attached To</label><input id="polAttachedTo" type="date"></div>
@@ -539,7 +538,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
         <div class="field"><label>Driver Contact</label><input id="polDriverContact"></div>
         <div class="field"><label>Opening KM</label><input id="polKM" type="number" step="0.1" min="0"></div>
         <div class="field" style="grid-column:span 3"><label>Authority / Remarks</label><input id="polAuth" placeholder="Authority / remarks"></div>
-        <input id="polBal" type="hidden" value="0">
+        
       </div>
       <div class="actions"><button class="btn green" onclick="savePOLVehicle()">SAVE VEHICLE</button><button class="btn ghost" onclick="clearPOLVehicle()">CLEAR</button></div><div id="polVehMsg" class="msg"></div>
     </div>
@@ -608,7 +607,6 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="field"><label>Authority *</label><select id="rvAuthoritySelect" onchange="toggleRVOtherAuthority()"><option value="CAMP COMMANDANT">Camp Commandant</option><option value="OTHER">Other</option></select></div>
       <div class="field"><label>Other Authority Name</label><input id="rvAuthorityName" disabled placeholder="Enter main authority"></div>
       <div class="field"><label>Other Letter No.</label><input id="rvAuthorityLetter" disabled placeholder="Enter letter no."></div>
-      <input id="rvNoAuto" type="hidden">
     </div>
     <div class="formbox" style="margin-top:14px"><div class="subhead"><div><h3>Receipt Items</h3><div class="kpi-note">Nomenclature, A/u, Exp/N-Exp, Qty, Rate, Page No., Authorised Units and Remarks.</div></div><button class="btn" type="button" onclick="addRVItem()">＋ ADD ITEM</button></div><div id="rvItems" class="rviv-items"></div></div>
     <div class="form-grid" style="margin-top:14px"><div class="field"><label>GST Mode</label><select id="rvGstMode"><option value="inclusive">Inclusive GST</option><option value="exclusive">Exclusive GST</option></select></div><div class="field"><label>GST Rate (%)</label><input id="rvGstRate" type="number" min="0" step="any"></div><div class="field"><label>Subtotal</label><input id="rvSubtotal" class="calculated" readonly></div><div class="field"><label>GST Amount</label><input id="rvGstAmount" class="calculated" readonly></div><div class="field"><label>Total Amount</label><input id="rvAmount" class="calculated" readonly></div><div class="field" style="grid-column:span 3"><label>General Remarks</label><textarea id="rvDesc"></textarea></div></div>
@@ -787,7 +785,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -1389,6 +1387,176 @@ function renderDashboard(){
 function renderAccountsReports(){if(profile?.role!=='ACCOUNTS')return;const d=document.getElementById('accReportDate')?.value||today(),s=calculateDay(d),set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};set('accRepCash',s.cfCash);set('accRepBank',s.cfBank);set('accRepReceipts',s.rc+s.rb);set('accRepPayments',s.pc+s.pb);const receipts=s.rows.filter(x=>x.entry_type==='RECEIPT'),payments=s.rows.filter(x=>x.entry_type==='PAYMENT');let h=`<div class="cash-report-head"><h2 style="margin:0">CAMP CASH BOOK</h2><p style="margin:4px 0">RECEIPTS AND PAYMENTS | DATE: ${esc(d)}</p></div>`;h+=`<table><tr><th colspan="7" class="receipt-head">RECEIPT</th><th colspan="9" class="payment-head">PAYMENTS</th></tr><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Distribution</th><th>Date</th><th>PV No.</th><th>Source Type</th><th>Invoice / Ref</th><th>To Whom Paid</th><th>On What Account</th><th>Particulars / Items</th><th>Mode</th><th>Amount</th></tr>`;const n=Math.max(receipts.length,payments.length,1);for(let i=0;i<n;i++){const r=receipts[i],p=payments[i],pd=sourceDetailObject(p);h+=`<tr><td>${r?esc(r.entry_date):''}</td><td>${r?esc(r.voucher_number):''}</td><td>${r?esc(r.party||''):''}</td><td>${r?esc(r.reference_no||''):''}</td><td class="num">${r&&r.mode==='CASH'?money(r.amount):''}</td><td class="num">${r&&r.mode==='BANK'?money(r.amount):''}</td><td>${r?esc(allocationSummary(r)):''}</td><td>${p?esc(p.entry_date):''}</td><td>${p?esc(p.voucher_number):''}</td><td>${p?esc(p.source_type||''):''}</td><td>${p?esc(p.reference_no||''):''}</td><td>${p?esc(pd.to_whom_paid||p.party||''):''}</td><td>${p?esc(pd.on_account||p.code_head||''):''}</td><td>${p?esc(itemSummary(p)):''}</td><td>${p?esc(p.mode||''):''}</td><td class="num">${p?money(p.amount):''}</td></tr>`}h+='</table><div class="report-total-grid"><div><b>Balance B/F - Cash</b><span>'+money(s.bfCash)+'</span></div><div><b>Balance B/F - Bank</b><span>'+money(s.bfBank)+'</span></div><div><b>Total Receipts</b><span>'+money(s.rc+s.rb)+'</span></div><div><b>Total Payments</b><span>'+money(s.pc+s.pb)+'</span></div><div><b>Cash Drawn</b><span>'+money(s.draw)+'</span></div><div><b>Balance C/F - Cash</b><span>'+money(s.cfCash)+'</span></div><div><b>Balance C/F - Bank</b><span>'+money(s.cfBank)+'</span></div></div><h3 style="margin-top:18px">Code Head Allotment / Balance</h3><table><tr><th>Code Head</th><th>B/F</th><th>Day Allotment</th><th>Day Payments</th><th>C/F</th></tr>';CASH_HEADS.forEach(head=>h+=`<tr><td>${esc(head)}</td><td>${money(s.bfHeads[head])}</td><td>${money(s.headReceipts[head])}</td><td>${money(s.headPayments[head])}</td><td><b>${money(s.cfHeads[head])}</b></td></tr>`);h+='</table><p style="margin-top:12px">Status: <b>'+(s.closed?'CLOSED':'OPEN')+'</b></p>';const el=document.getElementById('accountsReportContent');if(el)el.innerHTML=h;}
 function clearAccountsReport(){const e=document.getElementById('accReportDate');if(e)e.value=today();renderAccountsReports()}function printAccountsReport(){renderAccountsReports();window.print()}function renderReports(){if(profile?.role==='ACCOUNTS'){renderAccountsReports();return;}
 }
+
+/* ===== FINAL BUGFIX OVERRIDES ===== */
+async function nextCRVNo(){
+  const el=document.getElementById('rvCrv');
+  if(!el||!activeCamp||!sb)return;
+  const {data,error}=await sb.rpc('next_incidental_crv_no');
+  if(!error && data) el.value=data;
+}
+async function nextCIVNo(category){
+  const el=document.getElementById('ivNoAuto');
+  if(!el||!activeCamp||!sb)return;
+  const {data,error}=await sb.rpc('next_incidental_civ_no',{p_category:category||'EXP'});
+  if(!error && data) el.value=data;
+}
+function clearIncidentalRV(){
+  rvEditingId=null;
+  ['rvInvoice','rvParty','rvAddress','rvStation','rvAuthorityName','rvAuthorityLetter','rvDesc'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
+  const date=document.getElementById('rvDate'); if(date)date.value=today();
+  const auth=document.getElementById('rvAuthoritySelect'); if(auth){auth.value='CAMP COMMANDANT';toggleRVOtherAuthority()}
+  const gm=document.getElementById('rvGstMode'); if(gm)gm.value='inclusive';
+  const gr=document.getElementById('rvGstRate'); if(gr)gr.value='';
+  const box=document.getElementById('rvItems'); if(box){box.innerHTML='';addRVItem({});}
+  ['rvSubtotal','rvGstAmount','rvAmount'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='₹0.00'});
+  setMsg('rvMsg',''); nextCRVNo();
+}
+function clearIncidentalIV(){
+  ivEditingId=null;
+  ['ivUnitInc','ivStationInc','ivIssueQty','ivIssueRemarks','ivAutoUnit','ivAutoBalance','ivAutoPage'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
+  const date=document.getElementById('ivDateInc'); if(date)date.value=today();
+  const box=document.getElementById('ivItemsInc'); if(box)box.innerHTML='';
+  setMsg('ivMsgInc',''); fillIVSourceSelect();
+  const no=document.getElementById('ivNoAuto'); if(no)no.value='';
+}
+async function saveIncidentalRV(){
+  if(!canQsecEntry()) return setMsg('rvMsg','Only ADMIN, MANAGER or Q SEC can enter Incidental RV.');
+  if(!activeCamp) return setMsg('rvMsg','Select an active camp first.');
+  const items=readIncItems('rvItems');
+  if(!items.length) return setMsg('rvMsg','Add at least one receipt item.');
+  calcIncFor('rv','rvItems');
+  const invoice=document.getElementById('rvInvoice')?.value.trim()||'';
+  const party=document.getElementById('rvParty')?.value.trim()||'';
+  const address=document.getElementById('rvAddress')?.value.trim()||'';
+  const station=document.getElementById('rvStation')?.value.trim()||'';
+  const authority=rvAuthorityValue();
+  const total=Number(String(document.getElementById('rvAmount')?.value||'').replace(/[^0-9.]/g,''))||0;
+  if(!invoice||!party||!station||total<=0||!authority)return setMsg('rvMsg','Enter Invoice, Vendor, Station, items and valid total.');
+  if(document.getElementById('rvAuthoritySelect')?.value==='OTHER' && !(document.getElementById('rvAuthorityName')?.value.trim()))return setMsg('rvMsg','Enter the other authority name.');
+  const crv=document.getElementById('rvCrv')?.value.trim()||'';
+  if(!crv)return setMsg('rvMsg','CRV number is not available. Refresh the camp and try again.');
+  const payload={
+    p_id:rvEditingId,p_type:'RV',p_voucher_no:crv,p_voucher_date:document.getElementById('rvDate')?.value||today(),
+    p_party:party,p_invoice_number:invoice,p_vendor_address:address,p_station:station,p_crv_no:crv,p_authority:authority,p_unit:null,
+    p_items:items,p_subtotal:Number(String(document.getElementById('rvSubtotal')?.value||'').replace(/[^0-9.]/g,''))||0,
+    p_gst_mode:document.getElementById('rvGstMode')?.value||'inclusive',p_gst_rate:+document.getElementById('rvGstRate')?.value||0,
+    p_gst_amount:Number(String(document.getElementById('rvGstAmount')?.value||'').replace(/[^0-9.]/g,''))||0,
+    p_amount:total,p_mode:'CASH',p_code_head:null,p_description:document.getElementById('rvDesc')?.value.trim()||''
+  };
+  const {error}=await sb.rpc('save_incidental_voucher',payload);
+  if(error)return setMsg('rvMsg',error.message);
+  setMsg('rvMsg','Incidental RV saved successfully.',true);
+  clearIncidentalRV(); await refreshAll(); renderIncidentalRV();
+}
+async function saveIncidentalIV(){
+  if(!canQsecEntry())return setMsg('ivMsgInc','Only ADMIN, MANAGER or Q SEC can enter Incidental IV.');
+  if(!activeCamp)return setMsg('ivMsgInc','Select an active camp first.');
+  const rows=[...document.querySelectorAll('#ivItemsInc .rviv-item')];
+  if(!rows.length)return setMsg('ivMsgInc','Add at least one issue item.');
+  const items=rows.map(r=>({desc:r.querySelector('.ix-desc').value.trim(),unit:r.querySelector('.ix-unit').value,type:r.querySelector('.ix-type').value,qty:+r.querySelector('.ix-qty').value||0,rate:+r.querySelector('.ix-rate').value||0,page:r.querySelector('.ix-page').value.trim(),authorised:'',remarks:r.querySelector('.ix-remarks').value.trim()}));
+  if(items.some(x=>x.qty<=0))return setMsg('ivMsgInc','Enter a valid issue quantity for every item.');
+  const category=items.some(x=>String(x.type).toLowerCase().includes('non'))?'N-EXP':'EXP';
+  if(!ivEditingId && !document.getElementById('ivNoAuto').value) await nextCIVNo(category);
+  const no=document.getElementById('ivNoAuto').value.trim(); if(!no)return setMsg('ivMsgInc','IV number is not available.');
+  const unit=document.getElementById('ivUnitInc')?.value.trim()||''; if(!unit)return setMsg('ivMsgInc','Receiving Unit is required.');
+  const authority='Camp Commandant';
+  const total=items.reduce((s,x)=>s+x.qty*x.rate,0);
+  const {error}=await sb.rpc('save_incidental_voucher',{
+    p_id:ivEditingId,p_type:'IV',p_voucher_no:no,p_voucher_date:document.getElementById('ivDateInc')?.value||today(),
+    p_party:unit,p_invoice_number:null,p_vendor_address:null,p_station:document.getElementById('ivStationInc')?.value.trim()||'',
+    p_crv_no:null,p_authority:authority,p_unit:unit,p_items:items,p_subtotal:total,p_gst_mode:'inclusive',p_gst_rate:0,p_gst_amount:0,
+    p_amount:total,p_mode:'CASH',p_code_head:null,p_description:''
+  });
+  if(error)return setMsg('ivMsgInc',error.message);
+  setMsg('ivMsgInc','Incidental IV saved successfully.',true); clearIncidentalIV(); await refreshAll(); renderIncidentalIV();
+}
+function editIncidentalRV(id){
+  const x=incidentals.find(a=>String(a.id)===String(id)&&a.voucher_type==='RV'); if(!x)return;
+  rvEditingId=x.id;
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};
+  set('rvDate',x.voucher_date);set('rvInvoice',x.invoice_number);set('rvParty',x.party);set('rvAddress',x.vendor_address);set('rvStation',x.station);set('rvCrv',x.crv_no||x.voucher_no);set('rvDesc',x.description);set('rvGstMode',x.gst_mode||'inclusive');set('rvGstRate',x.gst_rate||'');
+  if((x.authority||'').toLowerCase().startsWith('camp commandant'))set('rvAuthoritySelect','CAMP COMMANDANT');else{set('rvAuthoritySelect','OTHER');set('rvAuthorityName',x.authority||'');}
+  toggleRVOtherAuthority(); const box=document.getElementById('rvItems');if(box){box.innerHTML='';(x.items||[]).forEach(addRVItem);} calcIncFor('rv','rvItems'); showPage('incidentalRV',document.querySelector('[data-page="incidentalRV"]'));
+}
+function editIncidentalIV(id){
+  const x=incidentals.find(a=>String(a.id)===String(id)&&a.voucher_type==='IV'); if(!x)return;
+  ivEditingId=x.id;
+  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};
+  set('ivNoAuto',x.voucher_no);set('ivDateInc',x.voucher_date);set('ivUnitInc',x.unit||x.party);set('ivStationInc',x.station||'');
+  const box=document.getElementById('ivItemsInc');if(box){box.innerHTML='';(x.items||[]).forEach(item=>{const wrap=document.createElement('div');wrap.className='rviv-item';wrap.dataset.key=[item.desc,item.unit,item.type,item.page].join('|');wrap.innerHTML=`<div class="rviv-item-grid"><div class="field"><label>Nomenclature</label><input class="ix-desc" readonly value="${esc(item.desc)}"></div><div class="field"><label>A/u</label><input class="ix-unit" readonly value="${esc(item.unit)}"></div><div class="field"><label>Exp / N-Exp</label><input class="ix-type" readonly value="${esc(item.type)}"></div><div class="field"><label>Qty</label><input class="ix-qty" readonly value="${item.qty}"></div><div class="field"><label>Rate</label><input class="ix-rate" readonly value="${item.rate||0}"></div><div class="field"><label>Page No.</label><input class="ix-page" readonly value="${esc(item.page||'')}"></div><div class="field"><label>Remarks</label><input class="ix-remarks" value="${esc(item.remarks||'')}"></div></div>`;box.appendChild(wrap);});}
+  showPage('incidentalIV',document.querySelector('[data-page="incidentalIV"]'));
+}
+function generateCurrentRV(){const inv=document.getElementById('rvInvoice')?.value.trim();const x=incidentals.find(a=>a.voucher_type==='RV'&&a.invoice_number===inv)||incidentals.find(a=>a.voucher_type==='RV'&&String(a.id)===String(rvEditingId));if(x)printIncidental(x.id);else alert('Save the RV first, then Generate.');}
+function generateCurrentIV(){const no=document.getElementById('ivNoAuto')?.value.trim();const x=incidentals.find(a=>a.voucher_type==='IV'&&String(a.voucher_no)===String(no));if(x)printIncidental(x.id);else alert('Save the IV first, then Generate.');}
+
+/* Cash-book receipt allocation: deterministic client validation + RPC persistence. */
+function updateReceiptAllocationTotal(){
+  const a=receiptAllocationValues(); const total=Object.values(a).reduce((s,v)=>s+(Number(v)||0),0); const diff=Number(pendingReceiptAllocationAmount||0)-total;
+  const e=document.getElementById('receiptAllocationInfo'); if(e)e.textContent=`Receipt amount: ${money(pendingReceiptAllocationAmount)} | Allocated: ${money(total)} | Remaining: ${money(diff)}`;
+  const btn=document.querySelector('#receiptAllocationWrap button.btn:not(.ghost)'); if(btn)btn.disabled=Math.abs(diff)>0.01;
+}
+async function saveReceiptAllocation(){
+  if(!canAccountsEntry())return setMsg('receiptAllocationMsg','Only ACCOUNTS/ADMIN can distribute a receipt.');
+  if(!pendingReceiptAllocationId)return setMsg('receiptAllocationMsg','Save a receipt first.');
+  const a=receiptAllocationValues(); const total=Object.values(a).reduce((s,v)=>s+(Number(v)||0),0); const expected=Number(pendingReceiptAllocationAmount||0);
+  if(Math.abs(total-expected)>0.01)return setMsg('receiptAllocationMsg',`Allocation must equal receipt amount. Allocated ${money(total)} of ${money(expected)}.`);
+  const {error}=await sb.rpc('save_cashbook_receipt_allocation',{p_entry_id:pendingReceiptAllocationId,p_allocations:a});
+  if(error)return setMsg('receiptAllocationMsg',error.message);
+  setMsg('receiptAllocationMsg','Distribution saved successfully.',true); hideReceiptAllocation(); await refreshAll();
+}
+
+/* POL FINAL UI + navigation fixes. */
+function setPOLTab(tab){
+  const map={vehicle:'polVehicleSection',drawn:'polDrawnSection',diary:'polDiarySection',report:'polReportSection'};
+  document.querySelectorAll('[data-poltab]').forEach(b=>b.classList.toggle('active',b.dataset.poltab===tab));
+  Object.values(map).forEach(id=>document.getElementById(id)?.classList.add('hidden'));
+  document.getElementById(map[tab])?.classList.remove('hidden');
+  if(tab==='vehicle')renderPOLVehicleRegister();
+  if(tab==='drawn'){renderPOL();loadPOLVehicleSelect();}
+  if(tab==='diary'){loadPOLVehicleSelect();loadCarDiary();renderCarDiaryRegister();}
+  if(tab==='report'){renderPOLReport();}
+}
+function renderPOLVehicleRegister(){
+  const box=document.getElementById('polVehiclesTable');if(!box)return;
+  const q=(document.getElementById('polVehicleSearch')?.value||'').toLowerCase(), tf=document.getElementById('polVehicleTypeFilter')?.value||'', ff=document.getElementById('polFuelFilter')?.value||'';
+  const rows=polVehicles.filter(v=>(!q||[v.vehicle_no,v.driver_name,v.unit].join(' ').toLowerCase().includes(q))&&(!tf||v.vehicle_type===tf)&&(!ff||v.fuel_type===ff));
+  let h='<table><tr><th>SL No</th><th>Vehicle Type</th><th>Vehicle No.</th><th>Fuel Type</th><th>Tank Balance</th><th>KPL</th><th>Driver</th><th>Attached From</th><th>Attached To</th><th>Action</th></tr>';
+  rows.forEach((v,i)=>h+=`<tr><td>${i+1}</td><td>${esc(v.vehicle_type)}</td><td><b>${esc(v.vehicle_no)}</b></td><td>${esc(v.fuel_type||'-')}</td><td>${(+v.pol_balance||0).toFixed(2)}</td><td>${(+v.kpl||0).toFixed(2)}</td><td>${esc(v.driver_name||'')}</td><td>${esc(v.attached_from||'-')}</td><td>${esc(v.attached_to||'-')}</td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:''}</td></tr>`);
+  h+='</table>';box.innerHTML=rows.length?h:'<div class="empty">No vehicle attachment records.</div>';
+  const vals=[rows.length,rows.filter(v=>v.fuel_type==='Diesel').length,rows.filter(v=>v.fuel_type==='Petrol').length];['polKpiVehicles','polKpiDiesel','polKpiPetrol'].forEach((id,i)=>{const e=document.getElementById(id);if(e)e.textContent=vals[i]});
+  ['polRepVehicle','diaryVehicle','diaryReportVehicle'].forEach(id=>{const e=document.getElementById(id);if(!e)return;const cur=e.value;e.innerHTML='<option value="">'+(id==='diaryReportVehicle'?'All Vehicles':'Select Vehicle')+'</option>'+polVehicles.map(v=>`<option value="${v.id}" ${v.id===cur?'selected':''}>${esc(v.vehicle_no)} - ${esc(v.vehicle_type)}</option>`).join('')});
+}
+function clearPOLVehicle(){['polVehNo','polUnit','polVehType','polKPL','polDriver','polAuth','polAttachedFrom','polAttachedTo','polDriverContact','polKM','polBal'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});if(document.getElementById('polFuelType'))document.getElementById('polFuelType').value='Diesel';setMsg('polVehMsg','')}
+function editPOLVehicle(id){const v=polVehicles.find(x=>String(x.id)===String(id));if(!v)return;const map={polVehNo:'vehicle_no',polUnit:'unit',polVehType:'vehicle_type',polKPL:'kpl',polDriver:'driver_name',polAuth:'authority_no',polAttachedFrom:'attached_from',polAttachedTo:'attached_to',polDriverContact:'driver_contact',polKM:'km_reading',polBal:'pol_balance'};Object.entries(map).forEach(([id,k])=>{const e=document.getElementById(id);if(e)e.value=v[k]??''});if(document.getElementById('polFuelType'))document.getElementById('polFuelType').value=v.fuel_type||'Diesel';setPOLTab('vehicle');window.scrollTo({top:0,behavior:'smooth'})}
+async function savePOLVehicle(){
+  if(!canQsecEntry())return setMsg('polVehMsg','No entry permission for this role.');
+  if(!activeCamp)return setMsg('polVehMsg','Select an active camp first.');
+  const payload={camp_id:activeCamp.id,vehicle_no:document.getElementById('polVehNo').value.trim().toUpperCase(),unit:document.getElementById('polUnit').value.trim(),vehicle_type:document.getElementById('polVehType').value,km_reading:+document.getElementById('polKM').value||0,pol_balance:+document.getElementById('polBal').value||0,kpl:+document.getElementById('polKPL').value||0,driver_name:document.getElementById('polDriver').value.trim(),authority_no:document.getElementById('polAuth').value.trim(),fuel_type:document.getElementById('polFuelType').value,attached_from:document.getElementById('polAttachedFrom').value||null,attached_to:document.getElementById('polAttachedTo').value||null,driver_contact:document.getElementById('polDriverContact').value.trim()};
+  if(!payload.vehicle_no||!payload.unit||!payload.vehicle_type||payload.kpl<=0||!payload.driver_name||!payload.authority_no)return setMsg('polVehMsg','Fill Vehicle No, Unit, Vehicle Type, KPL, Driver and Authority/Remarks.');
+  const existing=polVehicles.find(v=>v.vehicle_no===payload.vehicle_no); const q=existing?sb.from('pol_vehicles').update(payload).eq('id',existing.id).eq('camp_id',activeCamp.id):sb.from('pol_vehicles').insert(payload);
+  const {error}=await q;if(error)return setMsg('polVehMsg',error.message); setMsg('polVehMsg','Vehicle saved successfully.',true);clearPOLVehicle();await refreshAll();setPOLTab('vehicle');
+}
+function renderPOLReport(){
+  const el=document.getElementById('polReportContent');if(!el)return;const type=document.getElementById('polRepType')?.value||'vehicle',vid=document.getElementById('polRepVehicle')?.value||'',from=document.getElementById('polRepFrom')?.value||'',to=document.getElementById('polRepTo')?.value||'';
+  let h='';
+  if(type==='vehicle'){
+    const rows=polVehicles.filter(x=>!vid||String(x.id)===String(vid)); h='<table><tr><th>SL</th><th>Vehicle</th><th>Type</th><th>Fuel</th><th>Tank Balance</th><th>KPL</th><th>Driver</th><th>Attached From</th><th>Attached To</th></tr>';rows.forEach((x,i)=>h+=`<tr><td>${i+1}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.vehicle_type)}</td><td>${esc(x.fuel_type||'-')}</td><td>${(+x.pol_balance||0).toFixed(2)}</td><td>${(+x.kpl||0).toFixed(2)}</td><td>${esc(x.driver_name)}</td><td>${esc(x.attached_from||'-')}</td><td>${esc(x.attached_to||'-')}</td></tr>`);h+='</table>';
+  } else if(type==='drawn'){
+    const rows=polEntries.filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to)); h='<table><tr><th>Date</th><th>Vehicle</th><th>Fuel</th><th>Invoice</th><th>Bunk</th><th>Previous</th><th>Drawn</th><th>Present</th><th>Rate</th><th>Amount</th></tr>';rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.fuel_type)}</td><td>${esc(x.invoice_number)}</td><td>${esc(x.petrol_bunk)}</td><td>${(+x.previous_fuel||0).toFixed(2)}</td><td>${(+x.litres||0).toFixed(2)}</td><td>${(+x.present_fuel||0).toFixed(2)}</td><td>${money(x.rate)}</td><td>${money(x.total_amount)}</td></tr>`);h+='</table>';
+  } else {
+    let rows=[...(window.carDiaryEntries||[])];if(vid)rows=rows.filter(x=>String(x.vehicle_id)===String(vid));if(from)rows=rows.filter(x=>x.entry_date>=from);if(to)rows=rows.filter(x=>x.entry_date<=to);h='<table><tr><th>Date</th><th>Vehicle</th><th>Nature</th><th>Purpose</th><th>From</th><th>To</th><th>Opening KM</th><th>KM Run</th><th>Closing KM</th><th>KPL</th><th>POL Consumed</th></tr>';rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.nature_of_duty)}</td><td>${esc(x.purpose_of_duty)}</td><td>${esc(x.from_location)}</td><td>${esc(x.to_location)}</td><td>${x.opening_km}</td><td>${x.km_run}</td><td>${x.closing_km}</td><td>${x.kpl}</td><td>${x.pol_consumed}</td></tr>`);h+='</table>';
+  }
+  el.innerHTML=h||'<div class="empty">No records found.</div>';
+}
+function exportPOLReportCSV(){
+  const type=document.getElementById('polRepType')?.value||'vehicle',vid=document.getElementById('polRepVehicle')?.value||'',from=document.getElementById('polRepFrom')?.value||'',to=document.getElementById('polRepTo')?.value||'';
+  if(type==='vehicle'){downloadCSV([['SL','Vehicle No','Vehicle Type','Fuel Type','Tank Balance','KPL','Driver','Attached From','Attached To'],...polVehicles.filter(v=>!vid||String(v.id)===String(vid)).map((v,i)=>[i+1,v.vehicle_no,v.vehicle_type,v.fuel_type,v.pol_balance,v.kpl,v.driver_name,v.attached_from,v.attached_to])],'POL_Vehicle_Attachment_Report.csv');return}
+  if(type==='drawn'){downloadCSV([['Date','Vehicle','Fuel','Invoice','Bunk','Previous','Drawn','Present','Rate','Amount'],...polEntries.filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to)).map(x=>[x.entry_date,x.vehicle_no,x.fuel_type,x.invoice_number,x.petrol_bunk,x.previous_fuel,x.litres,x.present_fuel,x.rate,x.total_amount])],'POL_Drawn_Report.csv');return}
+  const rows=[...(window.carDiaryEntries||[])].filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to));downloadCSV([['Date','Vehicle','Nature','Purpose','From','To','Opening KM','KM Run','Closing KM','KPL','POL Consumed'],...rows.map(x=>[x.entry_date,x.vehicle_no,x.nature_of_duty,x.purpose_of_duty,x.from_location,x.to_location,x.opening_km,x.km_run,x.closing_km,x.kpl,x.pol_consumed])],'POL_Car_Diary_Report.csv');
+}
+function printPOLReport(){renderPOLReport();window.print()}
+
 </script>
 </body>
 </html>
