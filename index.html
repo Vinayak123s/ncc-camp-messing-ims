@@ -191,6 +191,21 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 #incidentalIV .ix-balance{font-weight:900;color:#70e0a1}
 #incidentalIV .ix-page-auto{background:#101a25;color:#d9e8f5}
 </style>
+
+<style id="incident-iv-v27-css">
+#incidentalIV .iv-items-box{background:#101a25;border:1px solid #263546;border-radius:9px;padding:14px}
+#incidentalIV .iv-issue-row{background:#0c141e;border:1px solid #2b3a4c;border-radius:8px;padding:10px;margin-top:8px}
+#incidentalIV .iv-issue-grid{display:grid;grid-template-columns:minmax(260px,2.2fr) minmax(90px,.8fr) minmax(95px,.9fr) minmax(95px,.9fr) minmax(110px,1fr) minmax(180px,1.4fr) auto;gap:8px;align-items:end}
+#incidentalIV .iv-issue-row .field{min-width:0}
+#incidentalIV .iv-issue-row label{display:block;color:#91a3b5;font-size:11px;font-weight:900;margin-bottom:5px}
+#incidentalIV .iv-issue-row input,#incidentalIV .iv-issue-row select{width:100%;padding:9px;border:1px solid #304154;border-radius:6px;background:#0b131d;color:#fff}
+#incidentalIV .iv-issue-row input[readonly]{background:#101a25;color:#bfe7ff}
+#incidentalIV .iv-bal{font-weight:900;color:#6fe2a0}
+#incidentalIV .iv-help{font-size:10px;color:#8195a9;margin-top:4px}
+#incidentalIV .iv-remove{white-space:nowrap}
+@media(max-width:1050px){#incidentalIV .iv-issue-grid{grid-template-columns:2fr 1fr 1fr 1fr 1fr 1.4fr auto}}
+@media(max-width:780px){#incidentalIV .iv-issue-grid{grid-template-columns:1fr 1fr}.iv-issue-row .iv-item-field{grid-column:1/-1}.iv-remove{grid-column:1/-1}}
+</style>
 </head>
 <body>
 
@@ -548,7 +563,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
   <div class="module-banner"><div><div class="crumb">INCIDENTAL • ISSUE</div><h2>Incidental Issue Voucher (IV)</h2><div class="muted">Issue items received through the active camp's Incidental RV register against the available balance.</div></div><div class="side-pill">CIV / 39KAR / FY / EXP or N-EXP / Auto</div></div>
   <div class="panel">
     <div class="form-grid">
-      <div class="field"><label>IV No. (Auto)</label><input id="ivNoAuto" class="auto-field" readonly></div>
+      <div class="field"><label>IV No. (Auto)</label><input id="ivNoAuto" class="auto-field" readonly><div id="ivNoAdminHint" class="rv-admin-note">ADMIN can edit the IV number before saving.</div></div>
       <div class="field"><label>Date *</label><input id="ivDateInc" type="date"></div>
       <div class="field"><label>Unit / Receiving Unit *</label><input id="ivUnitInc" placeholder="Receiving Unit"></div>
       <div class="field"><label>Station</label><input id="ivStationInc" placeholder="Station"></div>
@@ -1418,7 +1433,7 @@ function editIncidentalIV(id){
   const x=incidentals.find(a=>String(a.id)===String(id)&&a.voucher_type==='IV'); if(!x)return;
   ivEditingId=x.id;
   const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};
-  set('ivNoAuto',x.voucher_no);set('ivDateInc',x.voucher_date);set('ivUnitInc',x.unit||x.party);set('ivStationInc',x.station||'');
+  set('ivNoAuto',x.voucher_no); const ivNoField=document.getElementById('ivNoAuto'); if(ivNoField) ivNoField.readOnly=!(profile && String(profile.role||'').toUpperCase()==='ADMIN'); set('ivDateInc',x.voucher_date);set('ivUnitInc',x.unit||x.party);set('ivStationInc',x.station||'');
   const box=document.getElementById('ivItemsInc');if(box){box.innerHTML='';(x.items||[]).forEach(item=>{const wrap=document.createElement('div');wrap.className='rviv-item';wrap.dataset.key=[item.desc,item.unit,item.type,item.page].join('|');wrap.innerHTML=`<div class="rviv-item-grid"><div class="field"><label>Nomenclature</label><input class="ix-desc" readonly value="${esc(item.desc)}"></div><div class="field"><label>A/u</label><input class="ix-unit" readonly value="${esc(item.unit)}"></div><div class="field"><label>Exp / N-Exp</label><input class="ix-type" readonly value="${esc(item.type)}"></div><div class="field"><label>Qty</label><input class="ix-qty" readonly value="${item.qty}"></div><div class="field"><label>Rate</label><input class="ix-rate" readonly value="${item.rate||0}"></div><div class="field"><label>Page No.</label><input class="ix-page" readonly value="${esc(item.page||'')}"></div><div class="field"><label>Remarks</label><input class="ix-remarks" value="${esc(item.remarks||'')}"></div></div>`;box.appendChild(wrap);});}
   showPage('incidentalIV',document.querySelector('[data-page="incidentalIV"]'));
 }
@@ -2099,17 +2114,6 @@ function printTableReport(title,headers,rows){
   const th=headers.map(h=>`<th>${esc(h)}</th>`).join("");
   const tr=rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("");
   w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center;font-size:20px;margin:0 0 4px}h2{text-align:center;font-size:13px;margin:0 0 18px;color:#555}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}footer{margin-top:25px;text-align:center;font-size:10px;color:#555}</style>
-<style id="incidental-iv-v26-css">
-.iv-items-box{background:#101a25;border:1px solid #263546;border-radius:9px;padding:14px}
-.iv-issue-row{background:#0c141e;border:1px solid #2b3a4c;border-radius:8px;padding:10px;margin-top:8px}
-.iv-issue-grid{display:grid;grid-template-columns:2.0fr .85fr .9fr .85fr .85fr 1.5fr auto;gap:8px;align-items:end}
-.iv-issue-row input,.iv-issue-row select{width:100%;padding:9px;border:1px solid #304154;border-radius:6px;background:#0b131d;color:#fff}
-.iv-issue-row input[readonly]{background:#101a25;color:#bfe7ff}
-.iv-bal{font-weight:900;color:#6fe2a0}
-.iv-help{font-size:10px;color:#8195a9;margin-top:4px}
-@media(max-width:1050px){.iv-issue-grid{grid-template-columns:1.6fr .8fr .8fr .8fr .9fr 1.2fr auto}}
-@media(max-width:750px){.iv-issue-grid{grid-template-columns:1fr 1fr}.iv-issue-row .iv-item-field{grid-column:1/-1}}
-</style>
 </head><body><h1>${esc(title)}</h1><h2>${esc(activeCamp?.camp_name||"NCC CAMP MESSING IMS")}</h2><table><tr>${th}</tr>${tr}</table><footer>Developed by Vinayak Shanmukhanavar</footer></body></html>`);
   w.document.close();
   setTimeout(()=>{w.focus();w.print()},300);
@@ -3220,7 +3224,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     ivEditingId=null;
     ['ivUnitInc','ivStationInc'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
     const d=document.getElementById('ivDateInc');if(d)d.value=today();
-    const no=document.getElementById('ivNoAuto');if(no){no.readOnly=true;no.value='';no.dataset.v26Category='';}
+    const no=document.getElementById('ivNoAuto');if(no){no.readOnly = !(profile && String(profile.role||'').toUpperCase()==='ADMIN'); no.value=''; no.dataset.v26Category='';}
     const box=document.getElementById('ivItemsInc');if(box)box.innerHTML='';
     setMsg('ivMsgInc','');
     await window.ensureIVNumberCategory('EXP');
@@ -3228,8 +3232,11 @@ window.addEventListener('DOMContentLoaded',()=>{
 
   window.loadIncidentalIVScreen=function(){
     window.renderIncidentalIVItems();
+    if(window.applyIVAdminEdit) window.applyIVAdminEdit();
     if(!ivEditingId && !(document.getElementById('ivNoAuto')?.value||'').trim()) window.ensureIVNumberCategory('EXP');
   };
+
+  window.applyIVAdminEdit=function(){ const e=document.getElementById('ivNoAuto'); if(e) e.readOnly=!(profile && String(profile.role||'').toUpperCase()==='ADMIN'); const h=document.getElementById('ivNoAdminHint'); if(h) h.style.display=(profile && String(profile.role||'').toUpperCase()==='ADMIN')?'block':'none'; };
 
   window.saveIncidentalIV=async function(){
     if(!canQsecEntry())return setMsg('ivMsgInc','Only ADMIN, MANAGER or Q SEC can enter Incidental IV.');
