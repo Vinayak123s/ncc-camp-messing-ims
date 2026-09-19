@@ -821,7 +821,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -2096,6 +2096,112 @@ function downloadCSV(rows,name){const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+Stri
 function printTableReport(title,headers,rows){const w=window.open('','_blank','width=1100,height=800');if(!w){alert('Please allow pop-ups to print the report.');return}const th=headers.map(h=>`<th>${esc(h)}</th>`).join('');const tr=rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('');w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center;font-size:20px;margin:0 0 4px}h2{text-align:center;font-size:13px;margin:0 0 18px;color:#555}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}footer{margin-top:25px;text-align:center;font-size:10px;color:#555}</style></head><body><h1>${esc(title)}</h1><h2>${esc(activeCamp?.camp_name||'NCC CAMP MESSING IMS')}</h2><table><tr>${th}</tr>${tr}</table><footer>Developed by Vinayak Shanmukhanavar</footer>
 
 
+
+<script id="ims-v14-detachment-final-fix">
+(function(){
+  function num(v){ return Number(v||0)||0; }
+  function norm(v){ return String(v||'').trim().toUpperCase().replace(/\s+/g,''); }
+  function setv(id,v){ var e=document.getElementById(id); if(e) e.value=(v==null?'':v); }
+  function escv(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function syncVehicleOptions(){
+    var s=document.getElementById('detVehSelect');
+    if(!s || typeof polVehicles==='undefined') return;
+    var current=s.value;
+    var html='<option value="">Select Vehicle</option>';
+    (polVehicles||[]).forEach(function(v){
+      html+='<option value="'+escv(v.id)+'">'+escv(v.vehicle_no||'')+' - '+escv(v.vehicle_type||'')+'</option>';
+    });
+    s.innerHTML=html;
+    if((polVehicles||[]).some(function(v){return String(v.id)===String(current);} )) s.value=current;
+  }
+
+  async function fetchHistory(v,toDate){
+    if(!activeCamp || !sb || !v) return {draws:[],diaries:[]};
+    var from=String(v.attached_from||''), to=String(toDate||today());
+    var vehicleId=String(v.id||''), vehicleNo=norm(v.vehicle_no);
+    var results=await Promise.all([
+      sb.from('pol_drawn_entries').select('*').eq('camp_id',activeCamp.id),
+      sb.from('pol_car_diary').select('*').eq('camp_id',activeCamp.id)
+    ]);
+    var drawsData=(results[0]&&results[0].data)||[];
+    var diaryData=(results[1]&&results[1].data)||[];
+    function same(x){ return String(x.vehicle_id||'')===vehicleId || norm(x.vehicle_no)===vehicleNo; }
+    function inRange(x){
+      if(!same(x)) return false;
+      var d=String(x.entry_date||x.draw_date||'');
+      return !d || ((!from||d>=from)&&(!to||d<=to));
+    }
+    var draws=drawsData.filter(inRange).sort(function(a,b){return String(a.entry_date||a.draw_date||'').localeCompare(String(b.entry_date||b.draw_date||'')) || String(a.created_at||'').localeCompare(String(b.created_at||''));});
+    var diaries=diaryData.filter(inRange).sort(function(a,b){return String(a.entry_date||'').localeCompare(String(b.entry_date||'')) || String(a.created_at||'').localeCompare(String(b.created_at||''));});
+    return {draws:draws,diaries:diaries};
+  }
+
+  function baseTank(v,draws,diaries){
+    var raw=v.initial_tank_balance;
+    if(raw!==undefined && raw!==null && raw!=='') return num(raw);
+    var stored=num(v.pol_balance);
+    if(!draws.length) return Math.max(0,stored+diaries.reduce(function(s,x){return s+num(x.pol_consumed);},0));
+    var first=draws[0];
+    if(first.previous_fuel!==undefined && first.previous_fuel!==null && first.previous_fuel!==''){
+      var fd=String(first.entry_date||first.draw_date||'');
+      var preConsumed=diaries.filter(function(x){return String(x.entry_date||'')<fd;}).reduce(function(s,x){return s+num(x.pol_consumed);},0);
+      return Math.max(0,num(first.previous_fuel)+preConsumed);
+    }
+    var drawn=draws.reduce(function(s,x){return s+num(x.litres);},0);
+    var consumed=diaries.reduce(function(s,x){return s+num(x.pol_consumed);},0);
+    return Math.max(0,stored+drawn-consumed);
+  }
+
+  async function calcDetachment(){
+    syncVehicleOptions();
+    var select=document.getElementById('detVehSelect');
+    var id=select?select.value:'';
+    var list=(typeof polVehicles!=='undefined')?polVehicles:[];
+    var v=list.find(function(x){return String(x.id)===String(id);});
+    if(!v){
+      ['detVehType','detUnit','detAttachedFrom','detOpeningKm','detKmRun','detClosingKm','detKpl','detPolConsumed','detPolDrawn','detTankBalance'].forEach(function(k){setv(k,'');});
+      return;
+    }
+    try{
+      var dateEl=document.getElementById('detAttachedTo');
+      var to=dateEl&&dateEl.value?dateEl.value:today();
+      var h=await fetchHistory(v,to);
+      var drawn=h.draws.reduce(function(s,x){return s+num(x.litres);},0);
+      var consumed=h.diaries.reduce(function(s,x){return s+num(x.pol_consumed);},0);
+      var kmRun=h.diaries.reduce(function(s,x){return s+num(x.km_run);},0);
+      var opening=num(v.initial_km_reading!=null?v.initial_km_reading:v.km_reading);
+      var kpl=num(v.kpl);
+      var last=h.diaries.length?h.diaries[h.diaries.length-1]:null;
+      var closing=last?num(last.closing_km):opening+kmRun;
+      var tank=Math.max(0,baseTank(v,h.draws,h.diaries)+drawn-consumed);
+      setv('detVehType',v.vehicle_type||'');
+      setv('detUnit',v.unit||'');
+      setv('detAttachedFrom',v.attached_from||'');
+      setv('detOpeningKm',opening.toFixed(1));
+      setv('detKmRun',kmRun.toFixed(1));
+      setv('detClosingKm',closing.toFixed(1));
+      setv('detKpl',kpl.toFixed(2));
+      setv('detPolConsumed',consumed.toFixed(2));
+      setv('detPolDrawn',drawn.toFixed(2));
+      setv('detTankBalance',tank.toFixed(2));
+    }catch(e){
+      console.error(e);
+      var m=document.getElementById('detMsg');
+      if(m){m.textContent='Unable to fetch vehicle POL history.';m.style.display='block';}
+    }
+  }
+
+  window.loadVehicleDetachment=calcDetachment;
+  document.addEventListener('change',function(e){
+    if(e.target && (e.target.id==='detVehSelect'||e.target.id==='detAttachedTo')) calcDetachment();
+  });
+  var prevSet=window.setPOLTab;
+  if(prevSet) window.setPOLTab=function(tab){var r=prevSet.apply(this,arguments);if(tab==='detach')setTimeout(function(){syncVehicleOptions();calcDetachment();},100);return r;};
+  window.addEventListener('load',function(){setTimeout(function(){syncVehicleOptions();calcDetachment();},700);});
+})();
+</script>
+
 </body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},300)}
 function exportPOLVehicleCSV(){downloadCSV([['SL No','Vehicle Type','Vehicle No','Fuel Type','Opening KM','Tank Balance','KPL','Driver','Attached From'],...polVehicles.map((v,i)=>{const st=polCurrentState(v.id);return [i+1,v.vehicle_type,v.vehicle_no,v.fuel_type||'',polInitialKm(v),polInitialTank(v),v.kpl,v.driver_name||'',v.attached_from||'']} )],'POL_Vehicle_Attachment.csv')}
 function printPOLVehicleReport(){const rows=polVehicles.map((v,i)=>{const st=polCurrentState(v.id);return [i+1,v.vehicle_no,v.vehicle_type,v.fuel_type||'',polInitialKm(v).toFixed(1),polInitialTank(v).toFixed(2),v.kpl,v.driver_name||'',v.attached_from||'']});printTableReport('POL Vehicle Attachment Report',['SL','Vehicle No','Type','Fuel','Opening KM','Tank Balance','KPL','Driver','Attached From'],rows)}
@@ -2114,6 +2220,112 @@ function renderPOLReport(){
 function exportPOLReportCSV(){const type=document.getElementById('polRepType')?.value||'vehicle',vid=document.getElementById('polRepVehicle')?.value||'',from=document.getElementById('polRepFrom')?.value||'',to=document.getElementById('polRepTo')?.value||'';if(type==='detach')return exportPOLDetachmentCSV();if(type==='vehicle')return exportPOLVehicleCSV();if(type==='drawn')return exportPOLCSV();return exportCarDiaryCSV()}
 function printPOLReport(){renderPOLReport();setTimeout(()=>{const box=document.getElementById('polReportContent');const w=window.open('','_blank','width=1100,height=800');if(!w)return;w.document.write(`<!doctype html><html><head><title>POL Report</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px}th{background:#eee}</style></head><body><h2 style="text-align:center">NCC CAMP MESSING IMS - POL REPORT</h2>${box?.innerHTML||''}
 
+
+
+<script id="ims-v14-detachment-final-fix">
+(function(){
+  function num(v){ return Number(v||0)||0; }
+  function norm(v){ return String(v||'').trim().toUpperCase().replace(/\s+/g,''); }
+  function setv(id,v){ var e=document.getElementById(id); if(e) e.value=(v==null?'':v); }
+  function escv(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function syncVehicleOptions(){
+    var s=document.getElementById('detVehSelect');
+    if(!s || typeof polVehicles==='undefined') return;
+    var current=s.value;
+    var html='<option value="">Select Vehicle</option>';
+    (polVehicles||[]).forEach(function(v){
+      html+='<option value="'+escv(v.id)+'">'+escv(v.vehicle_no||'')+' - '+escv(v.vehicle_type||'')+'</option>';
+    });
+    s.innerHTML=html;
+    if((polVehicles||[]).some(function(v){return String(v.id)===String(current);} )) s.value=current;
+  }
+
+  async function fetchHistory(v,toDate){
+    if(!activeCamp || !sb || !v) return {draws:[],diaries:[]};
+    var from=String(v.attached_from||''), to=String(toDate||today());
+    var vehicleId=String(v.id||''), vehicleNo=norm(v.vehicle_no);
+    var results=await Promise.all([
+      sb.from('pol_drawn_entries').select('*').eq('camp_id',activeCamp.id),
+      sb.from('pol_car_diary').select('*').eq('camp_id',activeCamp.id)
+    ]);
+    var drawsData=(results[0]&&results[0].data)||[];
+    var diaryData=(results[1]&&results[1].data)||[];
+    function same(x){ return String(x.vehicle_id||'')===vehicleId || norm(x.vehicle_no)===vehicleNo; }
+    function inRange(x){
+      if(!same(x)) return false;
+      var d=String(x.entry_date||x.draw_date||'');
+      return !d || ((!from||d>=from)&&(!to||d<=to));
+    }
+    var draws=drawsData.filter(inRange).sort(function(a,b){return String(a.entry_date||a.draw_date||'').localeCompare(String(b.entry_date||b.draw_date||'')) || String(a.created_at||'').localeCompare(String(b.created_at||''));});
+    var diaries=diaryData.filter(inRange).sort(function(a,b){return String(a.entry_date||'').localeCompare(String(b.entry_date||'')) || String(a.created_at||'').localeCompare(String(b.created_at||''));});
+    return {draws:draws,diaries:diaries};
+  }
+
+  function baseTank(v,draws,diaries){
+    var raw=v.initial_tank_balance;
+    if(raw!==undefined && raw!==null && raw!=='') return num(raw);
+    var stored=num(v.pol_balance);
+    if(!draws.length) return Math.max(0,stored+diaries.reduce(function(s,x){return s+num(x.pol_consumed);},0));
+    var first=draws[0];
+    if(first.previous_fuel!==undefined && first.previous_fuel!==null && first.previous_fuel!==''){
+      var fd=String(first.entry_date||first.draw_date||'');
+      var preConsumed=diaries.filter(function(x){return String(x.entry_date||'')<fd;}).reduce(function(s,x){return s+num(x.pol_consumed);},0);
+      return Math.max(0,num(first.previous_fuel)+preConsumed);
+    }
+    var drawn=draws.reduce(function(s,x){return s+num(x.litres);},0);
+    var consumed=diaries.reduce(function(s,x){return s+num(x.pol_consumed);},0);
+    return Math.max(0,stored+drawn-consumed);
+  }
+
+  async function calcDetachment(){
+    syncVehicleOptions();
+    var select=document.getElementById('detVehSelect');
+    var id=select?select.value:'';
+    var list=(typeof polVehicles!=='undefined')?polVehicles:[];
+    var v=list.find(function(x){return String(x.id)===String(id);});
+    if(!v){
+      ['detVehType','detUnit','detAttachedFrom','detOpeningKm','detKmRun','detClosingKm','detKpl','detPolConsumed','detPolDrawn','detTankBalance'].forEach(function(k){setv(k,'');});
+      return;
+    }
+    try{
+      var dateEl=document.getElementById('detAttachedTo');
+      var to=dateEl&&dateEl.value?dateEl.value:today();
+      var h=await fetchHistory(v,to);
+      var drawn=h.draws.reduce(function(s,x){return s+num(x.litres);},0);
+      var consumed=h.diaries.reduce(function(s,x){return s+num(x.pol_consumed);},0);
+      var kmRun=h.diaries.reduce(function(s,x){return s+num(x.km_run);},0);
+      var opening=num(v.initial_km_reading!=null?v.initial_km_reading:v.km_reading);
+      var kpl=num(v.kpl);
+      var last=h.diaries.length?h.diaries[h.diaries.length-1]:null;
+      var closing=last?num(last.closing_km):opening+kmRun;
+      var tank=Math.max(0,baseTank(v,h.draws,h.diaries)+drawn-consumed);
+      setv('detVehType',v.vehicle_type||'');
+      setv('detUnit',v.unit||'');
+      setv('detAttachedFrom',v.attached_from||'');
+      setv('detOpeningKm',opening.toFixed(1));
+      setv('detKmRun',kmRun.toFixed(1));
+      setv('detClosingKm',closing.toFixed(1));
+      setv('detKpl',kpl.toFixed(2));
+      setv('detPolConsumed',consumed.toFixed(2));
+      setv('detPolDrawn',drawn.toFixed(2));
+      setv('detTankBalance',tank.toFixed(2));
+    }catch(e){
+      console.error(e);
+      var m=document.getElementById('detMsg');
+      if(m){m.textContent='Unable to fetch vehicle POL history.';m.style.display='block';}
+    }
+  }
+
+  window.loadVehicleDetachment=calcDetachment;
+  document.addEventListener('change',function(e){
+    if(e.target && (e.target.id==='detVehSelect'||e.target.id==='detAttachedTo')) calcDetachment();
+  });
+  var prevSet=window.setPOLTab;
+  if(prevSet) window.setPOLTab=function(tab){var r=prevSet.apply(this,arguments);if(tab==='detach')setTimeout(function(){syncVehicleOptions();calcDetachment();},100);return r;};
+  window.addEventListener('load',function(){setTimeout(function(){syncVehicleOptions();calcDetachment();},700);});
+})();
+</script>
 
 </body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},300)},100)}
 
@@ -2829,6 +3041,112 @@ window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview(
     html+=`</table><table><tr><th></th><th>Cash</th><th>Bank</th></tr><tr><th>B/F</th><td class="num">${money10(s.bfCash)}</td><td class="num">${money10(s.bfBank)}</td></tr><tr><th>Total Receipts</th><td class="num">${money10(s.rc)}</td><td class="num">${money10(s.rb)}</td></tr><tr><th>Total Payments</th><td class="num">${money10(s.pc)}</td><td class="num">${money10(s.pb)}</td></tr><tr><th>Cash Drawn</th><td class="num">${money10(s.draw)}</td><td class="num">-${money10(s.draw)}</td></tr><tr><th>C/F</th><td class="num">${money10(s.cfCash)}</td><td class="num">${money10(s.cfBank)}</td></tr></table><h3>Code Head Carry Forward</h3><table><tr><th>Head</th><th>B/F</th><th>Receipts/Allotment</th><th>Payments</th><th>C/F</th></tr>${Object.keys(s.cfHeads||{}).map(h=>`<tr><td>${escp(h)}</td><td class="num">${money10(s.bfHeads[h])}</td><td class="num">${money10(s.dayReceipts[h])}</td><td class="num">${money10(s.dayPayments[h])}</td><td class="num">${money10(s.cfHeads[h])}</td></tr>`).join('')}</table><script>window.onload=function(){window.print();setTimeout(function(){window.close()},300)}<\/script>
 
 
+
+<script id="ims-v14-detachment-final-fix">
+(function(){
+  function num(v){ return Number(v||0)||0; }
+  function norm(v){ return String(v||'').trim().toUpperCase().replace(/\s+/g,''); }
+  function setv(id,v){ var e=document.getElementById(id); if(e) e.value=(v==null?'':v); }
+  function escv(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function syncVehicleOptions(){
+    var s=document.getElementById('detVehSelect');
+    if(!s || typeof polVehicles==='undefined') return;
+    var current=s.value;
+    var html='<option value="">Select Vehicle</option>';
+    (polVehicles||[]).forEach(function(v){
+      html+='<option value="'+escv(v.id)+'">'+escv(v.vehicle_no||'')+' - '+escv(v.vehicle_type||'')+'</option>';
+    });
+    s.innerHTML=html;
+    if((polVehicles||[]).some(function(v){return String(v.id)===String(current);} )) s.value=current;
+  }
+
+  async function fetchHistory(v,toDate){
+    if(!activeCamp || !sb || !v) return {draws:[],diaries:[]};
+    var from=String(v.attached_from||''), to=String(toDate||today());
+    var vehicleId=String(v.id||''), vehicleNo=norm(v.vehicle_no);
+    var results=await Promise.all([
+      sb.from('pol_drawn_entries').select('*').eq('camp_id',activeCamp.id),
+      sb.from('pol_car_diary').select('*').eq('camp_id',activeCamp.id)
+    ]);
+    var drawsData=(results[0]&&results[0].data)||[];
+    var diaryData=(results[1]&&results[1].data)||[];
+    function same(x){ return String(x.vehicle_id||'')===vehicleId || norm(x.vehicle_no)===vehicleNo; }
+    function inRange(x){
+      if(!same(x)) return false;
+      var d=String(x.entry_date||x.draw_date||'');
+      return !d || ((!from||d>=from)&&(!to||d<=to));
+    }
+    var draws=drawsData.filter(inRange).sort(function(a,b){return String(a.entry_date||a.draw_date||'').localeCompare(String(b.entry_date||b.draw_date||'')) || String(a.created_at||'').localeCompare(String(b.created_at||''));});
+    var diaries=diaryData.filter(inRange).sort(function(a,b){return String(a.entry_date||'').localeCompare(String(b.entry_date||'')) || String(a.created_at||'').localeCompare(String(b.created_at||''));});
+    return {draws:draws,diaries:diaries};
+  }
+
+  function baseTank(v,draws,diaries){
+    var raw=v.initial_tank_balance;
+    if(raw!==undefined && raw!==null && raw!=='') return num(raw);
+    var stored=num(v.pol_balance);
+    if(!draws.length) return Math.max(0,stored+diaries.reduce(function(s,x){return s+num(x.pol_consumed);},0));
+    var first=draws[0];
+    if(first.previous_fuel!==undefined && first.previous_fuel!==null && first.previous_fuel!==''){
+      var fd=String(first.entry_date||first.draw_date||'');
+      var preConsumed=diaries.filter(function(x){return String(x.entry_date||'')<fd;}).reduce(function(s,x){return s+num(x.pol_consumed);},0);
+      return Math.max(0,num(first.previous_fuel)+preConsumed);
+    }
+    var drawn=draws.reduce(function(s,x){return s+num(x.litres);},0);
+    var consumed=diaries.reduce(function(s,x){return s+num(x.pol_consumed);},0);
+    return Math.max(0,stored+drawn-consumed);
+  }
+
+  async function calcDetachment(){
+    syncVehicleOptions();
+    var select=document.getElementById('detVehSelect');
+    var id=select?select.value:'';
+    var list=(typeof polVehicles!=='undefined')?polVehicles:[];
+    var v=list.find(function(x){return String(x.id)===String(id);});
+    if(!v){
+      ['detVehType','detUnit','detAttachedFrom','detOpeningKm','detKmRun','detClosingKm','detKpl','detPolConsumed','detPolDrawn','detTankBalance'].forEach(function(k){setv(k,'');});
+      return;
+    }
+    try{
+      var dateEl=document.getElementById('detAttachedTo');
+      var to=dateEl&&dateEl.value?dateEl.value:today();
+      var h=await fetchHistory(v,to);
+      var drawn=h.draws.reduce(function(s,x){return s+num(x.litres);},0);
+      var consumed=h.diaries.reduce(function(s,x){return s+num(x.pol_consumed);},0);
+      var kmRun=h.diaries.reduce(function(s,x){return s+num(x.km_run);},0);
+      var opening=num(v.initial_km_reading!=null?v.initial_km_reading:v.km_reading);
+      var kpl=num(v.kpl);
+      var last=h.diaries.length?h.diaries[h.diaries.length-1]:null;
+      var closing=last?num(last.closing_km):opening+kmRun;
+      var tank=Math.max(0,baseTank(v,h.draws,h.diaries)+drawn-consumed);
+      setv('detVehType',v.vehicle_type||'');
+      setv('detUnit',v.unit||'');
+      setv('detAttachedFrom',v.attached_from||'');
+      setv('detOpeningKm',opening.toFixed(1));
+      setv('detKmRun',kmRun.toFixed(1));
+      setv('detClosingKm',closing.toFixed(1));
+      setv('detKpl',kpl.toFixed(2));
+      setv('detPolConsumed',consumed.toFixed(2));
+      setv('detPolDrawn',drawn.toFixed(2));
+      setv('detTankBalance',tank.toFixed(2));
+    }catch(e){
+      console.error(e);
+      var m=document.getElementById('detMsg');
+      if(m){m.textContent='Unable to fetch vehicle POL history.';m.style.display='block';}
+    }
+  }
+
+  window.loadVehicleDetachment=calcDetachment;
+  document.addEventListener('change',function(e){
+    if(e.target && (e.target.id==='detVehSelect'||e.target.id==='detAttachedTo')) calcDetachment();
+  });
+  var prevSet=window.setPOLTab;
+  if(prevSet) window.setPOLTab=function(tab){var r=prevSet.apply(this,arguments);if(tab==='detach')setTimeout(function(){syncVehicleOptions();calcDetachment();},100);return r;};
+  window.addEventListener('load',function(){setTimeout(function(){syncVehicleOptions();calcDetachment();},700);});
+})();
+</script>
+
 </body></html>`;
     const w=window.open('','_blank','width=1100,height=800');if(!w){alert('Please allow pop-ups for this site to print the Cash Book.');return;}w.document.open();w.document.write(html);w.document.close();
   }
@@ -3040,6 +3358,112 @@ window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview(
   const oldSetPOL=window.setPOLTab;window.setPOLTab=function(tab){const r=oldSetPOL?oldSetPOL(tab):undefined;setTimeout(()=>{if(tab==='detach')loadVehicleDetachmentV13()},150);return r};
   document.addEventListener('change',e=>{if(e.target?.id==='detVehSelect'||e.target?.id==='detAttachedTo')loadVehicleDetachmentV13()});
   window.addEventListener('load',()=>setTimeout(loadVehicleDetachmentV13,500));setTimeout(loadVehicleDetachmentV13,800);
+})();
+</script>
+
+
+<script id="ims-v14-detachment-final-fix">
+(function(){
+  function num(v){ return Number(v||0)||0; }
+  function norm(v){ return String(v||'').trim().toUpperCase().replace(/\s+/g,''); }
+  function setv(id,v){ var e=document.getElementById(id); if(e) e.value=(v==null?'':v); }
+  function escv(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  function syncVehicleOptions(){
+    var s=document.getElementById('detVehSelect');
+    if(!s || typeof polVehicles==='undefined') return;
+    var current=s.value;
+    var html='<option value="">Select Vehicle</option>';
+    (polVehicles||[]).forEach(function(v){
+      html+='<option value="'+escv(v.id)+'">'+escv(v.vehicle_no||'')+' - '+escv(v.vehicle_type||'')+'</option>';
+    });
+    s.innerHTML=html;
+    if((polVehicles||[]).some(function(v){return String(v.id)===String(current);} )) s.value=current;
+  }
+
+  async function fetchHistory(v,toDate){
+    if(!activeCamp || !sb || !v) return {draws:[],diaries:[]};
+    var from=String(v.attached_from||''), to=String(toDate||today());
+    var vehicleId=String(v.id||''), vehicleNo=norm(v.vehicle_no);
+    var results=await Promise.all([
+      sb.from('pol_drawn_entries').select('*').eq('camp_id',activeCamp.id),
+      sb.from('pol_car_diary').select('*').eq('camp_id',activeCamp.id)
+    ]);
+    var drawsData=(results[0]&&results[0].data)||[];
+    var diaryData=(results[1]&&results[1].data)||[];
+    function same(x){ return String(x.vehicle_id||'')===vehicleId || norm(x.vehicle_no)===vehicleNo; }
+    function inRange(x){
+      if(!same(x)) return false;
+      var d=String(x.entry_date||x.draw_date||'');
+      return !d || ((!from||d>=from)&&(!to||d<=to));
+    }
+    var draws=drawsData.filter(inRange).sort(function(a,b){return String(a.entry_date||a.draw_date||'').localeCompare(String(b.entry_date||b.draw_date||'')) || String(a.created_at||'').localeCompare(String(b.created_at||''));});
+    var diaries=diaryData.filter(inRange).sort(function(a,b){return String(a.entry_date||'').localeCompare(String(b.entry_date||'')) || String(a.created_at||'').localeCompare(String(b.created_at||''));});
+    return {draws:draws,diaries:diaries};
+  }
+
+  function baseTank(v,draws,diaries){
+    var raw=v.initial_tank_balance;
+    if(raw!==undefined && raw!==null && raw!=='') return num(raw);
+    var stored=num(v.pol_balance);
+    if(!draws.length) return Math.max(0,stored+diaries.reduce(function(s,x){return s+num(x.pol_consumed);},0));
+    var first=draws[0];
+    if(first.previous_fuel!==undefined && first.previous_fuel!==null && first.previous_fuel!==''){
+      var fd=String(first.entry_date||first.draw_date||'');
+      var preConsumed=diaries.filter(function(x){return String(x.entry_date||'')<fd;}).reduce(function(s,x){return s+num(x.pol_consumed);},0);
+      return Math.max(0,num(first.previous_fuel)+preConsumed);
+    }
+    var drawn=draws.reduce(function(s,x){return s+num(x.litres);},0);
+    var consumed=diaries.reduce(function(s,x){return s+num(x.pol_consumed);},0);
+    return Math.max(0,stored+drawn-consumed);
+  }
+
+  async function calcDetachment(){
+    syncVehicleOptions();
+    var select=document.getElementById('detVehSelect');
+    var id=select?select.value:'';
+    var list=(typeof polVehicles!=='undefined')?polVehicles:[];
+    var v=list.find(function(x){return String(x.id)===String(id);});
+    if(!v){
+      ['detVehType','detUnit','detAttachedFrom','detOpeningKm','detKmRun','detClosingKm','detKpl','detPolConsumed','detPolDrawn','detTankBalance'].forEach(function(k){setv(k,'');});
+      return;
+    }
+    try{
+      var dateEl=document.getElementById('detAttachedTo');
+      var to=dateEl&&dateEl.value?dateEl.value:today();
+      var h=await fetchHistory(v,to);
+      var drawn=h.draws.reduce(function(s,x){return s+num(x.litres);},0);
+      var consumed=h.diaries.reduce(function(s,x){return s+num(x.pol_consumed);},0);
+      var kmRun=h.diaries.reduce(function(s,x){return s+num(x.km_run);},0);
+      var opening=num(v.initial_km_reading!=null?v.initial_km_reading:v.km_reading);
+      var kpl=num(v.kpl);
+      var last=h.diaries.length?h.diaries[h.diaries.length-1]:null;
+      var closing=last?num(last.closing_km):opening+kmRun;
+      var tank=Math.max(0,baseTank(v,h.draws,h.diaries)+drawn-consumed);
+      setv('detVehType',v.vehicle_type||'');
+      setv('detUnit',v.unit||'');
+      setv('detAttachedFrom',v.attached_from||'');
+      setv('detOpeningKm',opening.toFixed(1));
+      setv('detKmRun',kmRun.toFixed(1));
+      setv('detClosingKm',closing.toFixed(1));
+      setv('detKpl',kpl.toFixed(2));
+      setv('detPolConsumed',consumed.toFixed(2));
+      setv('detPolDrawn',drawn.toFixed(2));
+      setv('detTankBalance',tank.toFixed(2));
+    }catch(e){
+      console.error(e);
+      var m=document.getElementById('detMsg');
+      if(m){m.textContent='Unable to fetch vehicle POL history.';m.style.display='block';}
+    }
+  }
+
+  window.loadVehicleDetachment=calcDetachment;
+  document.addEventListener('change',function(e){
+    if(e.target && (e.target.id==='detVehSelect'||e.target.id==='detAttachedTo')) calcDetachment();
+  });
+  var prevSet=window.setPOLTab;
+  if(prevSet) window.setPOLTab=function(tab){var r=prevSet.apply(this,arguments);if(tab==='detach')setTimeout(function(){syncVehicleOptions();calcDetachment();},100);return r;};
+  window.addEventListener('load',function(){setTimeout(function(){syncVehicleOptions();calcDetachment();},700);});
 })();
 </script>
 
