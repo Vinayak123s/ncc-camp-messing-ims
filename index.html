@@ -2103,10 +2103,72 @@ function renderPOLReport(){
 function exportPOLReportCSV(){const type=document.getElementById('polRepType')?.value||'vehicle',vid=document.getElementById('polRepVehicle')?.value||'',from=document.getElementById('polRepFrom')?.value||'',to=document.getElementById('polRepTo')?.value||'';if(type==='detach')return exportPOLDetachmentCSV();if(type==='vehicle')return exportPOLVehicleCSV();if(type==='drawn')return exportPOLCSV();return exportCarDiaryCSV()}
 function printPOLReport(){renderPOLReport();setTimeout(()=>{const box=document.getElementById('polReportContent');const w=window.open('','_blank','width=1100,height=800');if(!w)return;w.document.write(`<!doctype html><html><head><title>POL Report</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px}th{background:#eee}</style></head><body><h2 style="text-align:center">NCC CAMP MESSING IMS - POL REPORT</h2>${box?.innerHTML||''}</body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},300)},100)}
 
+function populateAllPOLVehicleSelectors(){
+  const selectors=[
+    ['polVehSelect','Select Vehicle'],
+    ['diaryVehicle','Select Vehicle'],
+    ['diaryReportVehicle','All Vehicles'],
+    ['detVehSelect','Select Vehicle'],
+    ['polRepVehicle','All Vehicles']
+  ];
+
+  selectors.forEach(([id,placeholder])=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+
+    const current=String(el.value||'');
+    const options=polVehicles.map(v=>
+      `<option value="${esc(v.id)}" ${String(v.id)===current?'selected':''}>${esc(v.vehicle_no)} - ${esc(v.vehicle_type)}</option>`
+    ).join('');
+
+    el.innerHTML=`<option value="">${placeholder}</option>${options}`;
+
+    // Preserve a previously selected vehicle when possible.
+    if(current && [...el.options].some(o=>String(o.value)===current)){
+      el.value=current;
+    }
+  });
+}
+
 function setPOLTab(tab){
   const map={vehicle:'polVehicleSection',drawn:'polDrawnSection',diary:'polDiarySection',detach:'polDetachSection',report:'polReportSection'};
-  document.querySelectorAll('[data-poltab]').forEach(b=>b.classList.toggle('active',b.dataset.poltab===tab)); Object.values(map).forEach(id=>document.getElementById(id)?.classList.add('hidden')); document.getElementById(map[tab])?.classList.remove('hidden');
-  if(tab==='vehicle')renderPOLVehicleRegister(); if(tab==='drawn'){renderPOL();loadPOLVehicleSelect();} if(tab==='diary'){loadPOLVehicleSelect();loadCarDiary();renderCarDiaryRegister();} if(tab==='detach'){loadPOLVehicleSelect();loadPOLDetachments();} if(tab==='report'){loadPOLDetachments();renderPOLReport()}
+
+  document.querySelectorAll('[data-poltab]').forEach(b=>
+    b.classList.toggle('active',b.dataset.poltab===tab)
+  );
+
+  Object.values(map).forEach(id=>
+    document.getElementById(id)?.classList.add('hidden')
+  );
+
+  document.getElementById(map[tab])?.classList.remove('hidden');
+
+  // IMPORTANT: all POL submodule vehicle lists must be populated
+  // from the same active-camp polVehicles array.
+  populateAllPOLVehicleSelectors();
+
+  if(tab==='vehicle'){
+    renderPOLVehicleRegister();
+  }
+
+  if(tab==='drawn'){
+    renderPOL();
+    loadPOLVehicleSelect();
+  }
+
+  if(tab==='diary'){
+    loadCarDiary();
+    renderCarDiaryRegister();
+  }
+
+  if(tab==='detach'){
+    loadPOLDetachments();
+  }
+
+  if(tab==='report'){
+    loadPOLDetachments();
+    renderPOLReport();
+  }
 }
 
 /* Override diary persistence: attachment opening KM/tank remain immutable. */
@@ -2119,6 +2181,27 @@ async function saveCarDiary(){
   if(error)return setMsg('diaryMsg',error.message); setMsg('diaryMsg','Car diary entry saved successfully.',true); const keep=vid; await loadCarDiary(); document.getElementById('diaryVehicle').value=keep; loadDiaryVehicle(); ['diaryKmRun','diaryPurpose','diaryFrom','diaryTo','diaryRemarks'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''}); calcDiary();
 }
 function loadDiaryVehicle(){const id=document.getElementById('diaryVehicle')?.value||'';if(!id)return;const v=polVehicles.find(x=>String(x.id)===String(id));if(!v)return;const st=polCurrentState(id);document.getElementById('diaryOpeningKm').value=st.currentKm.toFixed(1);document.getElementById('diaryKpl').value=Number(v.kpl||0).toFixed(2);calcDiary()}
+
+function bindPOLVehicleSelectors(){
+  const diary=document.getElementById('diaryVehicle');
+  if(diary && !diary.dataset.boundFix){
+    diary.addEventListener('change',()=>{
+      populateAllPOLVehicleSelectors();
+      loadDiaryVehicle();
+    });
+    diary.dataset.boundFix='1';
+  }
+
+  const det=document.getElementById('detVehSelect');
+  if(det && !det.dataset.boundFix){
+    det.addEventListener('change',()=>{
+      populateAllPOLVehicleSelectors();
+      loadVehicleDetachment();
+    });
+    det.dataset.boundFix='1';
+  }
+}
+
 function renderCarDiaryRegister(){const el=document.getElementById('carDiaryTable');if(!el)return;let rows=[...(window.carDiaryEntries||[])];const v=document.getElementById('diaryReportVehicle')?.value||'',from=document.getElementById('diaryReportFrom')?.value||'',to=document.getElementById('diaryReportTo')?.value||'';if(v)rows=rows.filter(x=>String(x.vehicle_id)===String(v));if(from)rows=rows.filter(x=>x.entry_date>=from);if(to)rows=rows.filter(x=>x.entry_date<=to);let h='<table><tr><th>Date</th><th>Vehicle</th><th>Nature</th><th>Purpose</th><th>From</th><th>To</th><th>Opening KM</th><th>KM Run</th><th>Closing KM</th><th>KPL</th><th>POL Consumed</th><th>Action</th></tr>';rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.nature_of_duty)}</td><td>${esc(x.purpose_of_duty)}</td><td>${esc(x.from_location)}</td><td>${esc(x.to_location)}</td><td>${(+x.opening_km||0).toFixed(1)}</td><td>${(+x.km_run||0).toFixed(1)}</td><td>${(+x.closing_km||0).toFixed(1)}</td><td>${(+x.kpl||0).toFixed(2)}</td><td>${(+x.pol_consumed||0).toFixed(2)}</td><td>${canDelete()?`<button class="btn red" onclick="deleteCarDiary('${x.id}')">Delete</button>`:'View'}</td></tr>`);h+='</table>';el.innerHTML=rows.length?h:'<div class="empty">No car diary entries.</div>'}
 
 /* Load detachment and keep reports current */
@@ -2315,6 +2398,7 @@ window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview(
     const inHeaders=rh?.data||[]; const inRows=rii?.data||[]; inHeaders.forEach(h=>h.stock_in_items=inRows.filter(r=>r.invoice_id===h.id)); inInvoices=inHeaders;
     const outHeaders=oh?.data||[]; const outRows=oi?.data||[]; outHeaders.forEach(h=>h.stock_out_items=outRows.filter(r=>r.voucher_id===h.id)); outVouchers=outHeaders;
     profiles=rp?.data||profiles||[]; polVehicles=rv?.data||[]; polEntries=pv?.data||[]; incidentals=iv?.data||[]; cashbookEntries=cb?.data||[]; cashbookClosures=cc?.data||[]; window.carDiaryEntries=cd?.data||[]; window.vehicleDetachments=vd?.data||[];
+    try{populateAllPOLVehicleSelectors()}catch(_){}
     if(ls?.data?.value){try{setLogo(ls.data.value)}catch(_){}}
     // Surface table errors in console instead of silently losing a module.
     [['Inventory',ri],['Stock In',rh],['Stock In Items',rii],['Stock Out',oh],['Stock Out Items',oi],['Profiles',rp],['POL Vehicles',rv],['POL Drawn',pv],['Incidental',iv],['Cash Book',cb],['Cash Closures',cc],['Car Diary',cd],['Detachment',vd]].forEach(([n,r])=>{if(r?.error)console.warn('NCC IMS load '+n,r.error)});
@@ -2641,5 +2725,10 @@ window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview(
 })();
 </script>
 
+<script>
+window.addEventListener('DOMContentLoaded',()=>{
+  try{populateAllPOLVehicleSelectors();bindPOLVehicleSelectors();}catch(_){}
+});
+</script>
 </body>
 </html>
