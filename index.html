@@ -5,7 +5,715 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NCC Camp Messing IMS</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+ --nav:#101722;--nav2:#182230;--accent:#19b4c6;--accent2:#41d8e6;--gold:#e4a623;
+ --bg:#0b1017;--panel:#131c28;--panel2:#0f1722;--ink:#f3f7fb;--muted:#93a4b5;
+ --line:#243140;--danger:#ef4444;--ok:#32d583;--shadow:0 18px 50px rgba(0,0,0,.35)
+}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+button,input,select{font:inherit}.hidden{display:none!important}
+body:before{content:"";position:fixed;inset:-10%;z-index:-2;background:
+ radial-gradient(circle at 85% 15%,rgba(32,185,220,.16),transparent 28%),
+ radial-gradient(circle at 12% 90%,rgba(44,123,229,.13),transparent 26%),
+ radial-gradient(circle at 75% 95%,rgba(236,72,153,.08),transparent 24%);filter:blur(12px)
+}
+.login-shell{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px;
+ background:
+ radial-gradient(circle at 20% 20%,rgba(51,167,235,.26),transparent 22%),
+ radial-gradient(circle at 82% 20%,rgba(62,214,230,.18),transparent 25%),
+ linear-gradient(135deg,#dce8ff 0%,#b7dcff 52%,#c8f3ff 100%);position:relative;overflow:hidden}
+.login-shell:before,.login-shell:after{content:"";position:absolute;border-radius:48% 52% 40% 60%;background:rgba(255,255,255,.18);filter:blur(2px)}
+.login-shell:before{width:420px;height:420px;left:-100px;bottom:-120px}
+.login-shell:after{width:430px;height:430px;right:-90px;top:-150px}
+.login-card{width:min(520px,100%);padding:34px 38px;border-radius:26px;background:rgba(17,51,88,.82);
+ border:1px solid rgba(255,255,255,.2);box-shadow:0 32px 80px rgba(0,50,100,.25);backdrop-filter:blur(16px)}
+.login-brand{display:flex;align-items:center;gap:15px;margin-bottom:22px}.login-logo{width:58px;height:58px;border-radius:18px;background:#fff;color:#0f5eb0;display:grid;place-items:center;font-weight:1000;font-size:18px}
+.login-title{font-size:26px;font-weight:900;letter-spacing:.4px}.login-sub{color:#cae5fb;font-size:14px;line-height:1.5}
+.login-card label{display:block;color:#eaf6ff;font-size:12px;font-weight:800;margin:15px 0 6px}
+.login-card input{width:100%;padding:13px 14px;border-radius:9px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.95);color:#122033;outline:none}
+.login-card input:focus{border-color:#75e4ef;box-shadow:0 0 0 3px rgba(25,180,198,.18)}
+.primary-login{width:100%;margin-top:18px;padding:13px;border:0;border-radius:9px;background:#0a4d7f;color:#fff;font-weight:900;cursor:pointer}
+.primary-login:hover{background:#0b5e97}.login-links{display:flex;justify-content:space-between;gap:10px;margin-top:12px}
+.linkbtn{border:0;background:transparent;color:#cfeeff;cursor:pointer;font-size:12px;padding:4px}.linkbtn:hover{text-decoration:underline}
+.login-msg{margin-top:12px;font-size:13px;color:#ffcbc8;min-height:18px}.dev{margin-top:22px;text-align:center;color:#bde8ff;font-size:11px}
+.app{min-height:100vh}.topbar{height:68px;background:rgba(15,22,31,.95);border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 18px 0 88px;position:fixed;left:0;right:0;top:0;z-index:50}
+.brand{font-weight:900;font-size:17px;letter-spacing:.2px}.top-right{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--muted);font-size:13px}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#cbd5e1,#64748b);display:grid;place-items:center;color:#102033;font-weight:900}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:72px;background:linear-gradient(180deg,#121923,#0b1017);border-right:1px solid var(--line);z-index:60;padding:10px 8px;transition:.2s;overflow:hidden}
+.sidebar.expanded{width:235px}.hamb{width:50px;height:44px;border:0;border-radius:9px;background:transparent;color:#fff;font-size:27px;cursor:pointer}
+.hamb:hover{background:#1a2533}.side-brand{height:88px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;justify-content:center;margin:4px 0 10px}
+.nc{width:44px;height:44px;border-radius:50%;background:#fff;color:#1477af;display:grid;place-items:center;font-weight:1000}.nc img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.side-name{display:none;font-weight:900;font-size:12px;line-height:1.1;white-space:nowrap}.sidebar.expanded .side-name{display:block}
+.nav{width:100%;padding:12px 10px;border:0;background:transparent;color:#ced7e2;border-radius:8px;display:flex;align-items:center;gap:12px;cursor:pointer;text-align:left;margin:3px 0;font-weight:700}
+.nav:hover,.nav.active{background:#173044;color:#fff}.nav.active{box-shadow:inset 3px 0 0 var(--accent2)}.ni{width:30px;text-align:center;font-size:18px}.nl{display:none;white-space:nowrap}.sidebar.expanded .nl{display:inline}
+.side-footer{position:absolute;left:8px;right:8px;bottom:10px}.nav.logout{color:#ffb5b1}.nav.logout:hover{background:#3b1d24}
+main{margin-left:72px;padding:92px 24px 35px;transition:.2s}.sidebar.expanded~main{margin-left:235px}
+.page{display:none}.page.active{display:block}.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:15px;margin-bottom:18px}.section-head h1{font-size:28px;margin:0}.section-head p{margin:5px 0 0;color:var(--muted)}
+.actions{display:flex;gap:8px;flex-wrap:wrap}.btn{border:0;border-radius:7px;padding:10px 14px;background:#1f8da0;color:#fff;font-weight:900;cursor:pointer}.btn:hover{filter:brightness(1.08)}
+.btn.dark{background:#233140}.btn.ghost{background:transparent;border:1px solid #3a4a5a;color:#dce7f2}.btn.gold{background:#b67c13}.btn.red{background:#b42318}.btn.green{background:#157f4f}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}.metric{background:linear-gradient(145deg,#162230,#101822);border:1px solid #223142;border-radius:10px;padding:18px;min-height:135px;position:relative;overflow:hidden}
+.metric:after{content:"";position:absolute;width:90px;height:90px;border-radius:50%;right:-25px;top:-25px;background:rgba(42,200,220,.09)}
+.metric .label{color:#a8b9ca;font-size:12px}.metric b{display:block;font-size:31px;margin:10px 0 5px}.metric small{color:#71869a}
+.m1{box-shadow:inset 0 -3px 0 #7c3aed}.m2{box-shadow:inset 0 -3px 0 #22c55e}.m3{box-shadow:inset 0 -3px 0 #06b6d4}.m4{box-shadow:inset 0 -3px 0 #f59e0b}
+.panel{background:rgba(17,26,37,.94);border:1px solid #223142;border-radius:10px;margin-top:16px;padding:16px;box-shadow:0 8px 30px rgba(0,0,0,.18)}
+.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;min-width:900px}th,td{padding:10px 10px;border-bottom:1px solid #233140;text-align:left;font-size:12px;vertical-align:middle}th{color:#98aabd;background:#111b26}td{color:#e3eaf2}tr:hover td{background:#101b27}
+.status{display:inline-block;border-radius:20px;padding:4px 8px;font-weight:900;font-size:11px}.ok{background:#103c2a;color:#77e2a9}.low{background:#4b2617;color:#ffc56c}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.toolbar input,.toolbar select,.inlineform input,.inlineform select{padding:10px;border-radius:7px;border:1px solid #304154;background:#0f1722;color:#eaf0f7;outline:none}.toolbar input::placeholder{color:#718398}
+.inline-section{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.field label{display:block;color:#8da1b4;font-size:11px;font-weight:900;margin-bottom:5px}.field input,.field select{width:100%}
+.formbox{background:#101a25;border:1px solid #263546;border-radius:9px;padding:14px}.formbox h3{margin:0 0 12px}.item-row{display:grid;grid-template-columns:1.5fr .7fr .9fr .9fr 40px;gap:7px;margin-top:8px;align-items:center}
+.item-row select,.item-row input{padding:9px;border:1px solid #304154;border-radius:6px;background:#0c141e;color:#f3f7fb;width:100%}.amt{font-weight:900;text-align:right}
+.totalbar{display:flex;justify-content:flex-end;gap:18px;align-items:center;margin-top:12px;font-weight:900;font-size:17px}.form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.subhead{display:flex;justify-content:space-between;align-items:center;gap:10px}.muted{color:var(--muted)}.empty{color:#72869a;text-align:center;padding:26px}
+.inventory-preview{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px}.chip{background:#111d28;border:1px solid #2b3a4c;padding:9px;border-radius:8px}
+.kpi-note{font-size:11px;color:#73859a}.chartrow{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}.donutwrap{display:grid;grid-template-columns:160px 1fr;gap:18px;align-items:center}.donut{width:150px;height:150px;border-radius:50%;background:conic-gradient(#ef4444 0 15%,#f59e0b 15% 42%,#22c55e 42% 100%);position:relative;display:grid;place-items:center}.donut:after{content:"";position:absolute;inset:28px;background:#121b27;border-radius:50%}.donut span{z-index:1;font-weight:900;font-size:22px}
+.badge{padding:5px 8px;border-radius:6px;background:#1e2b3a;color:#cbd5e1;font-weight:800;font-size:11px}
+footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
+.modal{position:fixed;inset:0;background:rgba(2,8,15,.68);z-index:120;display:flex;align-items:center;justify-content:center;padding:18px}.modalbox{width:min(720px,100%);background:#131d29;border:1px solid #304154;border-radius:12px;box-shadow:var(--shadow);padding:18px;max-height:92vh;overflow:auto}.modalhead{display:flex;justify-content:space-between;align-items:center}.modalhead h2{margin:0}.close{border:0;background:#243140;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer}
+.msg{min-height:18px;font-size:12px;margin-top:8px}.msg.ok{color:#83e7b6}.msg.err{color:#ff9e99}
+@media(max-width:1000px){.grid{grid-template-columns:1fr 1fr}.chartrow{grid-template-columns:1fr}.inline-section{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.sidebar{width:0;padding:10px 0}.sidebar.open{width:235px;padding:10px 8px}.sidebar.expanded{width:235px}.sidebar.expanded~main,main{margin-left:0}.topbar{padding-left:62px}.grid{grid-template-columns:1fr}.form-grid,.inline-section,.inventory-preview{grid-template-columns:1fr}.item-row{grid-template-columns:1fr 80px 90px 90px 38px}.login-card{padding:26px 22px}}
+@media print{.sidebar,.topbar,.actions,.toolbar,footer,.no-print{display:none!important}main{margin:0;padding:0;background:#fff;color:#111}.page{display:block!important}.panel{box-shadow:none;border:1px solid #ccc;background:#fff;color:#111}.panel *{color:#111!important}table{min-width:0}th{background:#eee!important}}
+
+/* ===== CAMP / Q SEC / ACCOUNTS / CASHBOOK EXTENSION ===== */
+.camp-top{display:flex;align-items:center;gap:8px;margin-left:22px;color:#9eb2c7;font-size:11px}.camp-top select{min-width:210px;padding:7px 10px;border:1px solid #34475c;border-radius:7px;background:#0f1722;color:#eef6ff;font-weight:700}
+.nav.qsec-nav,.nav.cash-nav,.nav.camp-nav,.nav.pol-nav,.nav.incident-nav,.nav.messing-nav{display:flex}
+.module-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.module-card{background:#111d29;border:1px solid #283a4e;border-radius:10px;padding:16px}.module-card h3{margin:0 0 8px}.module-card p{color:#8ea2b6;font-size:12px;min-height:34px}.camp-active{background:#0d3c3f;border:1px solid #1d7276;color:#9cf3f5;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:800}.readonly-note{padding:10px 12px;border:1px dashed #42566c;border-radius:8px;color:#8ea2b6;font-size:12px;margin-bottom:12px}
+.pol-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.pol-form{background:#101a25;border:1px solid #263546;border-radius:9px;padding:14px}.pol-info{margin-top:10px;padding:11px 13px;border-radius:8px;background:#0e2b22;border:1px solid #1f624b;color:#a9edc9;font-size:12px}.register-actions{display:flex;gap:7px;flex-wrap:wrap}.source-row{display:grid;grid-template-columns:1.1fr 1.1fr .9fr .9fr 1fr 1fr;gap:8px;align-items:end}.source-row .field{min-width:0}.cash-tabs{display:flex;gap:8px;margin-bottom:12px}.cash-tab{padding:9px 14px;border:1px solid #38506a;background:#152232;color:#bcd0e5;border-radius:8px;font-weight:900;cursor:pointer}.cash-tab.active{background:#1f8da0;color:#fff}.cash-layout{display:grid;grid-template-columns:1.1fr 1.4fr;gap:14px}.small-kpi{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}.small-kpi .chip b{display:block;font-size:19px;margin-top:5px}.camp-list table,.cash-list table,.pol-list table,.incident-list table{min-width:1050px}.print-title{display:none}
+@media(max-width:1100px){.module-grid{grid-template-columns:1fr 1fr}.pol-grid{grid-template-columns:1fr 1fr}.source-row{grid-template-columns:1fr 1fr 1fr}.cash-layout{grid-template-columns:1fr}}
+@media(max-width:700px){.camp-top{display:none}.module-grid,.pol-grid,.source-row{grid-template-columns:1fr}.small-kpi{grid-template-columns:1fr}.cash-layout{grid-template-columns:1fr}}
+@media print{.print-title{display:block}.no-print{display:none!important}}
+
+
+/* ===== FRESH RV/IV + DAY CASH BOOK AMENDMENT ===== */
+.rviv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.rviv-wide{grid-column:span 2}.rviv-full{grid-column:1/-1}
+.rviv-items{display:grid;gap:8px;margin-top:8px}
+.rviv-item{background:#0c141e;border:1px solid #2b3a4c;border-radius:8px;padding:10px}
+.rviv-item-grid{display:grid;grid-template-columns:2fr .8fr .95fr .9fr .9fr .9fr 1.3fr 1.4fr auto;gap:8px;align-items:end}
+.rviv-item input,.rviv-item select{padding:8px;border:1px solid #304154;border-radius:6px;background:#0b131d;color:#fff}
+.rviv-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.rviv-summary .chip{background:#111d28;border:1px solid #2b3a4c;padding:10px;border-radius:8px}
+.rviv-voucher-sheet{display:none;background:#fff;color:#000;width:210mm;min-height:297mm;margin:0 auto;padding:12mm;font-family:Arial,sans-serif}
+.rviv-voucher-sheet h1{text-align:center;font-size:15px;text-decoration:underline;margin:0 0 12px}
+.rviv-voucher-sheet .heads{display:grid;grid-template-columns:1fr 1fr;gap:28px;font-size:11px;line-height:1.65;margin-bottom:14px}
+.rviv-voucher-sheet table{min-width:0;color:#000;background:#fff;border-collapse:collapse;width:100%;font-size:10px}
+.rviv-voucher-sheet th,.rviv-voucher-sheet td{border:1px solid #666;padding:5px;color:#000}
+.cash-day-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.cash-day-grid .daybox{background:#101a25;border:1px solid #2b3a4c;border-radius:8px;padding:11px}
+.cash-day-grid .daybox span{display:block;color:#8da1b4;font-size:11px}.cash-day-grid .daybox b{display:block;font-size:18px;margin-top:5px}
+.cash-close-note{margin-top:10px;padding:10px;border:1px dashed #496077;border-radius:8px;color:#9fb1c2;font-size:12px}
+.cash-print-sheet{display:none;background:#fff;color:#000;width:210mm;min-height:297mm;margin:0 auto;padding:10mm;font-family:Arial,sans-serif}
+.cash-print-sheet h1,.cash-print-sheet h2{text-align:center;color:#000;margin:0}
+.cash-print-sheet .meta{font-size:11px;margin:8px 0 12px;text-align:center}
+.cash-print-sheet table{min-width:0;width:100%;border-collapse:collapse;color:#000;background:#fff;font-size:8px}
+.cash-print-sheet th,.cash-print-sheet td{border:1px solid #333;padding:4px;color:#000;vertical-align:top}
+.cash-print-sheet th{background:#eee;color:#000}
+.cash-print-sheet .num{text-align:right;white-space:nowrap}.cash-print-sheet .total{font-weight:700;background:#f6f6f6}
+@media(max-width:1100px){.rviv-grid{grid-template-columns:1fr 1fr}.rviv-item-grid{grid-template-columns:repeat(3,1fr)}.cash-day-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:700px){.rviv-grid,.cash-day-grid{grid-template-columns:1fr}.rviv-wide{grid-column:auto}.rviv-item-grid{grid-template-columns:1fr 1fr}.rviv-summary{grid-template-columns:1fr}}
+@media print{
+  body.print-rviv #appView,body.print-rviv #loginView{display:none!important}
+  body.print-rviv .rviv-voucher-sheet{display:block!important}
+  body.print-cash #appView,body.print-cash #loginView{display:none!important}
+  body.print-cash .cash-print-sheet{display:block!important}
+  .rviv-voucher-sheet,.cash-print-sheet{box-shadow:none!important}
+}
+
+.accounts-dash .metric b,.accounts-report .metric b{font-size:28px}.report-total-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}.report-total-grid>div{background:#101a25;border:1px solid #2b3d50;border-radius:8px;padding:10px;color:#dce8f3}.report-total-grid span{display:block;color:#8ea2b6;margin-top:4px;font-weight:800}.accounts-report table td,.accounts-report table th{white-space:nowrap}.accounts-report .cash-report-head{text-align:center;margin-bottom:12px}@media(max-width:900px){.report-total-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* FINAL UI – grouped modules, tabs, car diary, polished panels */
+.nav-group{margin:3px 0;position:relative}
+.nav-parent{position:relative}
+.nav-parent .group-arrow{margin-left:auto;display:none;font-size:12px;opacity:.75}
+.sidebar.expanded .nav-parent .group-arrow{display:inline}
+.subnav{display:none;margin:0 0 5px;padding-left:8px}
+.nav-group:hover .subnav,.nav-group.open .subnav{display:block}
+.subnav .nav{font-size:12px;padding:9px 8px;margin:1px 0;background:rgba(16,32,48,.45)}
+.subnav .nav .ni{font-size:14px}
+@media(max-width:650px){.nav-group.open .subnav{display:block}}
+.module-banner{background:linear-gradient(120deg,#102a40,#0f1c29);border:1px solid #284258;border-radius:12px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.module-banner .crumb{color:#7fddea;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.08em}
+.module-banner h2{margin:3px 0 0;font-size:22px}
+.module-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.module-tab{border:1px solid #2f4659;background:#132130;color:#dce8f3;border-radius:8px;padding:10px 14px;font-weight:900;cursor:pointer}
+.module-tab.active{background:#0f92a8;border-color:#20c9df;color:#fff}
+.pol-section.hidden,.inc-section.hidden{display:none!important}
+.side-pill{padding:5px 8px;border-radius:999px;background:#112635;border:1px solid #2a475e;color:#a9d8e8;font-size:10px;font-weight:800}
+.card-grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.summary-card{background:linear-gradient(145deg,#112231,#0c151f);border:1px solid #263949;border-radius:10px;padding:14px}
+.summary-card span{display:block;color:#91a8ba;font-size:11px;font-weight:800}.summary-card b{display:block;font-size:25px;margin-top:7px}
+.diary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.report-filter{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.source-tag{display:inline-block;padding:4px 7px;border-radius:6px;background:#0f3445;color:#6ddcf0;font-size:10px;font-weight:900}
+@media(max-width:1050px){.card-grid-3{grid-template-columns:1fr 1fr}.diary-grid,.report-filter{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.card-grid-3,.diary-grid,.report-filter{grid-template-columns:1fr}}
+
+</style>
+<style id="cashbook-final-css">
+.source-details{margin-top:12px;padding:12px;border:1px solid #334155;border-radius:8px;background:#0f1925}.source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.source-items{margin-top:12px;overflow:auto}.source-items table{width:100%;border-collapse:collapse;font-size:12px}.source-items th,.source-items td{border:1px solid #334155;padding:7px;text-align:left;white-space:nowrap}.source-items th{background:#1a2939;color:#e8f0f8}.balance-preview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}.balance-card{padding:10px;border:1px solid #334155;border-radius:8px;background:#0b1420}.balance-card span{display:block;font-size:11px;color:#8fa4b8}.balance-card b{display:block;margin-top:4px;font-size:14px}.balance-good{color:#64d68f}.balance-bad{color:#ff7b86}.head-balance-wrap{margin-top:15px;overflow:auto}.head-balance-wrap table{width:100%;border-collapse:collapse;font-size:12px}.head-balance-wrap th,.head-balance-wrap td{border:1px solid #334155;padding:7px;white-space:nowrap}.head-balance-wrap th{background:#163042;color:#fff}@media(max-width:900px){.source-grid,.balance-preview{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.source-grid,.balance-preview{grid-template-columns:1fr}}</style>
+<style id="rviv-separate-css">
+.rviv-reference{background:#f3f4f6;color:#111827;border:1px solid #d1d5db;border-radius:10px;padding:18px}
+.rviv-reference .rviv-head{background:#17365d;color:#fff;border-radius:7px;padding:12px 16px;margin:-18px -18px 16px}
+.rviv-reference .rviv-head h2{color:#fff;margin:0;font-size:19px}
+.rviv-reference .rviv-card{background:#fff;border-radius:8px;padding:16px;margin-bottom:14px;box-shadow:0 2px 8px #00000012}
+.rviv-reference .rviv-card h3{margin:0 0 14px;color:#17365d;font-size:18px}
+.rviv-reference label{color:#334155;font-size:12px}
+.rviv-reference input,.rviv-reference select,.rviv-reference textarea{background:#fff;color:#111827;border:1px solid #cbd5e1}
+.rviv-reference .btn{background:#17365d;color:#fff}
+.rviv-reference .btn.ghost{background:#64748b;color:#fff}
+.rviv-reference .btn.red{background:#b91c1c;color:#fff}
+.rviv-reference .rviv-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.rviv-reference .rviv-wide{grid-column:1/-1}
+.rviv-reference .rviv-item{border:1px solid #cbd5e1;border-radius:6px;padding:10px;margin:8px 0;background:#f8fafc}
+.rviv-reference .rviv-item-grid{display:grid;grid-template-columns:2fr 1fr 1.2fr .9fr .9fr .9fr 1.1fr 1.4fr auto;gap:8px;align-items:end}
+.rviv-reference .rviv-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.rviv-reference table{width:100%;border-collapse:collapse;font-size:12px;background:#fff}
+.rviv-reference th{background:#17365d;color:#fff;padding:8px;border:1px solid #9ca3af;white-space:nowrap}
+.rviv-reference td{padding:8px;border:1px solid #9ca3af;vertical-align:top}
+.rviv-reference .amount{text-align:right}
+@media(max-width:1000px){.rviv-reference .rviv-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rviv-reference .rviv-item-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:650px){.rviv-reference .rviv-grid,.rviv-reference .rviv-item-grid,.rviv-reference .rviv-summary{grid-template-columns:1fr}.rviv-reference .rviv-wide{grid-column:auto}}
+</style>
+<style id="pol-v4-css">
+.pol-section .auto-field[readonly],.pol-section .calculated[readonly]{opacity:.95}
+#polPrintSheet{font-family:Arial,sans-serif;color:#111}
+#polPrintSheet table{width:100%;border-collapse:collapse;font-size:11px;margin-top:14px}
+#polPrintSheet th,#polPrintSheet td{border:1px solid #555;padding:6px;text-align:left}
+#polPrintSheet th{background:#eee}
+#polPrintSheet h1,#polPrintSheet h2{text-align:center;margin:6px 0}
+</style>
+</head>
+<body>
+
+
+<div id="loginView" class="login-shell">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="login-logo" id="loginLogo">NC</div>
+      <div>
+        <div class="login-title">NCC CAMP MESSING</div>
+        <div class="login-sub">Inventory Management System</div>
+      </div>
+    </div>
+    <div class="login-sub">Secure cloud-connected inventory system for NCC camp messing stores.</div>
+    <label>Email / Username</label>
+    <input id="loginEmail" type="email" autocomplete="username" placeholder="username@gmail.com">
+    <label>Password</label>
+    <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
+    <button class="primary-login" onclick="signIn()">SIGN IN</button>
+    <div class="login-links">
+      <button class="linkbtn" onclick="sendReset()">Forgot Password?</button>
+      <span></span>
+    </div>
+    <div id="loginMsg" class="login-msg"></div>
+    <div class="dev">Developed by Vinayak Shanmukhanavar</div>
+  </div>
+</div>
+
+<div id="appView" class="app hidden">
+<header class="topbar">
+  <div class="brand">NCC CAMP MESSING IMS</div>
+  <div class="camp-top"><span>ACTIVE CAMP</span><select id="campSelectTop" onchange="switchCamp(this.value)"><option value="">Select Camp</option></select></div>
+  <div class="top-right"><span id="userBox"></span><div class="avatar" id="avatar">N</div></div>
+</header>
+
+<aside id="side" class="sidebar">
+  <button class="hamb" onclick="toggleMenu()">☰</button>
+  <div class="side-brand"><div class="nc" id="ncLogo">NC</div><div class="side-name">NCC CAMP<br>MESSING</div></div>
+  <button class="nav active" data-page="dashboard" onclick="showPage('dashboard',this)"><span class="ni">⌂</span><span class="nl">Home / Dashboard</span></button>
+  <button class="nav camp-nav" data-page="camp" onclick="showPage('camp',this)"><span class="ni">🏕</span><span class="nl">Camp Details</span></button>
+
+  <div class="nav-group messing-group">
+    <button class="nav nav-parent messing-nav" type="button" onclick="toggleModuleGroup(this,'messingSubnav')"><span class="ni">🍚</span><span class="nl">Messing</span><span class="group-arrow">▸</span></button>
+    <div id="messingSubnav" class="subnav">
+      <button class="nav" data-page="inventory" onclick="showPage('inventory',this)"><span class="ni">▦</span><span class="nl">Inventory Master</span></button>
+      <button class="nav" data-page="stockin" onclick="showPage('stockin',this)"><span class="ni">↓</span><span class="nl">Stock In / Purchase</span></button>
+      <button class="nav" data-page="stockout" onclick="showPage('stockout',this)"><span class="ni">↑</span><span class="nl">Stock Out / Issue</span></button>
+      <button class="nav" data-page="reports" onclick="showPage('reports',this)"><span class="ni">▤</span><span class="nl">Reports</span></button>
+    </div>
+  </div>
+
+  <div class="nav-group incident-group">
+    <button class="nav nav-parent incident-main-nav" type="button" onclick="toggleModuleGroup(this,'incidentSubnav')"><span class="ni">🧾</span><span class="nl">Incidental</span><span class="group-arrow">▸</span></button>
+    <div id="incidentSubnav" class="subnav">
+      <button class="nav incident-nav" data-page="incidentalRV" onclick="showPage('incidentalRV',this)"><span class="ni">↘</span><span class="nl">Incidental RV</span></button>
+      <button class="nav incident-nav" data-page="incidentalIV" onclick="showPage('incidentalIV',this)"><span class="ni">↗</span><span class="nl">Incidental IV</span></button>
+    </div>
+  </div>
+
+  <div class="nav-group pol-group">
+    <button class="nav nav-parent pol-main-nav" type="button" onclick="toggleModuleGroup(this,'polSubnav')"><span class="ni">⛽</span><span class="nl">POL</span><span class="group-arrow">▸</span></button>
+    <div id="polSubnav" class="subnav">
+      <button class="nav pol-nav" data-page="pol" onclick="showPage('pol',this);setTimeout(()=>setPOLTab('vehicle'),30)"><span class="ni">🚙</span><span class="nl">Vehicle Attachment</span></button>
+      <button class="nav pol-nav" data-page="pol" onclick="showPage('pol',this);setTimeout(()=>setPOLTab('drawn'),30)"><span class="ni">⛽</span><span class="nl">POL Drawn</span></button>
+      <button class="nav pol-nav" data-page="pol" onclick="showPage('pol',this);setTimeout(()=>setPOLTab('diary'),30)"><span class="ni">📘</span><span class="nl">Car Diary</span></button>
+      <button class="nav pol-nav" data-page="pol" onclick="showPage('pol',this);setTimeout(()=>setPOLTab('report'),30)"><span class="ni">▤</span><span class="nl">Reports</span></button>
+    </div>
+  </div>
+
+  <button class="nav cash-nav" data-page="cashbook" onclick="showPage('cashbook',this)"><span class="ni">₹</span><span class="nl">Cash Book</span></button>
+  <button class="nav global-reports-nav" data-page="reports" onclick="showPage('reports',this)"><span class="ni">▤</span><span class="nl">Reports</span></button>
+  <button class="nav adminonly" data-page="users" onclick="showPage('users',this)"><span class="ni">♟</span><span class="nl">User Management</span></button>
+  <div class="side-footer"><button class="nav logout" onclick="signOut()"><span class="ni">↪</span><span class="nl">Logout</span></button></div>
+</aside>
+
+<main>
+<section id="dashboard" class="page active">
+  <div id="accountsDashboard" class="accounts-dash hidden">
+    <div class="section-head"><div><h1>CASH / BANK POSITION</h1><p>Accounts dashboard for the active camp</p></div></div>
+    <div class="grid"><div class="metric m1"><span class="label">CASH IN HAND</span><b id="accCashInHand">₹0.00</b><small>Current available cash</small></div><div class="metric m2"><span class="label">CASH AT BANK</span><b id="accCashAtBank">₹0.00</b><small>Current available bank balance</small></div></div>
+    <div class="panel" style="margin-top:16px"><div class="subhead"><div><h3 style="margin:0">Code Head Allotments &amp; Balance</h3><div class="kpi-note">Allotment less payments/remittances</div></div></div><div class="tablewrap" id="accountsHeadDashboard"></div></div>
+  </div>
+  <div id="inventoryDashboard">
+<div class="section-head">
+    <div><h1>Inventory</h1><p>Centralized inventory overview and camp store position</p></div>
+    <div class="actions"><button class="btn ghost adminonly" onclick="openLogo()">Upload NC Logo</button></div>
+  </div>
+  <div class="grid">
+    <div class="metric m1"><span class="label">STOCK IN VALUE</span><b id="dInAmt">₹0.00</b><small>Total purchase amount</small></div>
+    <div class="metric m2"><span class="label">STOCK OUT VALUE</span><b id="dOutAmt">₹0.00</b><small>Total issue amount</small></div>
+    <div class="metric m3"><span class="label">STOCK IN QTY</span><b id="dInQty">0.00</b><small>Total received quantity</small></div>
+    <div class="metric m4"><span class="label">STOCK OUT QTY</span><b id="dOutQty">0.00</b><small>Total issued quantity</small></div>
+  </div>
+  <div class="chartrow">
+    <div class="panel">
+      <div class="subhead"><div><h3 style="margin:0">Inventory Snapshot</h3><div class="kpi-note">Current balance and reorder status</div></div><span class="badge" id="dItemCount">0 items</span></div>
+      <div class="tablewrap" id="dashTable"></div>
+    </div>
+    <div class="panel">
+      <div class="subhead"><div><h3 style="margin:0">Risk Overview</h3><div class="kpi-note">Low-stock items requiring attention</div></div></div>
+      <div class="donutwrap" style="margin-top:14px">
+        <div class="donut"><span id="riskPct">0%</span></div>
+        <div id="riskLegend"></div>
+      </div>
+    </div>
+  </div>
+  </div>
+</section>
+
+<section id="inventory" class="page">
+  <div class="section-head">
+    <div><h1>Inventory Master</h1><p>Ledger, item master, units and current balance</p></div>
+    <div class="actions"><button id="addItemBtn" class="btn" onclick="openItemModal()">＋ ADD ITEM</button></div>
+  </div>
+  <div class="panel">
+    <div class="toolbar"><input id="invSearch" placeholder="Search item / category..." oninput="renderInventory()"><select id="unitFilter" onchange="renderInventory()"><option value="">All Units</option></select></div>
+    <div class="tablewrap" id="inventoryTable" style="margin-top:12px"></div>
+  </div>
+</section>
+
+<section id="stockin" class="page">
+  <div class="section-head">
+    <div><h1>Stock In / Purchase</h1><p>Enter one invoice with multiple items on the same screen</p></div>
+    <div class="actions"><button id="newInBtn" class="btn" onclick="resetStockInForm()">＋ NEW INVOICE</button></div>
+  </div>
+  <div id="stockInFormPanel" class="panel">
+    <div class="formbox">
+      <h3 id="stockInFormTitle">New Purchase Invoice</h3>
+      <input type="hidden" id="editInId">
+      <div class="form-grid">
+        <div class="field"><label>Invoice Number</label><input id="inInvoice" placeholder="INV-001"></div>
+        <div class="field"><label>Date</label><input id="inDate" type="date"></div>
+        <div class="field"><label>Supplier</label><input id="inSupplier" placeholder="Supplier name"></div>
+      </div>
+      <div class="subhead" style="margin-top:14px"><b>Invoice Items</b><button class="btn dark" onclick="addInRow()">＋ ADD ITEM</button></div>
+      <div class="item-row" style="margin-top:9px;font-weight:900;color:#91a3b5"><div>Item</div><div>Qty</div><div>Rate</div><div style="text-align:right">Amount</div><div></div></div>
+      <div id="inRows"></div>
+      <div class="totalbar"><span>Total Invoice Value</span><span>₹ <span id="inTotal">0.00</span></span></div>
+      <div class="actions" style="margin-top:12px">
+        <button id="saveInBtn" class="btn" onclick="saveStockIn()">SAVE INVOICE</button>
+        <button class="btn ghost" onclick="resetStockInForm()">CLEAR</button>
+      </div>
+      <div id="inMsg" class="msg"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="subhead"><div><h3 style="margin:0">Saved Purchase Invoices</h3><div class="kpi-note">Edit is available to ADMIN, MANAGER and Q SEC. Delete is ADMIN/MANAGER.</div></div></div>
+    <div class="tablewrap" id="inList" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<section id="stockout" class="page">
+  <div class="section-head">
+    <div><h1>Stock Out / Issue</h1><p>Issue items against IV-1 to IV-10 vouchers with live balance</p></div>
+    <div class="actions"><button id="newOutBtn" class="btn" onclick="resetStockOutForm()">＋ NEW VOUCHER</button></div>
+  </div>
+  <div id="stockOutFormPanel" class="panel">
+    <div class="formbox">
+      <h3 id="stockOutFormTitle">New Issue Voucher</h3>
+      <input type="hidden" id="editOutId">
+      <div class="form-grid">
+        <div class="field"><label>Voucher Number</label><select id="outVoucher"></select></div>
+        <div class="field"><label>Date</label><input id="outDate" type="date"></div>
+        <div class="field"><label>Issued To</label><input id="outIssuedTo" placeholder="Issued to / section / authority"></div>
+      </div>
+      <div class="subhead" style="margin-top:14px"><b>Issue Items</b><button class="btn dark" onclick="addOutRow()">＋ ADD ITEM</button></div>
+      <div class="item-row" style="margin-top:9px;font-weight:900;color:#91a3b5"><div>Item</div><div>Balance</div><div>Qty</div><div style="text-align:right">Amount</div><div></div></div>
+      <div id="outRows"></div>
+      <div class="totalbar"><span>Total Issue Value</span><span>₹ <span id="outTotal">0.00</span></span></div>
+      <div class="actions" style="margin-top:12px">
+        <button id="saveOutBtn" class="btn" onclick="saveStockOut()">SAVE VOUCHER</button>
+        <button class="btn ghost" onclick="resetStockOutForm()">CLEAR</button>
+      </div>
+      <div id="outMsg" class="msg"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <div class="subhead"><div><h3 style="margin:0">Saved Issue Vouchers</h3><div class="kpi-note">Edit is available to ADMIN, MANAGER and Q SEC. Delete is ADMIN/MANAGER.</div></div></div>
+    <div class="tablewrap" id="outList" style="margin-top:10px"></div>
+  </div>
+</section>
+
+<section id="reports" class="page">
+  <div id="accountsReports" class="accounts-report hidden">
+    <div class="section-head"><div><h1>Cash Book Reports</h1><p>Accounts day report and carry-forward position</p></div><div class="actions"><button class="btn dark" onclick="printAccountsReport()">PRINT / PDF</button></div></div>
+    <div class="panel no-print"><div class="toolbar"><input id="accReportDate" type="date"><button class="btn" onclick="renderAccountsReports()">VIEW DAY</button><button class="btn dark" onclick="clearAccountsReport()">TODAY</button></div></div>
+    <div class="grid" style="margin-top:16px"><div class="metric m1"><span class="label">CASH IN HAND</span><b id="accRepCash">₹0.00</b><small>Closing balance</small></div><div class="metric m2"><span class="label">CASH AT BANK</span><b id="accRepBank">₹0.00</b><small>Closing balance</small></div><div class="metric m3"><span class="label">TOTAL RECEIPTS</span><b id="accRepReceipts">₹0.00</b><small>Selected day</small></div><div class="metric m4"><span class="label">TOTAL PAYMENTS</span><b id="accRepPayments">₹0.00</b><small>Selected day</small></div></div>
+    <div class="panel" id="accountsReportContent" style="margin-top:16px"></div>
+  </div>
+  <div id="inventoryReports">
+    <div class="section-head"><div><h1>Reports</h1><p>Day-wise summary, stock transactions and current stock</p></div><div class="actions"><button class="btn dark" onclick="exportCSV()">EXPORT CSV</button><button class="btn ghost" onclick="printPage()">PRINT / PDF</button></div></div>
+    <div class="panel no-print"><div class="toolbar"><input id="fromDate" type="date"><input id="toDate" type="date"><button class="btn" onclick="renderReports()">FILTER</button><button class="btn dark" onclick="clearReportFilter()">CLEAR</button></div></div><div id="reportCards" class="grid" style="margin-top:16px"></div><div class="panel" id="reportsContent"></div>
+  </div>
+</section>
+
+<section id="camp" class="page">
+  <div class="section-head"><div><h1>Camp Details</h1><p>Each camp has an independent inventory, messing, POL, incidental and cash book.</p></div><div class="actions"><span class="camp-active" id="campActiveLabel">No camp selected</span></div></div>
+  <div class="panel">
+    <div class="formbox">
+      <h3>Start / Add New Camp</h3>
+      <div class="form-grid">
+        <div class="field"><label>Camp Code *</label><input id="campCode" placeholder="CATC-01-2026"></div>
+        <div class="field"><label>Camp Name *</label><input id="campName" placeholder="CATC Camp"></div>
+        <div class="field"><label>Station / Location</label><input id="campStation" placeholder="Bengaluru / Station"></div>
+        <div class="field"><label>From Date *</label><input id="campFrom" type="date"></div>
+        <div class="field"><label>To Date</label><input id="campTo" type="date"></div>
+        <div class="field"><label>Remarks</label><input id="campRemarks" placeholder="Camp purpose / details"></div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveCamp()">START NEW CAMP</button><button class="btn ghost" onclick="clearCampForm()">CLEAR</button></div>
+      <div id="campMsg" class="msg"></div>
+    </div>
+  </div>
+  <div class="panel camp-list"><div class="subhead"><div><h3 style="margin:0">Camp Register</h3><div class="kpi-note">Select a camp to work on its own fresh transaction set.</div></div></div><div class="tablewrap" id="campTable" style="margin-top:10px"></div></div>
+</section>
+
+<section id="messing" class="page">
+  <div class="section-head"><div><h1>Messing</h1><p>Camp-wise messing preparation, purchases and issues.</p></div></div>
+  <div class="panel"><div class="module-grid">
+    <div class="module-card"><h3>Messing Purchase</h3><p>Create a purchase invoice with multiple items for the active camp.</p><button class="btn" onclick="showPage('stockin',document.querySelector('[data-page=stockin]'))">OPEN STOCK IN / PURCHASE</button></div>
+    <div class="module-card"><h3>Messing Issue</h3><p>Issue store items against IV-1 to IV-10 for the active camp.</p><button class="btn" onclick="showPage('stockout',document.querySelector('[data-page=stockout]'))">OPEN STOCK OUT / ISSUE</button></div>
+    <div class="module-card"><h3>Messing Register</h3><p>Review saved purchase invoices and issue vouchers for the active camp.</p><button class="btn ghost" onclick="showPage('reports',document.querySelector('[data-page=reports]'))">OPEN REPORTS</button></div>
+  </div></div>
+</section>
+
+<section id="pol" class="page">
+  <div class="module-banner"><div><div class="crumb">POL • Petrol, Oil & Lubricants</div><h2>POL Management</h2><div class="muted">Vehicle attachment, POL drawn, car diary and filtered reports.</div></div><div class="side-pill">Active Camp: <span id="polCampBadge">—</span></div></div>
+  <div class="module-tabs">
+    <button class="module-tab active" data-poltab="vehicle" onclick="setPOLTab('vehicle')">1 • Vehicle Attachment</button>
+    <button class="module-tab" data-poltab="drawn" onclick="setPOLTab('drawn')">2 • POL Drawn</button>
+    <button class="module-tab" data-poltab="diary" onclick="setPOLTab('diary')">3 • Car Diary</button>
+    <button class="module-tab" data-poltab="detach" onclick="setPOLTab('detach')">4 • Vehicle Detachment</button>
+    <button class="module-tab" data-poltab="report" onclick="setPOLTab('report')">5 • Reports</button>
+  </div>
+
+  <div id="polVehicleSection" class="pol-section">
+    <div class="card-grid-3" style="margin-bottom:14px">
+      <div class="summary-card"><span>Total Vehicles</span><b id="polKpiVehicles">0</b></div>
+      <div class="summary-card"><span>Diesel Vehicles</span><b id="polKpiDiesel">0</b></div>
+      <div class="summary-card"><span>Petrol Vehicles</span><b id="polKpiPetrol">0</b></div>
+    </div>
+    <div class="panel"><div class="subhead"><div><h3>Vehicle Attachment Details</h3><div class="kpi-note">Add and manage vehicles attached to the active camp.</div></div><div class="actions"><button class="btn" onclick="clearPOLVehicle()">＋ ADD VEHICLE</button><button class="btn green" onclick="exportPOLVehicleCSV()">EXPORT CSV</button><button class="btn dark" onclick="printPOLVehicleReport()">PRINT / PDF</button></div></div>
+      <div class="form-grid">
+        <div class="field"><label>Vehicle Type *</label><select id="polVehType"><option value="">Select</option><option>Bolero</option><option>Canter</option><option>Gypsy</option><option>Motor Cycle</option></select></div>
+        <div class="field"><label>Vehicle Number *</label><input id="polVehNo" placeholder="KA-01-G-1234"></div>
+        <div class="field"><label>Fuel Type *</label><select id="polFuelType"><option>Diesel</option><option>Petrol</option></select></div>
+        <div class="field"><label>Tank Balance (Ltr)</label><input id="polBal" type="number" min="0" step="0.01" value="0"></div>
+        <div class="field"><label>KPL (Km per Ltr) *</label><input id="polKPL" type="number" step="0.01" min="0.01"></div>
+        <div class="field"><label>Attached From *</label><input id="polAttachedFrom" type="date"></div>
+        <div class="field"><label>Name of Unit *</label><input id="polUnit" placeholder="39 Kar Bn NCC"></div>
+        <div class="field"><label>Driver Name *</label><input id="polDriver"></div>
+        <div class="field"><label>Driver Contact</label><input id="polDriverContact"></div>
+        <div class="field"><label>Opening KM</label><input id="polKM" type="number" step="0.1" min="0"></div>
+        <div class="field" style="grid-column:span 3"><label>Authority / Remarks</label><input id="polAuth" placeholder="Authority / remarks"></div>
+        
+      </div>
+      <div class="actions"><button class="btn green" onclick="savePOLVehicle()">SAVE VEHICLE</button><button class="btn ghost" onclick="clearPOLVehicle()">CLEAR</button></div><div id="polVehMsg" class="msg"></div>
+    </div>
+    <div class="panel"><div class="toolbar"><input id="polVehicleSearch" placeholder="Search vehicle / driver..." oninput="renderPOLVehicleRegister()"><select id="polVehicleTypeFilter" onchange="renderPOLVehicleRegister()"><option value="">All Vehicle Types</option><option>Bolero</option><option>Canter</option><option>Gypsy</option><option>Motor Cycle</option></select><select id="polFuelFilter" onchange="renderPOLVehicleRegister()"><option value="">All Fuel Types</option><option>Diesel</option><option>Petrol</option></select></div><div class="tablewrap" id="polVehiclesTable" style="margin-top:10px"></div></div>
+  </div>
+
+  <div id="polDrawnSection" class="pol-section hidden">
+    <div class="panel"><div class="subhead"><div><h3>POL Drawn Details</h3><div class="kpi-note">Petrol/Diesel drawn against a vehicle; previous and present fuel are maintained automatically.</div></div><div class="actions"><button class="btn green" onclick="exportPOLCSV()">EXPORT CSV</button><button class="btn dark" onclick="printPOLDrawnReport()">PRINT / PDF</button></div></div>
+      <div class="form-grid">
+        <div class="field"><label>Vehicle Number *</label><select id="polVehSelect" onchange="loadPOLVehicle()"><option value="">Select Vehicle</option></select></div>
+        <div class="field"><label>Fuel Type *</label><select id="polFuel"><option>Petrol</option><option>Diesel</option></select></div>
+        <div class="field"><label>Invoice Number *</label><input id="polInvoice"></div>
+        <div class="field"><label>Petrol Bunk Details *</label><input id="polBunk"></div>
+        <div class="field"><label>Previous Fuel (Ltr)</label><input id="polPrev" class="auto-field" readonly value="0.00"></div>
+        <div class="field"><label>Fuel Drawn (Ltr) *</label><input id="polLitres" type="number" min="0.01" step="0.01" oninput="calcPOL()"></div>
+        <div class="field"><label>Present Fuel (Ltr)</label><input id="polPresent" class="calculated" readonly value="0.00"></div>
+        <div class="field"><label>Rate / Ltr *</label><input id="polRate" type="number" min="0.01" step="0.01" oninput="calcPOL()"></div>
+        <div class="field"><label>Total Amount</label><input id="polAmount" class="calculated" readonly value="₹0.00"></div>
+        <div class="field"><label>Date</label><input id="polDate" type="date"></div>
+      </div>
+      <div class="pol-info" id="polVehicleInfo">No vehicle selected.</div>
+      <div class="actions"><button id="polSaveBtn" class="btn green" onclick="savePOLEntry()">SAVE POL ENTRY</button><button class="btn ghost" onclick="clearPOLEntry()">CLEAR</button></div><div id="polMsg" class="msg"></div>
+    </div>
+    <div class="panel"><div class="tablewrap" id="polEntriesTable"></div></div>
+  </div>
+
+  <div id="polDiarySection" class="pol-section hidden">
+    <div class="panel"><div class="subhead"><div><h3>Car Diary</h3><div class="kpi-note">Opening KM is auto-fetched. Closing KM = Opening KM + KM Run. POL consumed = KM Run / KPL.</div></div><button class="btn dark" onclick="printCarDiaryReport()">PRINT / PDF</button></div>
+      <div class="diary-grid">
+        <div class="field"><label>Vehicle Number *</label><select id="diaryVehicle" onchange="loadDiaryVehicle()"><option value="">Select Vehicle</option></select></div>
+        <div class="field"><label>Date *</label><input id="diaryDate" type="date"></div>
+        <div class="field"><label>Nature of Duty *</label><select id="diaryNature"><option>Camp Duty</option><option>Routine Camp Movement</option><option>Transport of Stores</option><option>Training / Exercise</option><option>Other Duty</option></select></div>
+        <div class="field"><label>Purpose of Duty *</label><input id="diaryPurpose" placeholder="Purpose of duty"></div>
+        <div class="field"><label>From *</label><input id="diaryFrom"></div>
+        <div class="field"><label>To *</label><input id="diaryTo"></div>
+        <div class="field"><label>Opening KM</label><input id="diaryOpeningKm" class="auto-field" readonly></div>
+        <div class="field"><label>KM Run *</label><input id="diaryKmRun" type="number" min="0" step="0.1" oninput="calcDiary()"></div>
+        <div class="field"><label>Closing KM</label><input id="diaryClosingKm" class="calculated" readonly></div>
+        <div class="field"><label>KPL</label><input id="diaryKpl" class="auto-field" readonly></div>
+        <div class="field"><label>POL Consumed (Ltr)</label><input id="diaryPolConsumed" class="calculated" readonly></div>
+        <div class="field"><label>Remarks</label><input id="diaryRemarks"></div>
+      </div>
+      <div class="actions"><button class="btn green" onclick="saveCarDiary()">SAVE DIARY ENTRY</button><button class="btn ghost" onclick="clearCarDiary()">CLEAR</button></div><div id="diaryMsg" class="msg"></div>
+    </div>
+    <div class="panel"><div class="toolbar"><select id="diaryReportVehicle"><option value="">All Vehicles</option></select><input id="diaryReportFrom" type="date"><input id="diaryReportTo" type="date"><button class="btn" onclick="renderCarDiaryRegister()">FILTER</button><button class="btn green" onclick="exportCarDiaryCSV()">EXPORT CSV</button></div><div class="tablewrap" style="margin-top:10px" id="carDiaryTable"></div></div>
+  </div>
+
+  <div id="polDetachSection" class="pol-section hidden">
+    <div class="panel">
+      <div class="subhead"><div><h3>Vehicle Detachment Details</h3><div class="kpi-note">Vehicle closing details are calculated from the attachment record, Car Diary and POL Drawn register.</div></div>
+        <div class="actions"><button class="btn green" onclick="exportPOLDetachmentCSV()">EXPORT CSV</button><button class="btn dark" onclick="printPOLDetachmentReport()">PRINT / PDF</button></div></div>
+      <div class="form-grid">
+        <div class="field"><label>Vehicle Type</label><input id="detVehType" class="auto-field" readonly></div>
+        <div class="field"><label>Vehicle Number *</label><select id="detVehSelect" onchange="loadVehicleDetachment()"><option value="">Select Vehicle</option></select></div>
+        <div class="field"><label>Unit</label><input id="detUnit" class="auto-field" readonly></div>
+        <div class="field"><label>Attached From</label><input id="detAttachedFrom" class="auto-field" readonly></div>
+        <div class="field"><label>Attached To *</label><input id="detAttachedTo" type="date"></div>
+        <div class="field"><label>Opening KM</label><input id="detOpeningKm" class="auto-field" readonly></div>
+        <div class="field"><label>KM Run in Camp</label><input id="detKmRun" class="calculated" readonly></div>
+        <div class="field"><label>KM Closing</label><input id="detClosingKm" class="calculated" readonly></div>
+        <div class="field"><label>KPL</label><input id="detKpl" class="auto-field" readonly></div>
+        <div class="field"><label>POL Consumed (Ltr)</label><input id="detPolConsumed" class="calculated" readonly></div>
+        <div class="field"><label>POL Drawn Total (Ltr)</label><input id="detPolDrawn" class="calculated" readonly></div>
+        <div class="field"><label>Tank Balance (Ltr)</label><input id="detTankBalance" class="calculated" readonly></div>
+      </div>
+      <div class="actions"><button class="btn green" onclick="saveVehicleDetachment()">SAVE DETACHMENT</button><button class="btn ghost" onclick="clearVehicleDetachment()">CLEAR</button></div><div id="detMsg" class="msg"></div>
+    </div>
+    <div class="panel"><div class="toolbar"><input id="detSearch" placeholder="Search vehicle / unit..." oninput="renderDetachmentRegister()"><button class="btn green" onclick="exportPOLDetachmentCSV()">EXPORT CSV</button><button class="btn dark" onclick="printPOLDetachmentReport()">PRINT / PDF</button></div><div class="tablewrap" id="detachmentTable" style="margin-top:10px"></div></div>
+  </div>
+
+  <div id="polReportSection" class="pol-section hidden">
+    <div class="panel"><div class="report-filter"><div class="field"><label>From Date</label><input id="polRepFrom" type="date"></div><div class="field"><label>To Date</label><input id="polRepTo" type="date"></div><div class="field"><label>Vehicle</label><select id="polRepVehicle"><option value="">All Vehicles</option></select></div><div class="field"><label>Report Type</label><select id="polRepType"><option value="vehicle">Vehicle Attachment</option><option value="drawn">POL Drawn</option><option value="diary">Car Diary</option><option value="detach">Vehicle Detachment</option></select></div></div><div class="actions"><button class="btn" onclick="renderPOLReport()">GENERATE REPORT</button><button class="btn green" onclick="exportPOLReportCSV()">EXPORT CSV</button><button class="btn dark" onclick="printPOLReport()">PRINT / PDF</button></div></div>
+    <div class="panel"><div id="polReportContent"></div></div>
+  </div>
+</section>
+
+
+
+<section id="incidentalRV" class="page">
+  <div class="module-banner"><div><div class="crumb">INCIDENTAL • RECEIPT</div><h2>Incidental Receipt Voucher (RV)</h2><div class="muted">Fresh camp-wise receipt voucher with auto CRV numbering and printable official format.</div></div><div class="side-pill">CRV / 39KAR / FY / CAMP / Auto</div></div>
+  <div class="panel">
+    <div class="form-grid">
+      <div class="field"><label>Invoice Number *</label><input id="rvInvoice"></div>
+      <div class="field"><label>Date *</label><input id="rvDate" type="date"></div>
+      <div class="field"><label>Vendor Name *</label><input id="rvParty"></div>
+      <div class="field"><label>Vendor Address *</label><input id="rvAddress"></div>
+      <div class="field"><label>Station *</label><input id="rvStation"></div>
+      <div class="field"><label>CRV No. (Auto)</label><input id="rvCrv" class="auto-field" readonly></div>
+      <div class="field"><label>Authority *</label><select id="rvAuthoritySelect" onchange="toggleRVOtherAuthority()"><option value="CAMP COMMANDANT">Camp Commandant</option><option value="OTHER">Other</option></select></div>
+      <div class="field"><label>Other Authority Name</label><input id="rvAuthorityName" disabled placeholder="Enter main authority"></div>
+      <div class="field"><label>Other Letter No.</label><input id="rvAuthorityLetter" disabled placeholder="Enter letter no."></div>
+    </div>
+    <div class="formbox" style="margin-top:14px"><div class="subhead"><div><h3>Receipt Items</h3><div class="kpi-note">Nomenclature, A/u, Exp/N-Exp, Qty, Rate, Page No., Authorised Units and Remarks.</div></div><button class="btn" type="button" onclick="addRVItem()">＋ ADD ITEM</button></div><div id="rvItems" class="rviv-items"></div></div>
+    <div class="form-grid" style="margin-top:14px"><div class="field"><label>GST Mode</label><select id="rvGstMode"><option value="inclusive">Inclusive GST</option><option value="exclusive">Exclusive GST</option></select></div><div class="field"><label>GST Rate (%)</label><input id="rvGstRate" type="number" min="0" step="any"></div><div class="field"><label>Subtotal</label><input id="rvSubtotal" class="calculated" readonly></div><div class="field"><label>GST Amount</label><input id="rvGstAmount" class="calculated" readonly></div><div class="field"><label>Total Amount</label><input id="rvAmount" class="calculated" readonly></div><div class="field" style="grid-column:span 3"><label>General Remarks</label><textarea id="rvDesc"></textarea></div></div>
+    <div class="actions"><button class="btn green" onclick="saveIncidentalRV()">SAVE / UPDATE RV</button><button class="btn green" onclick="generateCurrentRV()">GENERATE RV</button><button class="btn ghost" onclick="clearIncidentalRV()">CLEAR</button></div><div id="rvMsg" class="msg"></div>
+  </div>
+  <div class="panel"><div class="toolbar"><input id="rvSearch" placeholder="Search invoice / vendor..." oninput="renderIncidentalRV()"><button class="btn green" onclick="exportIncidentalCSV('RV')">EXPORT CSV</button></div><div id="incidentalRVTable" style="margin-top:10px"></div></div>
+</section>
+
+<section id="incidentalIV" class="page">
+  <div class="module-banner"><div><div class="crumb">INCIDENTAL • ISSUE</div><h2>Incidental Issue Voucher (IV)</h2><div class="muted">Items are fetched from the active camp's Incidental RV register and issued against available balance.</div></div><div class="side-pill">CIV / 39KAR / FY / EXP or N-EXP / Auto</div></div>
+  <div class="panel">
+    <div class="form-grid">
+      <div class="field"><label>IV No. (Auto)</label><input id="ivNoAuto" class="auto-field" readonly></div>
+      <div class="field"><label>Date *</label><input id="ivDateInc" type="date"></div>
+      <div class="field"><label>Unit / Receiving Unit *</label><input id="ivUnitInc"></div>
+      <div class="field"><label>Station</label><input id="ivStationInc"></div>
+      <div class="field"><label>Authority *</label><div class="badge" style="display:flex;align-items:center;height:40px">CAMP COMMANDANT</div></div>
+      <div class="field"><label>Item from Incidental RV *</label><select id="ivSourceItem" onchange="loadIVSourceItem()"><option value="">Select item</option></select></div>
+      <div class="field"><label>A/u</label><input id="ivAutoUnit" class="auto-field" readonly></div>
+      <div class="field"><label>Balance</label><input id="ivAutoBalance" class="calculated" readonly></div>
+      <div class="field"><label>Page No.</label><input id="ivAutoPage" class="auto-field" readonly></div>
+      <div class="field"><label>Qty Issue *</label><input id="ivIssueQty" type="number" min="0.01" step="any"></div>
+      <div class="field"><label>Remarks</label><input id="ivIssueRemarks" placeholder="Optional"></div>
+    </div>
+    <div class="formbox" style="margin-top:14px"><div class="subhead"><h3>Issue Items</h3><button class="btn" type="button" onclick="addSelectedIVItem()">＋ ADD ITEM</button></div><div id="ivItemsInc" class="rviv-items"></div></div>
+    <div class="actions"><button class="btn green" onclick="saveIncidentalIV()">SAVE / UPDATE IV</button><button class="btn green" onclick="generateCurrentIV()">GENERATE IV</button><button class="btn ghost" onclick="clearIncidentalIV()">CLEAR</button></div><div id="ivMsgInc" class="msg"></div>
+  </div>
+  <div class="panel"><div class="toolbar"><input id="ivSearch" placeholder="Search IV / unit..." oninput="renderIncidentalIV()"><button class="btn green" onclick="exportIncidentalCSV('IV')">EXPORT CSV</button></div><div id="incidentalIVTable" style="margin-top:10px"></div></div>
+</section>
+
+
+<section id="cashbook" class="page">
+  <div class="section-head"><div><h1>Cash Book</h1><p>Accounts entry. Payment source details auto-fetch from Messing RV / Incidental RV / POL Drawn. RV & PV numbers are entered manually.</p></div></div>
+
+  <div class="panel">
+    <div class="cash-tabs">
+      <button id="cashReceiptTab" class="cash-tab active" onclick="setCashType('RECEIPT')">RECEIPTS</button>
+      <button id="cashPaymentTab" class="cash-tab" onclick="setCashType('PAYMENT')">PAYMENTS</button>
+      <button id="cashDrawnTab" class="cash-tab" onclick="setCashType('CASH_DRAWN')">CASH DRAWN</button>
+      <button id="cashDayTab" class="cash-tab" onclick="setCashType('DAY')">DAY CASH BOOK / CLOSE</button>
+    </div>
+    <div id="cashAccountsNote" class="readonly-note hidden">Only ACCOUNTS and ADMIN can save Cash Book entries or close a day.</div>
+
+    <div id="cashReceiptFormWrap" class="formbox">
+      <h3>Receipt Entry / RV</h3>
+      <div class="form-grid">
+        <div class="field"><label>Date *</label><input id="cashDate" type="date"></div>
+        <div class="field"><label>RV No. *</label><input id="cashVoucherNo" placeholder="Enter RV No."></div>
+        <div class="field"><label>From Whom Received *</label><input id="cashParty" placeholder="Name / Office"></div>
+        <div class="field"><label>On What Account</label><input id="cashAccountText" placeholder="Purpose / account"></div>
+        <div class="field"><label>Receipt Mode *</label><select id="cashMode"><option value="CASH">CASH</option><option value="BANK">BANK</option></select></div>
+        <div class="field"><label>Amount *</label><input id="cashAmount" type="number" min="0.01" step="0.01"></div>
+        <div class="field"><label>Initial</label><input id="cashInitial"></div>
+        <div class="field" style="grid-column:span 3"><label>Narration</label><input id="cashNarration" placeholder="Receipt narration"></div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button id="cashSaveBtn" class="btn" onclick="saveCashbook()">SAVE RECEIPT</button><button class="btn ghost" onclick="clearCashbookForm()">CLEAR</button></div>
+      <div id="cashMsg" class="msg"></div>
+      <div id="receiptAllocationWrap" class="formbox hidden" style="margin-top:14px;border:1px solid #334155">
+        <h3>Receipt Amount Distribution</h3>
+        <div class="kpi-note" id="receiptAllocationInfo">Distribute the saved receipt amount across the applicable heads. The total allocation must equal the receipt amount.</div>
+        <div class="form-grid" style="margin-top:12px">
+          <div class="field"><label>Messing</label><input id="allocMessing" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>INC</label><input id="allocInc" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>POL</label><input id="allocPol" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>Rank Pay</label><input id="allocRankPay" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>TA Cadets</label><input id="allocTaCadets" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>TA/DA Civ Staff</label><input id="allocTaDaCiv" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>Rent</label><input id="allocRent" type="number" min="0" step="0.01" value="0"></div>
+          <div class="field"><label>Others</label><input id="allocOthers" type="number" min="0" step="0.01" value="0"></div>
+        </div>
+        <div class="actions" style="margin-top:12px">
+          <button class="btn" onclick="saveReceiptAllocation()">SAVE DISTRIBUTION</button>
+          <button class="btn ghost" onclick="hideReceiptAllocation()">CLOSE</button>
+        </div>
+        <div id="receiptAllocationMsg" class="msg"></div>
+      </div>
+    </div>
+
+    <div id="cashPaymentFormWrap" class="formbox hidden">
+      <h3>Payment Entry / PV</h3>
+      <div class="form-grid">
+        <div class="field"><label>Date *</label><input id="payDate" type="date"></div>
+        <div class="field"><label>PV No. *</label><input id="payVoucherNo" placeholder="Enter PV No."></div>
+        <div class="field"><label>Code Head *</label><select id="cashPaymentCodeHead" onchange="paymentHeadChanged()"><option value="">Select code head</option><option>MESSING</option><option>INC</option><option>POL</option><option>RANK PAY</option><option>TA CADETS</option><option>TA/DA CIV STAFF</option><option>RENT</option><option>OTHERS</option></select></div>
+        <div class="field" id="cashSourceTypeWrap"><label>Source Type *</label><select id="cashSourceType" onchange="loadCashSources()"><option value="MESSING_RV">MESSING RV</option><option value="INCIDENTAL_RV">INCIDENTAL RV</option><option value="POL_DRAWN">POL DRAWN</option></select></div>
+        <div class="field" id="cashSourceWrap" style="grid-column:span 2"><label>Source Invoice / Voucher</label><select id="cashSource" onchange="fillCashSource()"><option value="">Select source</option></select></div>
+        <div class="field"><label>Invoice / Reference No.</label><input id="cashInvoice" class="auto-field" readonly></div>
+        <div class="field"><label>To Whom Paid</label><input id="cashPaymentParty" class="auto-field" readonly></div>
+        <div class="field"><label>On What Account</label><input id="cashPaymentAccount" class="auto-field" readonly></div>
+        <div class="field"><label>Amount *</label><input id="cashPaymentAmount" class="calculated" readonly></div>
+        <div class="field"><label>Payment Mode</label><select id="cashPaymentMode" onchange="updatePaymentBalancePreview()"><option>CASH</option><option>BANK</option></select></div>
+        <div class="field" style="grid-column:span 2"><label>Narration</label><input id="cashPaymentNarration" placeholder="Payment narration"></div>
+      </div>
+      <div id="cashSourceDetails" class="source-details hidden">
+        <div class="source-grid">
+          <div class="field"><label>Source Date</label><input id="cashSourceDate" class="auto-field" readonly></div>
+          <div class="field"><label>Source Party / Bunk</label><input id="cashSourceParty" class="auto-field" readonly></div>
+          <div class="field"><label>Source Remaining Amount</label><input id="cashSourceTotal" class="calculated" readonly></div>
+        </div>
+        <div class="source-items"><table><thead><tr><th>Purchased Item / Particular</th><th>A/u</th><th>Qty</th><th>Rate</th><th>Amount</th></tr></thead><tbody id="cashSourceItemsBody"></tbody></table></div>
+      </div>
+      <div id="cashPaymentBalances" class="balance-preview">
+        <div class="balance-card"><span>Current Cash Balance</span><b id="payCashCurrent">₹0.00</b></div>
+        <div class="balance-card"><span>Current Bank Balance</span><b id="payBankCurrent">₹0.00</b></div>
+        <div class="balance-card"><span>Current Head Balance</span><b id="payHeadCurrent">₹0.00</b></div>
+        <div class="balance-card"><span>Cash / Bank After Payment</span><b id="payCashBankAfter">₹0.00</b></div>
+        <div class="balance-card"><span>Bank Balance After Payment</span><b id="payBankAfter">₹0.00</b></div>
+        <div class="balance-card"><span>Head Balance After Payment</span><b id="payHeadAfter">₹0.00</b></div>
+      </div>
+      <div class="source-details" style="margin-top:10px">
+        <h4 style="margin:0 0 8px">Recent Cash Drawn Entries</h4>
+        <div id="cashDrawnPreview" class="tablewrap"></div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveCashbook()">SAVE PAYMENT</button><button class="btn ghost" onclick="clearCashbookForm()">CLEAR</button></div>
+      <div id="paymentMsg" class="msg"></div>
+    </div>
+
+    <div id="cashDrawnFormWrap" class="formbox hidden">
+      <h3>Cash Drawn from Bank</h3>
+      <div class="form-grid">
+        <div class="field"><label>Date *</label><input id="cdDate" type="date"></div>
+        <div class="field"><label>CD No. *</label><input id="cdNo" placeholder="Enter CD No."></div>
+        <div class="field"><label>Bank / Cheque Reference</label><input id="cdCheque"></div>
+        <div class="field"><label>Amount Drawn *</label><input id="cdAmount" type="number" min="0.01" step="0.01"></div>
+        <div class="field" style="grid-column:span 3"><label>Purpose</label><input id="cdPurpose" placeholder="Cash drawn for camp expenses"></div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveCashDrawn()">SAVE CASH DRAWN</button><button class="btn ghost" onclick="clearCashDrawn()">CLEAR</button></div>
+      <div id="cashDrawnMsg" class="msg"></div>
+    </div>
+
+    <div id="cashDayWrap" class="formbox hidden">
+      <h3>Day Cash Book / Day Close</h3>
+      <div class="form-grid">
+        <div class="field"><label>Cash Book Date *</label><input id="cashDayDate" type="date" onchange="renderDayClose()"></div>
+        <div class="field"><label>Status</label><input id="cashDayStatus" class="auto-field" readonly value="OPEN"></div>
+      </div>
+      <div class="cash-day-grid" style="margin-top:12px">
+        <div class="daybox"><span>Balance B/F – Cash</span><b id="bfCash">₹0.00</b></div>
+        <div class="daybox"><span>Balance B/F – Bank</span><b id="bfBank">₹0.00</b></div>
+        <div class="daybox"><span>Receipts – Cash</span><b id="dayReceiptCash">₹0.00</b></div>
+        <div class="daybox"><span>Receipts – Bank</span><b id="dayReceiptBank">₹0.00</b></div>
+        <div class="daybox"><span>Payments – Cash</span><b id="dayPaymentCash">₹0.00</b></div>
+        <div class="daybox"><span>Payments – Bank</span><b id="dayPaymentBank">₹0.00</b></div>
+        <div class="daybox"><span>Cash Drawn</span><b id="dayCashDrawn">₹0.00</b></div>
+        <div class="daybox"><span>Balance C/F – Cash</span><b id="cfCash">₹0.00</b></div>
+        <div class="daybox"><span>Balance C/F – Bank</span><b id="cfBank">₹0.00</b></div>
+        <div class="daybox"><span>Net Balance</span><b id="dayNet">₹0.00</b></div>
+      </div>
+      <div id="cashDayNote" class="cash-close-note">Close the day after all Accounts entries are complete. The next day's B/F is taken from the previous day's C/F.</div>
+      <div class="actions" style="margin-top:12px"><button class="btn" onclick="prepareDayCashbook()">PREPARE DAY</button><button class="btn gold" onclick="closeCashbookDay()">CLOSE DAY</button><button id="reopenDayBtn" class="btn red" onclick="reopenCashbookDay()" style="display:none">OPEN DAY</button><button class="btn ghost" onclick="printDayCashbook()">PRINT / PDF</button></div>
+      <div class="tablewrap" style="margin-top:14px" id="dayEntriesTable"></div>
+    </div>
+  </div>
+
+  <div class="panel"><div class="subhead"><div><h3 style="margin:0">Cash Book Register</h3><div class="kpi-note">Receipts and payments are shown against the active camp.</div></div></div><div class="tablewrap" id="cashbookTable"></div></div>
+</section>
+
+<section id="users" class="page">
+  <div class="section-head"><div><h1>User Management</h1><p>ADMIN can manage profile roles. Create the Auth user first in Supabase Authentication.</p></div></div>
+  <div class="panel">
+    <div class="formbox">
+      <h3>Add / Update User Profile</h3>
+      <div class="form-grid">
+        <div class="field"><label>Auth User UUID</label><input id="uId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
+        <div class="field"><label>Display Name</label><input id="uName" placeholder="Storekeeper"></div>
+        <div class="field"><label>Role</label><select id="uRole"><option>ADMIN</option><option>MANAGER</option><option>Q_SEC</option><option>ACCOUNTS</option><option>VIEWER</option></select></div>
+      </div>
+      <div class="actions" style="margin-top:12px"><button class="btn" onclick="saveUserProfile()">SAVE USER PROFILE</button></div>
+      <div id="userMsg" class="msg"></div>
+    </div>
+  </div>
+  <div class="panel"><div class="subhead"><h3 style="margin:0">Profiles</h3><span class="badge">ADMIN ONLY</span></div><div class="tablewrap" id="usersTable"></div></div>
+</section>
+
+<div id="incidentalPrintSheet" class="rviv-voucher-sheet"></div>
+<div id="cashPrintSheet" class="cash-print-sheet"></div>
+<footer>Developed by Vinayak Shanmukhanavar</footer>
+</main>
+</div>
+
+<div id="modal" class="modal hidden"><div class="modalbox" id="modalBox"></div></div>
+
+
 <script>
+function today(){ return new Date().toISOString().slice(0,10); }
+function safeToday(){ return today(); }
 /* ================= FINAL GENERATED OVERRIDES ================= */
 function toggleModuleGroup(btn,id){
   const el=document.getElementById(id);if(!el)return; const open=el.classList.toggle('open');
@@ -528,7 +1236,6 @@ function renderDayClose(){
 setTimeout(()=>{try{renderAccountsDashboard();renderDayClose();updatePaymentBalancePreview();}catch(e){console.warn(e)}},300);
 
 </script>
-
 <script id="pol-v4-overrides">
 /* ================= POL V4: IMMUTABLE ATTACHMENT BASE + VEHICLE DETACHMENT ================= */
 function polInitialKm(v){ return Number(v.initial_km_reading ?? v.km_reading ?? 0); }
@@ -795,8 +1502,6 @@ window.updateCashDrawnPreview=updateCashDrawnPreview;
 window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview()}catch(e){}},250);
 
 </script>
-
-
 <script id="ims-v7-stable-data-repair">
 /* NCC IMS V7 - stable data loading + compatibility repair */
 (() => {
@@ -1039,7 +1744,6 @@ window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview(
 })();
 
 </script>
-
 <script id="ims-v8-cashbook-patch">
 /* NCC IMS V8 - Cash Book source/balance/cash-drawn/day-close repair */
 (function(){
@@ -1199,7 +1903,6 @@ window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview(
   window.addEventListener('load',rebind);setTimeout(rebind,250);
 })();
 </script>
-
 <script id="ims-v9-cash-pol-final-fix">
 (function(){
   const H={'MESSING':'Messing','INC':'INC','POL':'POL','RANK PAY':'Rank Pay','TA CADETS':'TA Cadets','TA/DA CIV':'TA/DA Civ Staff','TA DA CIV STAFF':'TA/DA Civ Staff','TA/DA CIV STAFF':'TA/DA Civ Staff','RENT':'Rent','OTHER':'Others','OTHERS':'Others'};
@@ -1239,7 +1942,6 @@ window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview(
   setTimeout(()=>{patchDetachLabel();loadPaymentSourcesV9();updatePaymentBalanceV9();loadVehicleDetachmentV9()},400);
 })();
 </script>
-
 <script id="ims-v10-fix">
 /* NCC IMS V10 – robust source fetching, POL vehicle selection, day cashbook print/prepare */
 (function(){
@@ -1412,7 +2114,6 @@ window.prepareDayCashbook=prepareDayCashbook10;window.printDayCashbook=printDayC
   setTimeout(syncFixed10,500);
 })();
 </script>
-
 <script id="ims-v11-final-fix">
 /* NCC IMS V11 - POL detachment totals + robust Cash Book MESSING source/payment save */
 (function(){
@@ -1532,7 +2233,6 @@ window.prepareDayCashbook=prepareDayCashbook10;window.printDayCashbook=printDayC
   window.addEventListener('load',()=>setTimeout(bind,200));window.addEventListener('pageshow',()=>setTimeout(bind,200));setTimeout(bind,300);
 })();
 </script>
-
 <script id="ims-v13-pol-detachment-fix">
 (function(){
   const n=v=>Number(v||0)||0;
@@ -1597,8 +2297,6 @@ window.prepareDayCashbook=prepareDayCashbook10;window.printDayCashbook=printDayC
   window.addEventListener('load',()=>setTimeout(loadVehicleDetachmentV13,500));setTimeout(loadVehicleDetachmentV13,800);
 })();
 </script>
-
-
 <script id="ims-v14-detachment-final-fix">
 (function(){
   function num(v){ return Number(v||0)||0; }
@@ -1703,6 +2401,5 @@ window.prepareDayCashbook=prepareDayCashbook10;window.printDayCashbook=printDayC
   window.addEventListener('load',function(){setTimeout(function(){syncVehicleOptions();calcDetachment();},700);});
 })();
 </script>
-
 </body>
 </html>
