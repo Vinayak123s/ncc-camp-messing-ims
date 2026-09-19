@@ -261,6 +261,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
     <div id="incidentSubnav" class="subnav">
       <button class="nav incident-nav" data-page="incidentalRV" onclick="showPage('incidentalRV',this)"><span class="ni">↘</span><span class="nl">Incidental RV</span></button>
       <button class="nav incident-nav" data-page="incidentalIV" onclick="showPage('incidentalIV',this)"><span class="ni">↗</span><span class="nl">Incidental IV</span></button>
+      <button class="nav incident-nav" data-page="incidentalReports" onclick="showPage('incidentalReports',this);setTimeout(()=>{prepareIncidentalReportFilters();renderIncidentalReport()},60)"><span class="ni">▤</span><span class="nl">Incidental Reports</span></button>
     </div>
   </div>
 
@@ -579,6 +580,40 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
     <div id="ivMsgInc" class="msg"></div>
   </div>
   <div class="panel"><div class="toolbar"><input id="ivSearch" placeholder="Search IV / unit..." oninput="renderIncidentalIV()"><button class="btn green" onclick="exportIncidentalCSV('IV')">EXPORT CSV</button></div><div id="incidentalIVTable" style="margin-top:10px"></div></div>
+</section>
+
+<section id="incidentalReports" class="page">
+  <div class="section-head">
+    <div><h1>Incidental Reports</h1><p>Item-wise purchase, expenditure and balance for the active camp.</p></div>
+    <div class="actions">
+      <button class="btn" onclick="renderIncidentalReport()">GENERATE REPORT</button>
+      <button class="btn green" onclick="exportIncidentalReportCSV()">EXPORT CSV</button>
+      <button class="btn dark" onclick="printIncidentalReport()">PRINT / PDF</button>
+    </div>
+  </div>
+
+  <div class="panel no-print">
+    <div class="report-filter">
+      <div class="field"><label>From Date</label><input id="incRepFrom" type="date"></div>
+      <div class="field"><label>To Date</label><input id="incRepTo" type="date"></div>
+      <div class="field"><label>Item</label><select id="incRepItem"><option value="">All Items</option></select></div>
+      <div class="field"><label>Vendor</label><select id="incRepVendor"><option value="">All Vendors</option></select></div>
+    </div>
+    <div class="actions" style="margin-top:10px">
+      <button class="btn ghost" onclick="clearIncidentalReportFilter()">CLEAR</button>
+    </div>
+  </div>
+
+  <div id="incRepSummary" class="inc-report-summary"></div>
+  <div class="panel">
+    <div class="subhead"><div><h3 style="margin:0">Item-wise Purchase &amp; Balance</h3><div class="kpi-note">Purchased quantity/value less issued quantity to show current balance.</div></div></div>
+    <div id="incPurchaseBalanceTable" class="inc-report-table tablewrap" style="margin-top:10px"></div>
+  </div>
+
+  <div class="panel">
+    <div class="subhead"><div><h3 style="margin:0">Expenditure / Issue Details</h3><div class="kpi-note">Incidental IV issue transactions for the selected filters.</div></div></div>
+    <div id="incExpenditureTable" class="inc-report-table tablewrap" style="margin-top:10px"></div>
+  </div>
 </section>
 
 <section id="cashbook" class="page">
