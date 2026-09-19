@@ -184,7 +184,14 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 #polPrintSheet th,#polPrintSheet td{border:1px solid #555;padding:6px;text-align:left}
 #polPrintSheet th{background:#eee}
 #polPrintSheet h1,#polPrintSheet h2{text-align:center;margin:6px 0}
-</style></head>
+</style><style id="incident-v23-css">
+#incidentalRV #rvGstMode,#incidentalRV #rvGstRate,#incidentalRV #rvSubtotal,#incidentalRV #rvGstAmount,#incidentalRV #rvDesc{display:none!important}
+#incidentalRV .rv-hide-field{display:none!important}
+#incidentalRV .rv-admin-note{font-size:11px;color:#9db1c4;margin-top:4px}
+#incidentalIV .ix-balance{font-weight:900;color:#70e0a1}
+#incidentalIV .ix-page-auto{background:#101a25;color:#d9e8f5}
+</style>
+</head>
 <body>
 
 <div id="loginView" class="login-shell">
@@ -524,7 +531,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="field"><label>Vendor Name *</label><input id="rvParty"></div>
       <div class="field"><label>Vendor Address *</label><input id="rvAddress"></div>
       <div class="field"><label>Station *</label><input id="rvStation"></div>
-      <div class="field"><label>CRV No. (Auto)</label><input id="rvCrv" class="auto-field" readonly></div>
+      <div class="field"><label>CRV No. (Auto)</label><input id="rvCrv" class="auto-field" readonly><div id="rvCrvAdminNote" class="rv-admin-note hidden">ADMIN can edit the CRV number before saving.</div></div>
       <div class="field"><label>Authority *</label><select id="rvAuthoritySelect" onchange="toggleRVOtherAuthority()"><option value="CAMP COMMANDANT">Camp Commandant</option><option value="OTHER">Other</option></select></div>
       <div class="field"><label>Other Authority Name</label><input id="rvAuthorityName" disabled placeholder="Enter main authority"></div>
       <div class="field"><label>Other Letter No.</label><input id="rvAuthorityLetter" disabled placeholder="Enter letter no."></div>
@@ -2090,7 +2097,129 @@ function printTableReport(title,headers,rows){
   if(!w){alert("Please allow pop-ups to print the report.");return}
   const th=headers.map(h=>`<th>${esc(h)}</th>`).join("");
   const tr=rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("");
-  w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center;font-size:20px;margin:0 0 4px}h2{text-align:center;font-size:13px;margin:0 0 18px;color:#555}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}footer{margin-top:25px;text-align:center;font-size:10px;color:#555}</style></head><body><h1>${esc(title)}</h1><h2>${esc(activeCamp?.camp_name||"NCC CAMP MESSING IMS")}</h2><table><tr>${th}</tr>${tr}</table><footer>Developed by Vinayak Shanmukhanavar</footer></body></html>`);
+  w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center;font-size:20px;margin:0 0 4px}h2{text-align:center;font-size:13px;margin:0 0 18px;color:#555}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}footer{margin-top:25px;text-align:center;font-size:10px;color:#555}</style></head><body><h1>${esc(title)}</h1><h2>${esc(activeCamp?.camp_name||"NCC CAMP MESSING IMS")}</h2><table><tr>${th}</tr>${tr}</table><footer>Developed by Vinayak Shanmukhanavar</footer><script id="incident-v23-final">
+(function(){
+  const $=id=>document.getElementById(id);
+  const moneyN=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const roleUpper=()=>String((window.profile&&window.profile.role)||((typeof profile!=='undefined'&&profile&&profile.role)||'')).toUpperCase();
+  const campId=()=>window.activeCamp?.id||((typeof activeCamp!=='undefined'&&activeCamp)?activeCamp.id:null);
+  const userId=()=>window.currentUser?.id||((typeof currentUser!=='undefined'&&currentUser)?currentUser.id:null);
+  const escL=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const fy=d=>{const x=new Date((d||new Date().toISOString().slice(0,10))+'T00:00:00');const y=x.getMonth()>=3?x.getFullYear():x.getFullYear()-1;return y+'-'+String(y+1).slice(-2)};
+  const p3=n=>String(n).padStart(3,'0');
+  const allowed=()=>['ADMIN','MANAGER','Q_SEC'].includes(roleUpper());
+  const allInc=()=>((window.incidentals||((typeof incidentals!=='undefined')?incidentals:[]))||[]);
+  const rvs=()=>allInc().filter(x=>x.voucher_type==='RV');
+  function authorityValue(){
+    if(($('rvAuthoritySelect')?.value||'')!=='OTHER') return 'Camp Commandant';
+    const n=($('rvAuthorityName')?.value||'').trim(), l=($('rvAuthorityLetter')?.value||'').trim();
+    return l?(n+' / Letter No. '+l):n;
+  }
+  window.rvAuthorityValue=authorityValue;
+  window.toggleRVOtherAuthority=function(){const other=($('rvAuthoritySelect')?.value||'')==='OTHER';['rvAuthorityName','rvAuthorityLetter'].forEach(id=>{const e=$(id);if(!e)return;e.disabled=!other;e.required=other;if(!other)e.value='';});};
+  function hideOld(){['rvGstMode','rvGstRate','rvSubtotal','rvGstAmount','rvDesc'].forEach(id=>{const e=$(id);if(!e)return;const w=e.closest('.field');if(w)w.classList.add('rv-hide-field');});}
+  function adminCRV(){const e=$('rvCrv'),n=$('rvCrvAdminNote');if(!e)return;const a=roleUpper()==='ADMIN';e.readOnly=!a;if(n)n.classList.toggle('hidden',!a);}
+
+  async function fallbackRV(){
+    if(!campId()||!window.sb)return '';
+    let max=0;const {data}=await sb.from('incidental_vouchers').select('voucher_no,crv_no').eq('camp_id',campId()).eq('voucher_type','RV').limit(500);
+    (data||[]).forEach(x=>{const v=parseInt(String(x.voucher_no||x.crv_no||'').split('/').pop(),10);if(Number.isFinite(v))max=Math.max(max,v);});
+    return `CRV/39KAR/${fy($('rvDate')?.value)}/CAMP/${p3(max+1)}`;
+  }
+  window.nextCRVNo=async function(){const e=$('rvCrv');if(!e||!campId()||!window.sb)return;if(typeof rvEditingId!=='undefined'&&rvEditingId&&e.value)return;let v='';for(const fn of ['next_incidental_crv_no_fixed','next_incidental_crv_no']){try{const r=await sb.rpc(fn);if(!r.error&&r.data){v=String(r.data);break}}catch(_){}}if(!v)v=await fallbackRV();e.value=v||'';adminCRV();};
+
+  async function fallbackIV(cat){
+    if(!campId()||!window.sb)return '';
+    let max=0;const f=fy($('ivDateInc')?.value), c=cat==='N-EXP'?'N-EXP':'EXP';
+    const {data}=await sb.from('incidental_vouchers').select('voucher_no').eq('camp_id',campId()).eq('voucher_type','IV').limit(500);
+    (data||[]).forEach(x=>{const s=String(x.voucher_no||'');if(s.includes(`/N-EXP/`)||s.includes(`/EXP/`)){const v=parseInt(s.split('/').pop(),10);if(Number.isFinite(v)&&s.includes('/'+f+'/'+c+'/'))max=Math.max(max,v);}});
+    return `CIV/39KAR/${f}/${c}/${p3(max+1)}`;
+  }
+  window.nextCIVNo=async function(cat){const e=$('ivNoAuto');if(!e||!campId()||!window.sb)return;if(typeof ivEditingId!=='undefined'&&ivEditingId&&e.value)return;let v='';for(const fn of ['next_incidental_civ_no_fixed','next_incidental_civ_no']){try{const r=await sb.rpc(fn,{p_category:cat||'EXP'});if(!r.error&&r.data){v=String(r.data);break}}catch(_){}}if(!v)v=await fallbackIV(cat||'EXP');e.value=v||'';};
+
+  const units=(()=>{try{return Array.isArray(UNITS)?UNITS:['Nos','Pcs','Kgs','Ltrs','Reams','Sets','Boxes','Packets','Meters','Dozens','Other']}catch(_){return ['Nos','Pcs','Kgs','Ltrs','Reams','Sets','Boxes','Packets','Meters','Dozens','Other']}})();
+  function rvRow(it={}){return `<div class="rviv-item"><div class="rviv-item-grid">
+    <div class="field"><label>Nomenclature *</label><input class="ix-desc" value="${escL(it.desc||'')}" required></div>
+    <div class="field"><label>A/u</label><select class="ix-unit">${units.map(u=>`<option ${u===(it.unit||'Nos')?'selected':''}>${escL(u)}</option>`).join('')}</select></div>
+    <div class="field"><label>Exp / N-Exp</label><select class="ix-type"><option ${it.type!=='Non-Expendable'?'selected':''}>Expendable</option><option ${it.type==='Non-Expendable'?'selected':''}>Non-Expendable</option></select></div>
+    <div class="field"><label>Qty *</label><input class="ix-qty" type="number" min="0.01" step="any" value="${it.qty??''}" required></div>
+    <div class="field"><label>Rate *</label><input class="ix-rate" type="number" min="0" step="any" value="${it.rate??''}" required></div>
+    <div class="field"><label>Page No.</label><input class="ix-page" value="${escL(it.page||'')}"></div>
+    <div class="field"><label>Authorised Units</label><input class="ix-authorised" value="${escL(it.authorised||'')}"></div>
+    <div class="field"><label>Remarks</label><input class="ix-remarks" value="${escL(it.remarks||'')}"></div>
+    <button type="button" class="btn red" onclick="this.closest('.rviv-item').remove();recalcIncidentalFormsV23()">Remove</button>
+  </div></div>`}
+  function addRv(it={}){const b=$('rvItems');if(!b)return;b.insertAdjacentHTML('beforeend',rvRow(it));const r=b.lastElementChild;r.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',recalcIncidentalFormsV23));recalcIncidentalFormsV23();}
+  window.addRVItem=addRv;
+  window.recalcIncidentalFormsV23=function(){const items=window.readIncItemsV23('rvItems');const t=items.reduce((s,x)=>s+x.qty*x.rate,0);if($('rvSubtotal'))$('rvSubtotal').value=moneyN(t);if($('rvGstAmount'))$('rvGstAmount').value='₹0.00';if($('rvAmount'))$('rvAmount').value=moneyN(t)};
+  window.readIncItemsV23=function(id){return [...document.querySelectorAll('#'+id+' .rviv-item')].map(r=>({desc:r.querySelector('.ix-desc')?.value.trim()||'',unit:r.querySelector('.ix-unit')?.value||'',type:r.querySelector('.ix-type')?.value||'Expendable',qty:+(r.querySelector('.ix-qty')?.value||0),rate:+(r.querySelector('.ix-rate')?.value||0),page:r.querySelector('.ix-page')?.value.trim()||'',authorised:r.querySelector('.ix-authorised')?.value.trim()||'',remarks:r.querySelector('.ix-remarks')?.value.trim()||'',amount:(+(r.querySelector('.ix-qty')?.value||0))*(+(r.querySelector('.ix-rate')?.value||0))})).filter(x=>x.desc&&x.qty>0)};
+
+  function catalog(excludeId){
+    const map=new Map();rvs().forEach(rv=>(Array.isArray(rv.items)?rv.items:[]).forEach(it=>{const d=String(it.desc||it.name||it.item||'').trim();if(!d)return;const key=d.toUpperCase()+'|'+String(it.unit||'Nos')+'|'+String(it.type||'Expendable');let x=map.get(key);if(!x){x={key,desc:d,unit:it.unit||'Nos',type:it.type||'Expendable',page:it.page||'',rate:+it.rate||0,received:0,source_rv_id:rv.id};map.set(key,x)}x.received+=+(it.qty||0);if(!x.page&&it.page)x.page=it.page;if(+it.rate)x.rate=+it.rate;}));
+    allInc().filter(x=>x.voucher_type==='IV'&&String(x.id)!==String(excludeId)).forEach(iv=>(Array.isArray(iv.items)?iv.items:[]).forEach(it=>{const d=String(it.desc||it.name||it.item||'').trim();if(!d)return;const key=d.toUpperCase()+'|'+String(it.unit||'Nos')+'|'+String(it.type||'Expendable');const x=map.get(key);if(x)x.issued=(x.issued||0)+(+it.qty||0);}));
+    return [...map.values()].map(x=>({...x,issued:x.issued||0,balance:Math.max(0,x.received-(x.issued||0))}));
+  }
+  window.fillIVSourceSelect=function(){const s=$('ivSourceItem');if(!s)return;const c=catalog((typeof ivEditingId!=='undefined')?ivEditingId:null).filter(x=>x.balance>0);window.__ivCatalog=c;s.innerHTML='<option value="">Select item</option>'+c.map((x,i)=>`<option value="${i}">${escL(x.desc)} | ${escL(x.unit)} | Balance ${x.balance.toFixed(2)} | Page ${escL(x.page||'-')}</option>`).join('');loadIVSourceItem();};
+  window.loadIVSourceItem=function(){const x=(window.__ivCatalog||[])[Number($('ivSourceItem')?.value)];if(!x){['ivAutoUnit','ivAutoBalance','ivAutoPage'].forEach(id=>{if($(id))$(id).value=''});return}if($('ivAutoUnit'))$('ivAutoUnit').value=x.unit;if($('ivAutoBalance'))$('ivAutoBalance').value=x.balance.toFixed(2);if($('ivAutoPage'))$('ivAutoPage').value=x.page||'';if($('ivIssueQty'))$('ivIssueQty').max=x.balance};
+  window.addSelectedIVItem=function(){const x=(window.__ivCatalog||[])[Number($('ivSourceItem')?.value)],q=+($('ivIssueQty')?.value||0);if(!x)return setMsg('ivMsgInc','Select an item from the Incidental RV.');if(!(q>0))return setMsg('ivMsgInc','Enter issue quantity.');if(q>x.balance+1e-6)return setMsg('ivMsgInc','Issue quantity cannot exceed balance '+x.balance.toFixed(2)+'.');const b=$('ivItemsInc');if(!b)return;const row=document.createElement('div');row.className='rviv-item';row.innerHTML=`<div class="rviv-item-grid">
+    <div class="field"><label>Nomenclature</label><input class="ix-desc" readonly value="${escL(x.desc)}"></div>
+    <div class="field"><label>A/u</label><input class="ix-unit" readonly value="${escL(x.unit)}"></div>
+    <div class="field"><label>Exp / N-Exp</label><input class="ix-type" readonly value="${escL(x.type)}"></div>
+    <div class="field"><label>Balance</label><input class="ix-balance" readonly value="${x.balance.toFixed(2)}"></div>
+    <div class="field"><label>Qty Issue *</label><input class="ix-qty" type="number" min="0.01" max="${x.balance}" step="any" value="${q}"></div>
+    <div class="field"><label>Rate</label><input class="ix-rate" readonly value="${x.rate||0}"></div>
+    <div class="field"><label>Page No.</label><input class="ix-page ix-page-auto" readonly value="${escL(x.page||'')}"></div>
+    <div class="field"><label>Remarks</label><input class="ix-remarks"></div>
+    <input class="ix-authorised" type="hidden" value=""><input class="ix-source-rv" type="hidden" value="${escL(x.source_rv_id||'')}">
+    <button type="button" class="btn red" onclick="this.closest('.rviv-item').remove();fillIVSourceSelect()">Remove</button>
+  </div>`;b.appendChild(row);if($('ivIssueQty'))$('ivIssueQty').value='';if($('ivSourceItem'))$('ivSourceItem').value='';loadIVSourceItem();setMsg('ivMsgInc','')};
+
+  window.clearIncidentalRV=async function(){if($('rvInvoice'))$('rvInvoice').value='';if($('rvParty'))$('rvParty').value='';if($('rvAddress'))$('rvAddress').value='';if($('rvStation'))$('rvStation').value='';if($('rvAuthoritySelect'))$('rvAuthoritySelect').value='CAMP COMMANDANT';toggleRVOtherAuthority();if($('rvDate'))$('rvDate').value=today();if($('rvItems')){$('rvItems').innerHTML='';addRv({})}if($('rvCrv'))$('rvCrv').value='';setMsg('rvMsg','');hideOld();adminCRV();await nextCRVNo()};
+  window.clearIncidentalIV=async function(){if($('ivUnitInc'))$('ivUnitInc').value='';if($('ivStationInc'))$('ivStationInc').value='';if($('ivIssueQty'))$('ivIssueQty').value='';if($('ivAutoUnit'))$('ivAutoUnit').value='';if($('ivAutoBalance'))$('ivAutoBalance').value='';if($('ivAutoPage'))$('ivAutoPage').value='';if($('ivDateInc'))$('ivDateInc').value=today();if($('ivItemsInc'))$('ivItemsInc').innerHTML='';if($('ivNoAuto'))$('ivNoAuto').value='';setMsg('ivMsgInc','');fillIVSourceSelect()};
+
+  window.saveIncidentalRV=async function(){
+    if(!allowed())return setMsg('rvMsg','Only ADMIN, MANAGER or Q SEC can enter Incidental RV.');
+    if(!campId())return setMsg('rvMsg','Select an active camp first.');
+    const items=readIncItemsV23('rvItems'), invoice=($('rvInvoice')?.value||'').trim(), party=($('rvParty')?.value||'').trim(), address=($('rvAddress')?.value||'').trim(), station=($('rvStation')?.value||'').trim();
+    if(!invoice||!party||!address||!station||!items.length)return setMsg('rvMsg','Enter Invoice, Vendor Name, Vendor Address, Station and at least one item.');
+    const total=items.reduce((s,x)=>s+x.amount,0);if(!(total>0))return setMsg('rvMsg','Total amount must be greater than zero.');
+    if($('rvAuthoritySelect')?.value==='OTHER' && !($('rvAuthorityName')?.value||'').trim())return setMsg('rvMsg','Enter Other Authority Name.');
+    if($('rvAuthoritySelect')?.value==='OTHER' && !($('rvAuthorityLetter')?.value||'').trim())return setMsg('rvMsg','Enter Other Letter No.');
+    let crv=($('rvCrv')?.value||'').trim();if(!crv)await nextCRVNo();crv=($('rvCrv')?.value||'').trim();if(!crv)return setMsg('rvMsg','CRV No. could not be generated.');
+    const payload={camp_id:campId(),voucher_type:'RV',voucher_no:crv,voucher_date:$('rvDate')?.value||today(),party,invoice_number:invoice,vendor_address:address,station,crv_no:crv,authority:authorityValue(),unit:null,items,subtotal:total,gst_mode:'inclusive',gst_rate:0,gst_amount:0,amount:total,mode:'BANK',code_head:null,description:null,created_by:userId()};
+    const q=rvEditingId?sb.from('incidental_vouchers').update(payload).eq('id',rvEditingId).eq('camp_id',campId()).select('*').single():sb.from('incidental_vouchers').insert(payload).select('*').single();
+    const {data,error}=await q;if(error)return setMsg('rvMsg','Save failed: '+error.message);rvEditingId=data.id;setMsg('rvMsg','Incidental RV saved successfully. Click GENERATE RV.',true);await refreshAll();renderIncidentalRV();adminCRV();
+  };
+
+  window.saveIncidentalIV=async function(){
+    if(!allowed())return setMsg('ivMsgInc','Only ADMIN, MANAGER or Q SEC can enter Incidental IV.');
+    if(!campId())return setMsg('ivMsgInc','Select an active camp first.');
+    const rows=[...document.querySelectorAll('#ivItemsInc .rviv-item')], items=rows.map(r=>({desc:r.querySelector('.ix-desc')?.value.trim()||'',unit:r.querySelector('.ix-unit')?.value||'',type:r.querySelector('.ix-type')?.value||'Expendable',qty:+(r.querySelector('.ix-qty')?.value||0),rate:+(r.querySelector('.ix-rate')?.value||0),page:r.querySelector('.ix-page')?.value.trim()||'',authorised:r.querySelector('.ix-authorised')?.value.trim()||'',remarks:r.querySelector('.ix-remarks')?.value.trim()||'',source_rv_id:r.querySelector('.ix-source-rv')?.value||null,amount:(+(r.querySelector('.ix-qty')?.value||0))*(+(r.querySelector('.ix-rate')?.value||0))})).filter(x=>x.desc&&x.qty>0);
+    if(!items.length)return setMsg('ivMsgInc','Add at least one issue item from the Incidental RV.');
+    const cat=items.some(x=>String(x.type).toLowerCase().includes('non'))?'N-EXP':'EXP';if(!ivEditingId&&!($('ivNoAuto')?.value))await nextCIVNo(cat);const no=($('ivNoAuto')?.value||'').trim(),unit=($('ivUnitInc')?.value||'').trim();if(!no||!unit)return setMsg('ivMsgInc','IV No. and Receiving Unit are required.');
+    const c=catalog(ivEditingId);for(const it of items){const key=it.desc.toUpperCase()+'|'+it.unit+'|'+it.type;const src=c.find(x=>x.key===key);if(!src)return setMsg('ivMsgInc',it.desc+' is not available from the RV register.');if(it.qty>src.balance+1e-6)return setMsg('ivMsgInc',it.desc+': issue quantity exceeds available balance '+src.balance.toFixed(2)+'.')}
+    const total=items.reduce((s,x)=>s+x.amount,0);const payload={camp_id:campId(),voucher_type:'IV',voucher_no:no,voucher_date:$('ivDateInc')?.value||today(),party:unit,invoice_number:null,vendor_address:null,station:($('ivStationInc')?.value||'').trim()||null,crv_no:null,authority:'Camp Commandant',unit,items,subtotal:total,gst_mode:'inclusive',gst_rate:0,gst_amount:0,amount:total,mode:'BANK',code_head:null,description:null,created_by:userId()};
+    const q=ivEditingId?sb.from('incidental_vouchers').update(payload).eq('id',ivEditingId).eq('camp_id',campId()).select('*').single():sb.from('incidental_vouchers').insert(payload).select('*').single();
+    const {data,error}=await q;if(error)return setMsg('ivMsgInc','Save failed: '+error.message);ivEditingId=data.id;setMsg('ivMsgInc','Incidental IV saved successfully. Click GENERATE IV.',true);await refreshAll();fillIVSourceSelect();renderIncidentalIV();
+  };
+
+  window.editIncidentalRV=function(id){const x=allInc().find(a=>String(a.id)===String(id)&&a.voucher_type==='RV');if(!x)return;rvEditingId=id;[['rvInvoice',x.invoice_number],['rvParty',x.party],['rvAddress',x.vendor_address],['rvStation',x.station],['rvDate',x.voucher_date]].forEach(([id2,v])=>{if($(id2))$(id2).value=v||''});if($('rvCrv'))$('rvCrv').value=x.crv_no||x.voucher_no||'';if($('rvAuthoritySelect')){if(String(x.authority||'').toLowerCase().startsWith('camp commandant'))$('rvAuthoritySelect').value='CAMP COMMANDANT';else{$('rvAuthoritySelect').value='OTHER';const parts=String(x.authority||'').split(' / Letter No. ');if($('rvAuthorityName'))$('rvAuthorityName').value=parts[0]||'';if($('rvAuthorityLetter'))$('rvAuthorityLetter').value=parts[1]||''}toggleRVOtherAuthority()}if($('rvItems')){$('rvItems').innerHTML='';(x.items||[]).forEach(addRv)}hideOld();adminCRV();recalcIncidentalFormsV23();showPage('incidentalRV',document.querySelector('[data-page="incidentalRV"]'))};
+  window.editIncidentalIV=function(id){const x=allInc().find(a=>String(a.id)===String(id)&&a.voucher_type==='IV');if(!x)return;ivEditingId=id;if($('ivNoAuto'))$('ivNoAuto').value=x.voucher_no||'';if($('ivDateInc'))$('ivDateInc').value=x.voucher_date||'';if($('ivUnitInc'))$('ivUnitInc').value=x.unit||x.party||'';if($('ivStationInc'))$('ivStationInc').value=x.station||'';if($('ivItemsInc')){$('ivItemsInc').innerHTML='';(x.items||[]).forEach(it=>{const row=document.createElement('div');row.className='rviv-item';row.innerHTML=`<div class="rviv-item-grid"><div class="field"><label>Nomenclature</label><input class="ix-desc" readonly value="${escL(it.desc||'')}"></div><div class="field"><label>A/u</label><input class="ix-unit" readonly value="${escL(it.unit||'')}"></div><div class="field"><label>Exp / N-Exp</label><input class="ix-type" readonly value="${escL(it.type||'Expendable')}"></div><div class="field"><label>Qty Issue</label><input class="ix-qty" type="number" min="0.01" step="any" value="${it.qty||''}"></div><div class="field"><label>Rate</label><input class="ix-rate" readonly value="${it.rate||0}"></div><div class="field"><label>Page No.</label><input class="ix-page ix-page-auto" readonly value="${escL(it.page||'')}"></div><div class="field"><label>Remarks</label><input class="ix-remarks" value="${escL(it.remarks||'')}"></div><input class="ix-source-rv" type="hidden" value="${escL(it.source_rv_id||'')}"><input class="ix-authorised" type="hidden" value=""><button type="button" class="btn red" onclick="this.closest('.rviv-item').remove()">Remove</button></div>`;$('ivItemsInc').appendChild(row)})}showPage('incidentalIV',document.querySelector('[data-page="incidentalIV"]'))};
+
+  window.generateCurrentRV=function(){const x=rvEditingId?allInc().find(a=>String(a.id)===String(rvEditingId)):allInc().find(a=>a.voucher_type==='RV'&&String(a.crv_no||a.voucher_no)===String($('rvCrv')?.value||''));if(!x)return alert('Save the RV first, then Generate RV.');printIncidental(x.id)};
+  window.generateCurrentIV=function(){const x=ivEditingId?allInc().find(a=>String(a.id)===String(ivEditingId)):allInc().find(a=>a.voucher_type==='IV'&&String(a.voucher_no)===String($('ivNoAuto')?.value||''));if(!x)return alert('Save the IV first, then Generate IV.');printIncidental(x.id)};
+  window.generateCurrentRVById=id=>printIncidental(id);
+  window.generateCurrentIVById=id=>printIncidental(id);
+
+  window.renderIncidentalRV=function(){const el=$('incidentalRVTable');if(!el)return;const rows=rvs();let h='<table><tr><th>SL</th><th>CRV No.</th><th>Date</th><th>Invoice No.</th><th>Vendor</th><th>Items</th><th>Total</th><th>Action</th></tr>';rows.forEach((x,i)=>{h+=`<tr><td>${i+1}</td><td><b>${escL(x.crv_no||x.voucher_no||'')}</b></td><td>${escL(x.voucher_date||'')}</td><td>${escL(x.invoice_number||'')}</td><td>${escL(x.party||'')}</td><td>${Array.isArray(x.items)?x.items.length:0}</td><td>${moneyN(x.amount)}</td><td><button class="btn green" onclick="generateCurrentRVById('${x.id}')">Generate RV</button> ${['ADMIN','MANAGER','Q_SEC'].includes(roleUpper())?`<button class="btn ghost" onclick="editIncidentalRV('${x.id}')">Edit</button>`:'View'} ${['ADMIN','MANAGER'].includes(roleUpper())?`<button class="btn red" onclick="deleteIncidental('${x.id}')">Delete</button>`:''}</td></tr>`});h+='</table>';el.innerHTML=rows.length?h:'<div class="empty">No saved Incidental RV entries for this camp.</div>'};
+  window.renderIncidentalIV=function(){const el=$('incidentalIVTable');if(!el)return;const rows=allInc().filter(x=>x.voucher_type==='IV');let h='<table><tr><th>SL</th><th>IV No.</th><th>Date</th><th>Receiving Unit</th><th>Items</th><th>Total</th><th>Action</th></tr>';rows.forEach((x,i)=>{h+=`<tr><td>${i+1}</td><td><b>${escL(x.voucher_no||'')}</b></td><td>${escL(x.voucher_date||'')}</td><td>${escL(x.unit||x.party||'')}</td><td>${Array.isArray(x.items)?x.items.length:0}</td><td>${moneyN(x.amount)}</td><td><button class="btn green" onclick="generateCurrentIVById('${x.id}')">Generate IV</button> ${['ADMIN','MANAGER','Q_SEC'].includes(roleUpper())?`<button class="btn ghost" onclick="editIncidentalIV('${x.id}')">Edit</button>`:'View'} ${['ADMIN','MANAGER'].includes(roleUpper())?`<button class="btn red" onclick="deleteIncidental('${x.id}')">Delete</button>`:''}</td></tr>`});h+='</table>';el.innerHTML=rows.length?h:'<div class="empty">No saved Incidental IV entries for this camp.</div>'};
+
+  const oldShow=window.showPage; if(oldShow){window.showPage=function(id,btn){const r=oldShow.apply(this,arguments);setTimeout(async()=>{hideOld();adminCRV();if(id==='incidentalRV'){if($('rvDate')&&!$('rvDate').value)$('rvDate').value=today();if($('rvItems')&&!$('rvItems').children.length)addRv({});if(!rvEditingId)await nextCRVNo();recalcIncidentalFormsV23()}if(id==='incidentalIV'){if($('ivDateInc')&&!$('ivDateInc').value)$('ivDateInc').value=today();fillIVSourceSelect();if(!ivEditingId&&!($('ivNoAuto')?.value)){const c=window.__ivCatalog?.[0];await nextCIVNo(c&&String(c.type).toLowerCase().includes('non')?'N-EXP':'EXP')}}},25);return r;}};
+  const oldRefresh=window.refreshAll; if(oldRefresh){window.refreshAll=async function(){const r=await oldRefresh.apply(this,arguments);hideOld();adminCRV();renderIncidentalRV();renderIncidentalIV();fillIVSourceSelect();return r;}};
+  setTimeout(()=>{hideOld();adminCRV();if($('rvItems')&&!$('rvItems').children.length)addRv({});fillIVSourceSelect()},100);
+})();
+</script>
+</body></html>`);
   w.document.close();
   setTimeout(()=>{w.focus();w.print()},300);
 }
