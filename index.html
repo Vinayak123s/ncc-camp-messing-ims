@@ -2085,7 +2085,15 @@ async function deleteVehicleDetachment(id){if(!canDelete())return alert('No dele
 
 /* Robust CSV/PDF printing */
 function downloadCSV(rows,name){const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-function printTableReport(title,headers,rows){const w=window.open('','_blank','width=1100,height=800');if(!w){alert('Please allow pop-ups to print the report.');return}const th=headers.map(h=>`<th>${esc(h)}</th>`).join('');const tr=rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join('')}</tr>`).join('');w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center;font-size:20px;margin:0 0 4px}h2{text-align:center;font-size:13px;margin:0 0 18px;color:#555}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}footer{margin-top:25px;text-align:center;font-size:10px;color:#555}</style></head><body><h1>${esc(title)}</h1><h2>${esc(activeCamp?.camp_name||'NCC CAMP MESSING IMS')}</h2><table><tr>${th}</tr>${tr}</table><footer>Developed by Vinayak Shanmukhanavar</footer></body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},300)}
+function printTableReport(title,headers,rows){
+  const w=window.open("","_blank","width=1100,height=800");
+  if(!w){alert("Please allow pop-ups to print the report.");return}
+  const th=headers.map(h=>`<th>${esc(h)}</th>`).join("");
+  const tr=rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("");
+  w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center;font-size:20px;margin:0 0 4px}h2{text-align:center;font-size:13px;margin:0 0 18px;color:#555}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}footer{margin-top:25px;text-align:center;font-size:10px;color:#555}</style></head><body><h1>${esc(title)}</h1><h2>${esc(activeCamp?.camp_name||"NCC CAMP MESSING IMS")}</h2><table><tr>${th}</tr>${tr}</table><footer>Developed by Vinayak Shanmukhanavar</footer></body></html>`);
+  w.document.close();
+  setTimeout(()=>{w.focus();w.print()},300);
+}
 function exportPOLVehicleCSV(){downloadCSV([['SL No','Vehicle Type','Vehicle No','Fuel Type','Opening KM','Tank Balance','KPL','Driver','Attached From'],...polVehicles.map((v,i)=>{const st=polCurrentState(v.id);return [i+1,v.vehicle_type,v.vehicle_no,v.fuel_type||'',polInitialKm(v),polInitialTank(v),v.kpl,v.driver_name||'',v.attached_from||'']} )],'POL_Vehicle_Attachment.csv')}
 function printPOLVehicleReport(){const rows=polVehicles.map((v,i)=>{const st=polCurrentState(v.id);return [i+1,v.vehicle_no,v.vehicle_type,v.fuel_type||'',polInitialKm(v).toFixed(1),polInitialTank(v).toFixed(2),v.kpl,v.driver_name||'',v.attached_from||'']});printTableReport('POL Vehicle Attachment Report',['SL','Vehicle No','Type','Fuel','Opening KM','Tank Balance','KPL','Driver','Attached From'],rows)}
 function exportCarDiaryCSV(){const rows=[['Date','Vehicle','Nature','Purpose','From','To','Opening KM','KM Run','Closing KM','KPL','POL Consumed'],...(window.carDiaryEntries||[]).map(x=>[x.entry_date,x.vehicle_no,x.nature_of_duty,x.purpose_of_duty,x.from_location,x.to_location,x.opening_km,x.km_run,x.closing_km,x.kpl,x.pol_consumed])];downloadCSV(rows,'POL_Car_Diary_Report.csv')}
@@ -2729,6 +2737,100 @@ window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview(
 window.addEventListener('DOMContentLoaded',()=>{
   try{populateAllPOLVehicleSelectors();bindPOLVehicleSelectors();}catch(_){}
 });
+</script>
+
+<script id="pol-v22-detachment-final-fix">
+(function(){
+  function n(v){
+    const x=Number(String(v??'').replace(/₹/g,'').replace(/,/g,'').trim());
+    return Number.isFinite(x)?x:0;
+  }
+  function norm(v){return String(v??'').trim().toUpperCase();}
+  function setDetMsg(text,ok=false){
+    const el=document.getElementById('detMsg');
+    if(!el)return;
+    el.textContent=text;
+    el.className='msg '+(ok?'ok':'err');
+    el.style.display='block';
+  }
+  function rowsForVehicleV22(list,v){
+    const id=String(v?.id||''),no=norm(v?.vehicle_no);
+    return (Array.isArray(list)?list:[]).filter(x=>(id&&String(x.vehicle_id||'')===id)||(no&&norm(x.vehicle_no)===no));
+  }
+  function calcDetachmentV22(v,attachedTo){
+    const diaries=rowsForVehicleV22(window.carDiaryEntries||[],v)
+      .filter(x=>!v.attached_from||!x.entry_date||String(x.entry_date)>=String(v.attached_from))
+      .filter(x=>!attachedTo||!x.entry_date||String(x.entry_date)<=String(attachedTo))
+      .sort((a,b)=>String(a.entry_date||'').localeCompare(String(b.entry_date||''))||String(a.created_at||'').localeCompare(String(b.created_at||'')));
+    const draws=rowsForVehicleV22((typeof polEntries!=='undefined'?polEntries:window.polEntries||[]),v)
+      .filter(x=>!v.attached_from||!x.entry_date||String(x.entry_date)>=String(v.attached_from))
+      .filter(x=>!attachedTo||!x.entry_date||String(x.entry_date)<=String(attachedTo))
+      .sort((a,b)=>String(a.entry_date||'').localeCompare(String(b.entry_date||''))||String(a.created_at||'').localeCompare(String(b.created_at||'')));
+    const openingKm=n(v.initial_km_reading!=null?v.initial_km_reading:v.km_reading);
+    const kmRun=diaries.reduce((s,x)=>s+n(x.km_run),0);
+    const consumed=diaries.reduce((s,x)=>s+n(x.pol_consumed),0);
+    const closingKm=diaries.length?n(diaries[diaries.length-1].closing_km):openingKm+kmRun;
+    const drawn=draws.reduce((s,x)=>s+n(x.litres),0);
+    let initialTank=null;
+    if(v.initial_tank_balance!==undefined&&v.initial_tank_balance!==null&&v.initial_tank_balance!=='') initialTank=n(v.initial_tank_balance);
+    if(initialTank===null&&draws.length){
+      const first=draws[0];
+      if(first.previous_fuel!==undefined&&first.previous_fuel!==null&&first.previous_fuel!=='') initialTank=n(first.previous_fuel);
+    }
+    if(initialTank===null) initialTank=n(v.pol_balance);
+    const tank=Math.max(0,initialTank+drawn-consumed);
+    return {openingKm,kmRun,closingKm,kpl:n(v.kpl),consumed,drawn,initialTank,tank,diaries,draws};
+  }
+  function loadVehicleDetachmentV22(){
+    const id=document.getElementById('detVehSelect')?.value||'';
+    const v=(Array.isArray(polVehicles)?polVehicles:[]).find(x=>String(x.id)===String(id));
+    if(!v){
+      ['detVehType','detUnit','detAttachedFrom','detOpeningKm','detKmRun','detClosingKm','detKpl','detPolConsumed','detPolDrawn','detTankBalance'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
+      return;
+    }
+    const to=document.getElementById('detAttachedTo')?.value||'';
+    const st=calcDetachmentV22(v,to);
+    document.getElementById('detVehType').value=v.vehicle_type||'';
+    document.getElementById('detUnit').value=v.unit||'';
+    document.getElementById('detAttachedFrom').value=v.attached_from||'';
+    document.getElementById('detOpeningKm').value=st.openingKm.toFixed(1);
+    document.getElementById('detKmRun').value=st.kmRun.toFixed(1);
+    document.getElementById('detClosingKm').value=st.closingKm.toFixed(1);
+    document.getElementById('detKpl').value=st.kpl.toFixed(2);
+    document.getElementById('detPolConsumed').value=st.consumed.toFixed(2);
+    document.getElementById('detPolDrawn').value=st.drawn.toFixed(2);
+    document.getElementById('detTankBalance').value=st.tank.toFixed(2);
+    if(document.getElementById('detMsg'))setDetMsg(`POL Drawn: ${st.drawn.toFixed(2)} Ltr | Tank Balance: ${st.tank.toFixed(2)} Ltr`,true);
+  }
+  async function saveVehicleDetachmentV22(){
+    const role=String(profile?.role||'').toUpperCase();
+    if(!['ADMIN','MANAGER','Q_SEC'].includes(role))return setDetMsg('Only ADMIN, MANAGER or Q SEC can save Vehicle Detachment.');
+    if(!activeCamp)return setDetMsg('Select an active camp first.');
+    if(!sb)return setDetMsg('Supabase connection is not available.');
+    const id=document.getElementById('detVehSelect')?.value||'';
+    const to=document.getElementById('detAttachedTo')?.value||'';
+    const v=(Array.isArray(polVehicles)?polVehicles:[]).find(x=>String(x.id)===String(id));
+    if(!v)return setDetMsg('Select a vehicle.');
+    if(!to)return setDetMsg('Enter Attached To date.');
+    if(v.attached_from&&String(to)<String(v.attached_from))return setDetMsg('Attached To date cannot be before Attached From.');
+    const st=calcDetachmentV22(v,to);
+    const payload={camp_id:activeCamp.id,vehicle_id:v.id,vehicle_type:v.vehicle_type||'',vehicle_no:v.vehicle_no||'',unit:v.unit||'',attached_from:v.attached_from||null,attached_to:to,opening_km:st.openingKm,km_run_camp:st.kmRun,closing_km:st.closingKm,kpl:st.kpl,pol_consumed:st.consumed,pol_drawn_total:st.drawn,tank_balance:st.tank,created_by:currentUser?.id||null};
+    const r=await sb.from('pol_vehicle_detachments').insert(payload).select('*').single();
+    if(r.error){console.error('Vehicle detachment save failed',r.error);return setDetMsg('Save failed: '+r.error.message);}
+    setDetMsg(`Vehicle detachment saved successfully. POL Drawn ${st.drawn.toFixed(2)} Ltr | Tank Balance ${st.tank.toFixed(2)} Ltr`,true);
+    await loadPOLDetachments();
+    renderDetachmentRegister();
+  }
+  window.loadVehicleDetachment=loadVehicleDetachmentV22;
+  window.saveVehicleDetachment=saveVehicleDetachmentV22;
+  function init(){
+    try{populateAllPOLVehicleSelectors();loadVehicleDetachmentV22();}catch(e){console.warn('POL V22 init',e)}
+    const dt=document.getElementById('detAttachedTo');
+    if(dt&&!dt.dataset.v22){dt.addEventListener('change',loadVehicleDetachmentV22);dt.dataset.v22='1';}
+  }
+  window.addEventListener('load',init);
+  setTimeout(init,500);
+})();
 </script>
 </body>
 </html>
