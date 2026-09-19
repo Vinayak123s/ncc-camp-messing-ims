@@ -712,529 +712,609 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 
 <script>
-function today(){ return new Date().toISOString().slice(0,10); }
-function safeToday(){ return today(); }
-/* ================= FINAL GENERATED OVERRIDES ================= */
-function toggleModuleGroup(btn,id){
-  const el=document.getElementById(id);if(!el)return; const open=el.classList.toggle('open');
-  const a=btn.querySelector('.group-arrow'); if(a)a.textContent=open?'▾':'▸';
-  if(side.classList.contains('expanded')) return;
-}
-function setPOLTab(tab){
-  document.querySelectorAll('[data-poltab]').forEach(b=>b.classList.toggle('active',b.dataset.poltab===tab));
-  const map={vehicle:'polVehicleSection',drawn:'polDrawnSection',diary:'polDiarySection',report:'polReportSection'};
-  Object.entries(map).forEach(([k,id])=>document.getElementById(id)?.classList.toggle('hidden',k!==tab));
-  if(tab==='vehicle')renderPOLVehicleRegister();
-  if(tab==='drawn'){renderPOL();loadPOLVehicleSelect()}
-  if(tab==='diary'){loadDiaryVehicle();renderCarDiaryRegister()}
-  if(tab==='report'){renderPOLReport()}
-}
-function renderPOLVehicleRegister(){
-  const box=document.getElementById('polVehiclesTable');if(!box)return;
-  const s=(document.getElementById('polVehicleSearch')?.value||'').toLowerCase(), tf=document.getElementById('polVehicleTypeFilter')?.value||'', ff=document.getElementById('polFuelFilter')?.value||'';
-  const rows=polVehicles.filter(v=>(!s||[v.vehicle_no,v.driver_name,v.unit].join(' ').toLowerCase().includes(s))&&(!tf||v.vehicle_type===tf)&&(!ff||(v.fuel_type||'')===ff));
-  let h='<table><tr><th>SL No</th><th>Vehicle Type</th><th>Vehicle No.</th><th>Fuel Type</th><th>Tank Balance</th><th>KPL</th><th>Driver</th><th>Attached From</th><th>Attached To</th><th>Status</th><th>Action</th></tr>';
-  rows.forEach((v,i)=>{h+=`<tr><td>${i+1}</td><td>${esc(v.vehicle_type)}</td><td><b>${esc(v.vehicle_no)}</b></td><td>${esc(v.fuel_type||'-')}</td><td>${(+v.pol_balance||0).toFixed(2)}</td><td>${(+v.kpl||0).toFixed(2)}</td><td>${esc(v.driver_name||'')}</td><td>${esc(v.attached_from||'-')}</td><td>${esc(v.attached_to||'-')}</td><td><span class="status ok">ACTIVE</span></td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:''}</td></tr>`});h+='</table>';box.innerHTML=rows.length?h:'<div class="empty">No vehicle attachment records.</div>';
-  const dv=rows.filter(v=>(v.fuel_type||'')==='Diesel').length,pv=rows.filter(v=>(v.fuel_type||'')==='Petrol').length;
-  ['polKpiVehicles','polKpiDiesel','polKpiPetrol'].forEach((id,val)=>{const e=document.getElementById(id);if(e)e.textContent=[rows.length,dv,pv][val]});
-  const selects=['polRepVehicle','diaryVehicle','diaryReportVehicle'];selects.forEach(id=>{const e=document.getElementById(id);if(!e)return;const cur=e.value;e.innerHTML='<option value="">'+(id==='diaryReportVehicle'?'All Vehicles':'Select Vehicle')+'</option>'+polVehicles.map(v=>`<option value="${v.id}" ${v.id===cur?'selected':''}>${esc(v.vehicle_no)} - ${esc(v.vehicle_type)}</option>`).join('')});
-  const badge=document.getElementById('polCampBadge');if(badge)badge.textContent=activeCamp?.camp_name||'—';
-}
-function exportPOLVehicleCSV(){const rows=[['SL No','Vehicle Type','Vehicle No','Fuel Type','Tank Balance','KPL','Driver','Attached From','Attached To'],...polVehicles.map((v,i)=>[i+1,v.vehicle_type,v.vehicle_no,v.fuel_type||'',v.pol_balance||0,v.kpl||'',v.driver_name||'',v.attached_from||'',v.attached_to||''])];downloadCSV(rows,'POL_Vehicle_Attachment.csv')}
-function printPOLVehicleReport(){setPOLTab('vehicle');window.print()}
-function printPOLDrawnReport(){setPOLTab('drawn');window.print()}
+const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
+const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
-// Enhanced vehicle save/edit payload while retaining legacy database columns.
-const _oldSavePOLVehicle=savePOLVehicle;
-async function savePOLVehicle(){
-  if(!canQsecEntry()){setMsg('polVehMsg','No entry permission for this role.');return}
-  if(!activeCamp){setMsg('polVehMsg','Select a camp first.');return}
-  const payload={camp_id:activeCamp.id,vehicle_no:document.getElementById('polVehNo').value.trim().toUpperCase(),unit:document.getElementById('polUnit').value.trim(),vehicle_type:document.getElementById('polVehType').value,km_reading:+document.getElementById('polKM').value||0,pol_balance:+document.getElementById('polBal').value||0,kpl:+document.getElementById('polKPL').value||0,driver_name:document.getElementById('polDriver').value.trim(),authority_no:document.getElementById('polAuth').value.trim(),fuel_type:document.getElementById('polFuelType').value,make_model:document.getElementById('polMakeModel').value.trim(),year_mfg:document.getElementById('polYearMfg').value.trim(),attached_from:document.getElementById('polAttachedFrom').value||null,attached_to:document.getElementById('polAttachedTo').value||null,driver_contact:document.getElementById('polDriverContact').value.trim()};
-  if(!payload.vehicle_no||!payload.unit||!payload.vehicle_type||payload.kpl<=0||!payload.driver_name||!payload.authority_no){setMsg('polVehMsg','Fill all required vehicle fields.');return}
-  let q;
-  const existing=polVehicles.find(v=>v.vehicle_no===payload.vehicle_no);
-  if(existing) q=sb.from('pol_vehicles').update(payload).eq('id',existing.id).eq('camp_id',activeCamp.id); else q=sb.from('pol_vehicles').insert(payload);
-  const {error}=await q;if(error){setMsg('polVehMsg',error.message);return}
-  setMsg('polVehMsg','Vehicle saved.',true);clearPOLVehicle();await refreshAll();setPOLTab('vehicle');
-}
-function clearPOLVehicle(){['polVehNo','polUnit','polVehType','polKPL','polDriver','polAuth','polMakeModel','polYearMfg','polAttachedFrom','polAttachedTo','polDriverContact','polKM'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});if(document.getElementById('polFuelType'))document.getElementById('polFuelType').value='Diesel';setMsg('polVehMsg','')}
-function editPOLVehicle(id){const v=polVehicles.find(x=>x.id===id);if(!v)return;['polVehNo','polUnit','polVehType','polKPL','polDriver','polAuth','polMakeModel','polYearMfg','polAttachedFrom','polAttachedTo','polDriverContact','polKM'].forEach(id=>{const key={polVehNo:'vehicle_no',polUnit:'unit',polVehType:'vehicle_type',polKPL:'kpl',polDriver:'driver_name',polAuth:'authority_no',polMakeModel:'make_model',polYearMfg:'year_mfg',polAttachedFrom:'attached_from',polAttachedTo:'attached_to',polDriverContact:'driver_contact',polKM:'km_reading'}[id];const e=document.getElementById(id);if(e)e.value=v[key]??''});if(document.getElementById('polFuelType'))document.getElementById('polFuelType').value=v.fuel_type||'Diesel';setPOLTab('vehicle');window.scrollTo({top:0,behavior:'smooth'})}
+let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
 
-async function loadCarDiary(){
-  if(!activeCamp){window.carDiaryEntries=[];renderCarDiaryRegister();return}
-  const {data,error}=await sb.from('pol_car_diary').select('*').eq('camp_id',activeCamp.id).order('entry_date',{ascending:false}).order('created_at',{ascending:false});
-  if(error){console.warn(error);window.carDiaryEntries=[]}else window.carDiaryEntries=data||[];
-  renderCarDiaryRegister();
+// Restored global application state shared by camp-aware modules.
+let camps = [], activeCamp = null;
+let polVehicles = [], polEntries = [];
+
+const UNITS=["Nos","Kgs","Ltrs","Pcs","Gms","Mtrs","Boxes","Packets","Bottles","Cans","Sets","Units","Quintal","Ton","Bags","Dozens"];
+const VOUCHERS=["IV-1","IV-2","IV-3","IV-4","IV-5","IV-6","IV-7","IV-8","IV-9","IV-10"];
+
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+const roleIs=(...r)=>!!profile&&r.includes(profile.role);
+const canStockCreate=()=>roleIs('ADMIN','MANAGER','Q_SEC');
+const canTxEdit=()=>roleIs('ADMIN','MANAGER','Q_SEC');
+const canDelete=()=>roleIs('ADMIN','MANAGER');
+const canAccountsEntry=()=>roleIs('ADMIN','ACCOUNTS');
+const canQsecEntry=()=>roleIs('ADMIN','MANAGER','Q_SEC');
+const canCampManage=()=>roleIs('ADMIN','MANAGER');
+const canWriteInventory=()=>roleIs('ADMIN','MANAGER','Q_SEC');
+const money=n=>"₹"+(+n||0).toLocaleString("en-IN",{minimumFractionDigits:2,maximumFractionDigits:2});
+
+function setMsg(id,text,ok=false){const e=document.getElementById(id);if(!e)return;e.textContent=text;e.className="msg "+(ok?"ok":"err")}
+function setLoginMsg(t){document.getElementById("loginMsg").textContent=t||""}
+
+async function signIn(){
+  const email=document.getElementById("loginEmail").value.trim(), password=document.getElementById("loginPassword").value;
+  if(!email||!password){setLoginMsg("Enter email and password.");return}
+  setLoginMsg("Signing in...");
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error){setLoginMsg(error.message);return}
+  currentUser=data.user; try{ await loadApp(); }catch(e){ console.error(e); setLoginMsg('Login succeeded but the application failed to load. Please refresh once.'); }
 }
-function loadDiaryVehicle(){const id=document.getElementById('diaryVehicle')?.value;if(!id)return;const v=polVehicles.find(x=>x.id===id);if(!v)return;const last=(window.carDiaryEntries||[]).find(x=>x.vehicle_id===id);document.getElementById('diaryOpeningKm').value=last?last.closing_km:(v.km_reading||0);document.getElementById('diaryKpl').value=(+v.kpl||0).toFixed(2);calcDiary()}
-function calcDiary(){const o=+document.getElementById('diaryOpeningKm')?.value||0,k=+document.getElementById('diaryKmRun')?.value||0,kpl=+document.getElementById('diaryKpl')?.value||0;document.getElementById('diaryClosingKm').value=(o+k).toFixed(1);document.getElementById('diaryPolConsumed').value=kpl>0?(k/kpl).toFixed(2):'0.00'}
-async function saveCarDiary(){if(!canQsecEntry()){setMsg('diaryMsg','No entry permission.');return}const vid=document.getElementById('diaryVehicle').value, v=polVehicles.find(x=>x.id===vid);if(!v){setMsg('diaryMsg','Select vehicle.');return}const km=+document.getElementById('diaryKmRun').value||0;if(km<0){setMsg('diaryMsg','KM Run must be valid.');return}const payload={camp_id:activeCamp.id,vehicle_id:vid,vehicle_no:v.vehicle_no,entry_date:document.getElementById('diaryDate').value||today(),nature_of_duty:document.getElementById('diaryNature').value,purpose_of_duty:document.getElementById('diaryPurpose').value.trim(),from_location:document.getElementById('diaryFrom').value.trim(),to_location:document.getElementById('diaryTo').value.trim(),opening_km:+document.getElementById('diaryOpeningKm').value||0,km_run:km,closing_km:+document.getElementById('diaryClosingKm').value||0,kpl:+document.getElementById('diaryKpl').value||0,pol_consumed:+document.getElementById('diaryPolConsumed').value||0,remarks:document.getElementById('diaryRemarks').value.trim()};if(!payload.purpose_of_duty||!payload.from_location||!payload.to_location){setMsg('diaryMsg','Purpose, From and To are required.');return}const {error}=await sb.from('pol_car_diary').insert(payload);if(error){setMsg('diaryMsg',error.message);return}setMsg('diaryMsg','Car diary entry saved.',true);clearCarDiary();await loadCarDiary()}
-function clearCarDiary(){['diaryVehicle','diaryNature','diaryPurpose','diaryFrom','diaryTo','diaryOpeningKm','diaryKmRun','diaryClosingKm','diaryKpl','diaryPolConsumed','diaryRemarks'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});if(document.getElementById('diaryDate'))document.getElementById('diaryDate').value=today();setMsg('diaryMsg','')}
-function renderCarDiaryRegister(){const el=document.getElementById('carDiaryTable');if(!el)return;let rows=[...(window.carDiaryEntries||[])];const v=document.getElementById('diaryReportVehicle')?.value||'',from=document.getElementById('diaryReportFrom')?.value||'',to=document.getElementById('diaryReportTo')?.value||'';if(v)rows=rows.filter(x=>x.vehicle_id===v);if(from)rows=rows.filter(x=>x.entry_date>=from);if(to)rows=rows.filter(x=>x.entry_date<=to);let h='<table><tr><th>Date</th><th>Vehicle</th><th>Nature</th><th>Purpose</th><th>From</th><th>To</th><th>Opening KM</th><th>KM Run</th><th>Closing KM</th><th>KPL</th><th>POL Consumed</th><th>Action</th></tr>';rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.nature_of_duty)}</td><td>${esc(x.purpose_of_duty)}</td><td>${esc(x.from_location)}</td><td>${esc(x.to_location)}</td><td>${(+x.opening_km||0).toFixed(1)}</td><td>${(+x.km_run||0).toFixed(1)}</td><td>${(+x.closing_km||0).toFixed(1)}</td><td>${(+x.kpl||0).toFixed(2)}</td><td>${(+x.pol_consumed||0).toFixed(2)}</td><td>${canDelete()?`<button class="btn red" onclick="deleteCarDiary('${x.id}')">Delete</button>`:'View'}</td></tr>`);h+='</table>';el.innerHTML=rows.length?h:'<div class="empty">No car diary entries.</div>'}
-async function deleteCarDiary(id){if(!canDelete())return alert('Only ADMIN/MANAGER can delete car diary entries.');if(!confirm('Delete car diary entry?'))return;const {error}=await sb.from('pol_car_diary').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await loadCarDiary()}
-function exportCarDiaryCSV(){const rows=[['Date','Vehicle','Nature','Purpose','From','To','Opening KM','KM Run','Closing KM','KPL','POL Consumed'],...(window.carDiaryEntries||[]).map(x=>[x.entry_date,x.vehicle_no,x.nature_of_duty,x.purpose_of_duty,x.from_location,x.to_location,x.opening_km,x.km_run,x.closing_km,x.kpl,x.pol_consumed])];downloadCSV(rows,'Car_Diary_Report.csv')}
-function printCarDiaryReport(){setPOLTab('diary');window.print()}
-function renderPOLReport(){const el=document.getElementById('polReportContent');if(!el)return;const type=document.getElementById('polRepType')?.value||'vehicle',vid=document.getElementById('polRepVehicle')?.value||'',from=document.getElementById('polRepFrom')?.value||'',to=document.getElementById('polRepTo')?.value||'';let h='';if(type==='vehicle'){let rows=polVehicles.filter(x=>!vid||x.id===vid);h='<table><tr><th>SL</th><th>Vehicle</th><th>Type</th><th>Fuel</th><th>KPL</th><th>Driver</th><th>Attached From</th><th>Attached To</th></tr>';rows.forEach((x,i)=>h+=`<tr><td>${i+1}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.vehicle_type)}</td><td>${esc(x.fuel_type||'-')}</td><td>${(+x.kpl||0).toFixed(2)}</td><td>${esc(x.driver_name)}</td><td>${esc(x.attached_from||'-')}</td><td>${esc(x.attached_to||'-')}</td></tr>`);h+='</table>'} else if(type==='drawn'){let rows=polEntries.filter(x=>(!vid||x.vehicle_id===vid)&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to));h='<table><tr><th>Date</th><th>Vehicle</th><th>Fuel</th><th>Invoice</th><th>Bunk</th><th>Prev</th><th>Drawn</th><th>Present</th><th>Rate</th><th>Amount</th></tr>';rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.fuel_type)}</td><td>${esc(x.invoice_number)}</td><td>${esc(x.petrol_bunk)}</td><td>${(+x.previous_fuel||0).toFixed(2)}</td><td>${(+x.litres||0).toFixed(2)}</td><td>${(+x.present_fuel||0).toFixed(2)}</td><td>${money(x.rate)}</td><td>${money(x.total_amount)}</td></tr>`);h+='</table>'} else {renderCarDiaryRegister();h=document.getElementById('carDiaryTable')?.innerHTML||''}el.innerHTML=h||'<div class="empty">No records found.</div>'}
-function exportPOLReportCSV(){const type=document.getElementById('polRepType')?.value||'vehicle';if(type==='vehicle')return exportPOLVehicleCSV();if(type==='diary')return exportCarDiaryCSV();exportPOLCSV()}
-function printPOLReport(){
-  renderPOLReport();
-  setTimeout(()=>{
-    const box=document.getElementById('polReportContent');
-    const table=box?.querySelector('table');
-    const rows=table?[...table.querySelectorAll('tr')].map(tr=>[...tr.cells].map(td=>td.innerText)):[];
-    if(rows.length){printTableReport('POL Report',rows[0],rows.slice(1));return;}
-    printTableReport('POL Report',['Message'],[['No records found.']]);
-  },120);
+async function sendReset(){
+  const email=document.getElementById("loginEmail").value.trim();
+  if(!email){setLoginMsg("Enter your email first.");return}
+  const redirect=location.origin+location.pathname;
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo:redirect});
+  setLoginMsg(error?error.message:"Password reset email sent. Check your inbox.");
 }
-function setPOLTab(tab){
-  const map={vehicle:'polVehicleSection',drawn:'polDrawnSection',diary:'polDiarySection',report:'polReportSection'};
-  document.querySelectorAll('[data-poltab]').forEach(b=>b.classList.toggle('active',b.dataset.poltab===tab));
-  Object.values(map).forEach(id=>document.getElementById(id)?.classList.add('hidden'));
-  document.getElementById(map[tab])?.classList.remove('hidden');
-  if(tab==='vehicle')renderPOLVehicleRegister();
-  if(tab==='drawn'){renderPOL();loadPOLVehicleSelect();}
-  if(tab==='diary'){loadPOLVehicleSelect();loadCarDiary();renderCarDiaryRegister();}
-  if(tab==='report'){renderPOLReport();}
+async function signOut(){await sb.auth.signOut();location.reload()}
+function applyRoleUI(){
+  const allNav=document.querySelectorAll('.sidebar .nav[data-page]'), role=(profile&&profile.role)||'VIEWER'; let allowed;
+  if(role==='ACCOUNTS') allowed=new Set(['dashboard','cashbook','reports']);
+  else if(role==='Q_SEC') allowed=new Set(['dashboard','messing','inventory','stockin','stockout','pol','incidentalRV','incidentalIV','reports']);
+  else if(role==='MANAGER') allowed=new Set(['dashboard','camp','messing','inventory','stockin','stockout','pol','incidentalRV','incidentalIV','cashbook','reports']);
+  else if(role==='ADMIN') allowed=new Set(['dashboard','camp','messing','inventory','stockin','stockout','pol','incidentalRV','incidentalIV','cashbook','reports','users']);
+  else allowed=new Set(['dashboard','inventory','reports']);
+  allNav.forEach(n=>n.style.display=allowed.has(n.dataset.page)?'flex':'none');
+  document.querySelectorAll('.adminonly').forEach(e=>e.style.display=role==='ADMIN'?'flex':'none');
+  const showStock=['ADMIN','MANAGER','Q_SEC'].includes(role); document.querySelectorAll('.stockin-nav,.stockout-nav,.pol-nav').forEach(e=>e.style.display=showStock?'flex':'none');
+  document.querySelectorAll('.incident-nav').forEach(e=>e.style.display=['ADMIN','MANAGER','Q_SEC'].includes(role)?'flex':'none');
+  document.querySelectorAll('.cash-nav').forEach(e=>e.style.display=['ADMIN','MANAGER','ACCOUNTS'].includes(role)?'flex':'none');
+  document.querySelectorAll('.camp-nav').forEach(e=>e.style.display=['ADMIN','MANAGER'].includes(role)?'flex':'none');
+  document.querySelectorAll('.messing-nav').forEach(e=>e.style.display=['ADMIN','MANAGER','Q_SEC'].includes(role)?'flex':'none');
+  const add=document.getElementById('addItemBtn');if(add)add.style.display=canWriteInventory()?'inline-flex':'none';
+  ['newInBtn','newOutBtn'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display=canStockCreate()?'inline-flex':'none'});
+  const cashSave=document.getElementById('cashSaveBtn');if(cashSave)cashSave.style.display=canAccountsEntry()?'inline-flex':'none';
+  const note=document.getElementById('cashAccountsNote');if(note)note.classList.toggle('hidden',canAccountsEntry());
+  const accountOnly=role==='ACCOUNTS'; document.getElementById('accountsDashboard')?.classList.toggle('hidden',!accountOnly);document.getElementById('inventoryDashboard')?.classList.toggle('hidden',accountOnly);document.getElementById('accountsReports')?.classList.toggle('hidden',!accountOnly);document.getElementById('inventoryReports')?.classList.toggle('hidden',accountOnly);
 }
-function renderPOLVehicleRegister(){
-  const box=document.getElementById('polVehiclesTable');if(!box)return;
-  const q=(document.getElementById('polVehicleSearch')?.value||'').toLowerCase(), tf=document.getElementById('polVehicleTypeFilter')?.value||'', ff=document.getElementById('polFuelFilter')?.value||'';
-  const rows=polVehicles.filter(v=>(!q||[v.vehicle_no,v.driver_name,v.unit].join(' ').toLowerCase().includes(q))&&(!tf||v.vehicle_type===tf)&&(!ff||v.fuel_type===ff));
-  let h='<table><tr><th>SL No</th><th>Vehicle Type</th><th>Vehicle No.</th><th>Fuel Type</th><th>Tank Balance</th><th>KPL</th><th>Driver</th><th>Attached From</th><th>Attached To</th><th>Action</th></tr>';
-  rows.forEach((v,i)=>h+=`<tr><td>${i+1}</td><td>${esc(v.vehicle_type)}</td><td><b>${esc(v.vehicle_no)}</b></td><td>${esc(v.fuel_type||'-')}</td><td>${(+v.pol_balance||0).toFixed(2)}</td><td>${(+v.kpl||0).toFixed(2)}</td><td>${esc(v.driver_name||'')}</td><td>${esc(v.attached_from||'-')}</td><td>${esc(v.attached_to||'-')}</td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:''}</td></tr>`);
-  h+='</table>';box.innerHTML=rows.length?h:'<div class="empty">No vehicle attachment records.</div>';
-  const vals=[rows.length,rows.filter(v=>v.fuel_type==='Diesel').length,rows.filter(v=>v.fuel_type==='Petrol').length];['polKpiVehicles','polKpiDiesel','polKpiPetrol'].forEach((id,i)=>{const e=document.getElementById(id);if(e)e.textContent=vals[i]});
-  ['polRepVehicle','diaryVehicle','diaryReportVehicle'].forEach(id=>{const e=document.getElementById(id);if(!e)return;const cur=e.value;e.innerHTML='<option value="">'+(id==='diaryReportVehicle'?'All Vehicles':'Select Vehicle')+'</option>'+polVehicles.map(v=>`<option value="${v.id}" ${v.id===cur?'selected':''}>${esc(v.vehicle_no)} - ${esc(v.vehicle_type)}</option>`).join('')});
-}
-function clearPOLVehicle(){['polVehNo','polUnit','polVehType','polKPL','polDriver','polAuth','polAttachedFrom','polAttachedTo','polDriverContact','polKM','polBal'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});if(document.getElementById('polFuelType'))document.getElementById('polFuelType').value='Diesel';setMsg('polVehMsg','')}
-function editPOLVehicle(id){const v=polVehicles.find(x=>String(x.id)===String(id));if(!v)return;const map={polVehNo:'vehicle_no',polUnit:'unit',polVehType:'vehicle_type',polKPL:'kpl',polDriver:'driver_name',polAuth:'authority_no',polAttachedFrom:'attached_from',polAttachedTo:'attached_to',polDriverContact:'driver_contact',polKM:'km_reading',polBal:'pol_balance'};Object.entries(map).forEach(([id,k])=>{const e=document.getElementById(id);if(e)e.value=v[k]??''});if(document.getElementById('polFuelType'))document.getElementById('polFuelType').value=v.fuel_type||'Diesel';setPOLTab('vehicle');window.scrollTo({top:0,behavior:'smooth'})}
-async function savePOLVehicle(){
-  if(!canQsecEntry())return setMsg('polVehMsg','No entry permission for this role.');
-  if(!activeCamp)return setMsg('polVehMsg','Select an active camp first.');
-  const payload={camp_id:activeCamp.id,vehicle_no:document.getElementById('polVehNo').value.trim().toUpperCase(),unit:document.getElementById('polUnit').value.trim(),vehicle_type:document.getElementById('polVehType').value,km_reading:+document.getElementById('polKM').value||0,pol_balance:+document.getElementById('polBal').value||0,kpl:+document.getElementById('polKPL').value||0,driver_name:document.getElementById('polDriver').value.trim(),authority_no:document.getElementById('polAuth').value.trim(),fuel_type:document.getElementById('polFuelType').value,attached_from:document.getElementById('polAttachedFrom').value||null,attached_to:document.getElementById('polAttachedTo').value||null,driver_contact:document.getElementById('polDriverContact').value.trim()};
-  if(!payload.vehicle_no||!payload.unit||!payload.vehicle_type||payload.kpl<=0||!payload.driver_name||!payload.authority_no)return setMsg('polVehMsg','Fill Vehicle No, Unit, Vehicle Type, KPL, Driver and Authority/Remarks.');
-  const existing=polVehicles.find(v=>v.vehicle_no===payload.vehicle_no); const q=existing?sb.from('pol_vehicles').update(payload).eq('id',existing.id).eq('camp_id',activeCamp.id):sb.from('pol_vehicles').insert(payload);
-  const {error}=await q;if(error)return setMsg('polVehMsg',error.message); setMsg('polVehMsg','Vehicle saved successfully.',true);clearPOLVehicle();await refreshAll();setPOLTab('vehicle');
-}
-function renderPOLReport(){
-  const el=document.getElementById('polReportContent');if(!el)return;const type=document.getElementById('polRepType')?.value||'vehicle',vid=document.getElementById('polRepVehicle')?.value||'',from=document.getElementById('polRepFrom')?.value||'',to=document.getElementById('polRepTo')?.value||'';
-  let h='';
-  if(type==='vehicle'){
-    const rows=polVehicles.filter(x=>!vid||String(x.id)===String(vid)); h='<table><tr><th>SL</th><th>Vehicle</th><th>Type</th><th>Fuel</th><th>Tank Balance</th><th>KPL</th><th>Driver</th><th>Attached From</th><th>Attached To</th></tr>';rows.forEach((x,i)=>h+=`<tr><td>${i+1}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.vehicle_type)}</td><td>${esc(x.fuel_type||'-')}</td><td>${(+x.pol_balance||0).toFixed(2)}</td><td>${(+x.kpl||0).toFixed(2)}</td><td>${esc(x.driver_name)}</td><td>${esc(x.attached_from||'-')}</td><td>${esc(x.attached_to||'-')}</td></tr>`);h+='</table>';
-  } else if(type==='drawn'){
-    const rows=polEntries.filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to)); h='<table><tr><th>Date</th><th>Vehicle</th><th>Fuel</th><th>Invoice</th><th>Bunk</th><th>Previous</th><th>Drawn</th><th>Present</th><th>Rate</th><th>Amount</th></tr>';rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.fuel_type)}</td><td>${esc(x.invoice_number)}</td><td>${esc(x.petrol_bunk)}</td><td>${(+x.previous_fuel||0).toFixed(2)}</td><td>${(+x.litres||0).toFixed(2)}</td><td>${(+x.present_fuel||0).toFixed(2)}</td><td>${money(x.rate)}</td><td>${money(x.total_amount)}</td></tr>`);h+='</table>';
-  } else {
-    let rows=[...(window.carDiaryEntries||[])];if(vid)rows=rows.filter(x=>String(x.vehicle_id)===String(vid));if(from)rows=rows.filter(x=>x.entry_date>=from);if(to)rows=rows.filter(x=>x.entry_date<=to);h='<table><tr><th>Date</th><th>Vehicle</th><th>Nature</th><th>Purpose</th><th>From</th><th>To</th><th>Opening KM</th><th>KM Run</th><th>Closing KM</th><th>KPL</th><th>POL Consumed</th></tr>';rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.nature_of_duty)}</td><td>${esc(x.purpose_of_duty)}</td><td>${esc(x.from_location)}</td><td>${esc(x.to_location)}</td><td>${x.opening_km}</td><td>${x.km_run}</td><td>${x.closing_km}</td><td>${x.kpl}</td><td>${x.pol_consumed}</td></tr>`);h+='</table>';
+
+async function ensureCampContext(){
+  const {data,error}=await sb.from('camps').select('*').order('from_date',{ascending:false}).order('created_at',{ascending:false});
+  if(error){console.error(error);camps=[];activeCamp=null;populateCampTop();renderCamps();return false}
+  camps=data||[];
+  activeCamp = profile?.current_camp_id ? (camps.find(c=>c.id===profile.current_camp_id)||null) : null;
+  // If no valid camp is assigned, use the newest camp as the session camp.
+  // Persist it when the role is allowed to update profiles; otherwise keep it in session.
+  if(!activeCamp && camps.length){
+    activeCamp=camps[0];
+    if(['ADMIN','MANAGER'].includes(profile?.role)) {
+      const {error:pe}=await sb.from('profiles').update({current_camp_id:activeCamp.id}).eq('id',currentUser.id);
+      if(!pe) profile.current_camp_id=activeCamp.id;
+    }
   }
-  el.innerHTML=h||'<div class="empty">No records found.</div>';
-}
-function exportPOLReportCSV(){
-  const type=document.getElementById('polRepType')?.value||'vehicle',vid=document.getElementById('polRepVehicle')?.value||'',from=document.getElementById('polRepFrom')?.value||'',to=document.getElementById('polRepTo')?.value||'';
-  if(type==='vehicle'){downloadCSV([['SL','Vehicle No','Vehicle Type','Fuel Type','Tank Balance','KPL','Driver','Attached From','Attached To'],...polVehicles.filter(v=>!vid||String(v.id)===String(vid)).map((v,i)=>[i+1,v.vehicle_no,v.vehicle_type,v.fuel_type,v.pol_balance,v.kpl,v.driver_name,v.attached_from,v.attached_to])],'POL_Vehicle_Attachment_Report.csv');return}
-  if(type==='drawn'){downloadCSV([['Date','Vehicle','Fuel','Invoice','Bunk','Previous','Drawn','Present','Rate','Amount'],...polEntries.filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to)).map(x=>[x.entry_date,x.vehicle_no,x.fuel_type,x.invoice_number,x.petrol_bunk,x.previous_fuel,x.litres,x.present_fuel,x.rate,x.total_amount])],'POL_Drawn_Report.csv');return}
-  const rows=[...(window.carDiaryEntries||[])].filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to));downloadCSV([['Date','Vehicle','Nature','Purpose','From','To','Opening KM','KM Run','Closing KM','KPL','POL Consumed'],...rows.map(x=>[x.entry_date,x.vehicle_no,x.nature_of_duty,x.purpose_of_duty,x.from_location,x.to_location,x.opening_km,x.km_run,x.closing_km,x.kpl,x.pol_consumed])],'POL_Car_Diary_Report.csv');
-}
-function printPOLReport(){renderPOLReport();window.print()}
-
-
-/* ===== V2 FINAL STABILITY / ERROR FIXES ===== */
-async function nextCRVNo(){
-  const el=document.getElementById('rvCrv');
-  if(!el || !activeCamp || !sb) return;
-  const {data,error}=await sb.rpc('next_incidental_crv_no_fixed');
-  if(error){
-    console.error('nextCRVNo_fixed',error);
-    if(el) el.value='';
-    return;
-  }
-  el.value=data||'';
-}
-async function nextCIVNo(category){
-  const el=document.getElementById('ivNoAuto');
-  if(!el || !activeCamp || !sb) return;
-  const {data,error}=await sb.rpc('next_incidental_civ_no_fixed',{p_category:category||'EXP'});
-  if(error){
-    console.error('nextCIVNo_fixed',error);
-    if(el) el.value='';
-    return;
-  }
-  el.value=data||'';
+  populateCampTop(); renderCamps();
+  return !!activeCamp;
 }
 
-async function saveIncidentalRV(){
-  if(!canQsecEntry()) return setMsg('rvMsg','Only ADMIN, MANAGER or Q SEC can enter Incidental RV.');
-  if(!activeCamp) return setMsg('rvMsg','Select an active camp first.');
-  const items=readIncItems('rvItems');
-  if(!items.length) return setMsg('rvMsg','Add at least one receipt item.');
-  calcIncFor('rv','rvItems');
-  const invoice=(document.getElementById('rvInvoice')?.value||'').trim();
-  const party=(document.getElementById('rvParty')?.value||'').trim();
-  const address=(document.getElementById('rvAddress')?.value||'').trim();
-  const station=(document.getElementById('rvStation')?.value||'').trim();
-  const authority=typeof rvAuthorityValue==='function'
-    ? rvAuthorityValue()
-    : ((document.getElementById('rvAuthoritySelect')?.value||'CAMP COMMANDANT')==='OTHER'
-       ? ((document.getElementById('rvAuthorityName')?.value||'').trim()+' / '+(document.getElementById('rvAuthorityLetter')?.value||'').trim()).trim()
-       : 'Camp Commandant');
-  const total=Number(String(document.getElementById('rvAmount')?.value||'').replace(/[^0-9.]/g,''))||0;
-  const subtotal=Number(String(document.getElementById('rvSubtotal')?.value||'').replace(/[^0-9.]/g,''))||0;
-  const gstAmount=Number(String(document.getElementById('rvGstAmount')?.value||'').replace(/[^0-9.]/g,''))||0;
-  const crv=(document.getElementById('rvCrv')?.value||'').trim();
-  if(!invoice||!party||!station||!authority||!crv||total<=0) return setMsg('rvMsg','Enter Invoice, Vendor, Station, Authority and at least one valid item.');
-  if((document.getElementById('rvAuthoritySelect')?.value||'')==='OTHER' && !(document.getElementById('rvAuthorityName')?.value||'').trim())
-    return setMsg('rvMsg','Enter the Other Authority name.');
-  const {data,error}=await sb.rpc('save_incidental_voucher_fixed',{
-    p_id:rvEditingId||null,
-    p_type:'RV',
-    p_voucher_no:crv,
-    p_voucher_date:document.getElementById('rvDate')?.value||today(),
-    p_party:party,
-    p_invoice_number:invoice,
-    p_vendor_address:address||null,
-    p_station:station,
-    p_crv_no:crv,
-    p_authority:authority,
-    p_unit:null,
-    p_items:items,
-    p_subtotal:subtotal,
-    p_gst_mode:document.getElementById('rvGstMode')?.value||'inclusive',
-    p_gst_rate:+document.getElementById('rvGstRate')?.value||0,
-    p_gst_amount:gstAmount,
-    p_amount:total,
-    p_description:document.getElementById('rvDesc')?.value.trim()||''
+async function loadApp(){
+  const {data:p,error}=await sb.from('profiles').select('*').eq('id',currentUser.id).maybeSingle();
+  if(error||!p){setLoginMsg('Login succeeded, but no profile/role is assigned to this Auth user.');await sb.auth.signOut();return}
+  profile=p;
+  document.getElementById('loginView').classList.add('hidden'); document.getElementById('appView').classList.remove('hidden');
+  document.getElementById('userBox').textContent=(currentUser.email||'')+' | '+profile.role; document.getElementById('avatar').textContent=(profile.display_name||currentUser.email||'N').slice(0,1).toUpperCase();
+  applyRoleUI();
+  const hasCamp=await ensureCampContext();
+  if(hasCamp){await refreshAll(); showPage('dashboard',document.querySelector('[data-page="dashboard"]'));}
+  else {await refreshAll(); showPage(canCampManage()?'camp':'dashboard',document.querySelector(`[data-page="${canCampManage()?'camp':'dashboard'}"]`));}
+}
+
+async function refreshAll(){
+  if(!activeCamp){renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidentalRV();renderIncidentalIV();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();return}
+  const [a,b,c,p,l,cv,pv,iv,cb,cc]=await Promise.all([
+    sb.from('inventory_items').select('*').eq('camp_id',activeCamp.id).order('ledger_page_no'),
+    sb.from('stock_in_invoices').select('*,stock_in_items(*)').eq('camp_id',activeCamp.id).order('invoice_date',{ascending:false}).order('created_at',{ascending:false}),
+    sb.from('stock_out_vouchers').select('*,stock_out_items(*)').eq('camp_id',activeCamp.id).order('voucher_date',{ascending:false}).order('created_at',{ascending:false}),
+    sb.from('profiles').select('id,display_name,role,created_at,current_camp_id').order('display_name'),
+    sb.from('app_settings').select('*').eq('key','nc_logo_path').maybeSingle(),
+    sb.from('pol_vehicles').select('*').eq('camp_id',activeCamp.id).order('vehicle_no'),
+    sb.from('pol_drawn_entries').select('*').eq('camp_id',activeCamp.id).order('entry_date',{ascending:false}).order('created_at',{ascending:false}),
+    sb.from('incidental_vouchers').select('*').eq('camp_id',activeCamp.id).order('voucher_date',{ascending:false}).order('created_at',{ascending:false}),
+    sb.from('cashbook_entries').select('*').eq('camp_id',activeCamp.id).order('entry_date',{ascending:false}).order('created_at',{ascending:false}),
+    sb.from('cashbook_day_closures').select('*').eq('camp_id',activeCamp.id).order('close_date',{ascending:false})
+  ]);
+  items=a.data||[];inInvoices=b.data||[];outVouchers=c.data||[];profiles=p.data||[];polVehicles=cv.data||[];polEntries=pv.data||[];incidentals=iv.data||[];cashbookEntries=cb.data||[];cashbookClosures=cc.data||[];
+  if(l.data?.value)setLogo(l.data.value);
+  renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidentalRV();renderIncidentalIV();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();if(cashType==='PAYMENT')loadCashSources();if(cashType==='DAY')renderDayClose();
+}
+
+
+
+/* ===== Restored core navigation / inventory / camp functions ===== */
+function addInRow(data={}) {
+  const wrap=document.getElementById("inRows"),row=document.createElement("div");row.className="item-row";
+  row.innerHTML=`<select class="in-item" onchange="calcInTotal()"><option value="">Select item</option>${inOptions(data.item_id||"")}</select>
+    <input class="in-qty" type="number" min="0" step="0.01" value="${data.quantity??""}" oninput="calcInTotal()">
+    <input class="in-rate" type="number" min="0" step="0.01" value="${data.rate??""}" oninput="calcInTotal()">
+    <div class="amt in-amt">0.00</div><button class="btn red" onclick="this.parentElement.remove();calcInTotal()">×</button>`;
+  wrap.appendChild(row);calcInTotal();
+}
+function addOutRow(data={}){
+  const wrap=document.getElementById("outRows"),row=document.createElement("div");row.className="item-row";
+  row.innerHTML=`<select class="out-item" onchange="updateOutRow(this)"><option value="">Select item</option>${items.map(i=>`<option value="${i.id}" ${data.item_id===i.id?"selected":""}>${esc(i.name)} (${esc(i.unit||"")})</option>`).join("")}</select>
+    <div class="out-bal badge">0.00</div><input class="out-qty" type="number" min="0" step="0.01" value="${data.quantity??""}" oninput="calcOutTotal()"><div class="amt out-amt">0.00</div>
+    <button class="btn red" onclick="this.parentElement.remove();calcOutTotal()">×</button>`;
+  wrap.appendChild(row);updateOutRow(row.querySelector(".out-item"));
+}
+function availableCashSources(type){if(type==='MESSING')return inInvoices.map(x=>({id:x.id,label:`${x.invoice_number} | ${x.invoice_date} | ${x.supplier||''}`,ref:x.invoice_number,party:x.supplier||'',amount:(x.stock_in_items||[]).reduce((s,r)=>s+(+r.amount||0),0)}));if(type==='INCIDENTAL_RV'||type==='INCIDENTAL_IV')return incidentals.filter(x=>x.voucher_type===type.split('_')[1]).map(x=>({id:x.id,label:`${x.voucher_no} | ${x.invoice_number||'-'} | ${x.party||''}`,ref:x.invoice_number||x.voucher_no,party:x.party||'',amount:+x.amount||0}));if(type==='POL_DRAWN')return polEntries.map(x=>({id:x.id,label:`${x.invoice_number} | ${x.entry_date} | ${x.petrol_bunk||''}`,ref:x.invoice_number,party:x.petrol_bunk||'',amount:+x.total_amount||0}));return []}
+function balance(i){return (+i.opening_stock||0)+(+i.stock_in_qty||0)-(+i.stock_out_qty||0)}
+function calcInTotal(){let t=0;document.querySelectorAll("#inRows .item-row").forEach(r=>{const q=+r.querySelector(".in-qty").value||0,rate=+r.querySelector(".in-rate").value||0,a=q*rate;r.querySelector(".in-amt").textContent=a.toFixed(2);t+=a});document.getElementById("inTotal").textContent=t.toFixed(2)}
+function calcOutTotal(){let t=0;document.querySelectorAll("#outRows .item-row").forEach(r=>{const i=items.find(x=>x.id===r.querySelector(".out-item").value),q=+r.querySelector(".out-qty").value||0,a=q*(+(i?.avg_rate||0));r.querySelector(".out-amt").textContent=a.toFixed(2);t+=a});document.getElementById("outTotal").textContent=t.toFixed(2)}
+function cashSourceTypes(){return ['MESSING','INCIDENTAL_RV','INCIDENTAL_IV','POL_DRAWN','OTHER']}
+function clearCampForm(){['campCode','campName','campStation','campFrom','campTo','campRemarks'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});setMsg('campMsg','')}
+function clearReportFilter(){document.getElementById("fromDate").value="";document.getElementById("toDate").value="";renderReports()}
+function closeModal(){document.getElementById("modal").classList.add("hidden")}
+function dateOk(d,from,to){return (!from||d>=from)&&(!to||d<=to)}
+async function deleteCashbook(id){if(!canAccountsEntry())return;if(!confirm('Delete this cash book entry?'))return;const {error}=await sb.from('cashbook_entries').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await refreshAll()}
+async function deleteItem(id){
+  if(!canDelete())return alert("Only ADMIN/MANAGER can delete inventory items.");
+  if(!confirm("Delete this item? It cannot be deleted if transactions reference it."))return;
+  const {error}=await sb.from("inventory_items").delete().eq("id",id);if(error)alert(error.message);else await refreshAll();
+}
+async function deleteStockIn(id){
+  if(!canDelete())return alert("Only ADMIN/MANAGER can delete invoices.");
+  if(!confirm("Delete this complete invoice and all its item rows?"))return;
+  const {error}=await sb.rpc("delete_stock_in_invoice",{p_id:id});if(error)alert(error.message);else await refreshAll();
+}
+async function deleteStockOut(id){
+  if(!canDelete())return alert("Only ADMIN/MANAGER can delete vouchers.");
+  if(!confirm("Delete this complete voucher and all its item rows?"))return;
+  const {error}=await sb.rpc("delete_stock_out_voucher",{p_id:id});if(error)alert(error.message);else await refreshAll();
+}
+async function editStockIn(id){
+  if(!canTxEdit())return;
+  const h=inInvoices.find(x=>x.id===id);if(!h)return;
+  document.getElementById("editInId").value=h.id;document.getElementById("inInvoice").value=h.invoice_number;document.getElementById("inDate").value=h.invoice_date;document.getElementById("inSupplier").value=h.supplier||"";
+  document.getElementById("stockInFormTitle").textContent="Edit Purchase Invoice";document.getElementById("inRows").innerHTML="";
+  (h.stock_in_items||[]).forEach(r=>addInRow(r));if(!(h.stock_in_items||[]).length)addInRow();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+async function editStockOut(id){
+  if(!canTxEdit())return;
+  const h=outVouchers.find(x=>x.id===id);if(!h)return;
+  document.getElementById("editOutId").value=h.id;document.getElementById("outVoucher").value=h.voucher_number;document.getElementById("outDate").value=h.voucher_date;document.getElementById("outIssuedTo").value=h.issued_to||"";
+  document.getElementById("stockOutFormTitle").textContent="Edit Issue Voucher";document.getElementById("outRows").innerHTML="";
+  (h.stock_out_items||[]).forEach(r=>addOutRow(r));if(!(h.stock_out_items||[]).length)addOutRow();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+function inOptions(selected=""){return items.length?items.map(i=>`<option value="${i.id}" ${selected===i.id?"selected":""}>${esc(i.name)} (${esc(i.unit||"")})</option>`).join(""):"<option value=''>Add inventory items first</option>"}
+async function openItemModal(id=null){
+  const item=id?items.find(x=>x.id===id):null;
+  let next="";
+  if(!item){
+    const {data,error}=await sb.rpc("next_ledger_page_no");
+    next=error?String(Math.max(0,...items.map(i=>+i.ledger_page_no||0))+1):String(data);
+  }else next=item.ledger_page_no||"";
+  const unitOpts=UNITS.map(u=>`<option ${item?.unit===u?"selected":""}>${u}</option>`).join("");
+  openModal(`<div class="modalhead"><h2>${item?"Edit":"Add"} Inventory Item</h2><button class="close" onclick="closeModal()">×</button></div>
+  <div class="formbox" style="margin-top:12px">
+   <div class="form-grid">
+    <div class="field"><label>Ledger Page No. (Auto)</label><input id="fLedger" value="${esc(next)}" readonly></div>
+    <div class="field"><label>Item Name</label><input id="fName" value="${esc(item?.name||"")}" placeholder="Item name"></div>
+    <div class="field"><label>Category</label><input id="fCat" value="${esc(item?.category||"")}" placeholder="Category"></div>
+    <div class="field"><label>Unit</label><select id="fUnit">${unitOpts}</select></div>
+    <div class="field"><label>Opening Stock</label><input id="fOpening" type="number" step="0.01" min="0" value="${item?.opening_stock??0}"></div>
+    <div class="field"><label>Reorder Level</label><input id="fReorder" type="number" step="0.01" min="0" value="${item?.reorder_level??0}"></div>
+   </div>
+   <div class="actions" style="margin-top:14px"><button class="btn" onclick="saveItem('${item?.id||""}')">SAVE ITEM</button><button class="btn ghost" onclick="closeModal()">CANCEL</button></div>
+  </div>`);
+}
+function openLogo(){
+  if(!roleIs("ADMIN"))return;
+  openModal(`<div class="modalhead"><h2>Upload NC Logo</h2><button class="close" onclick="closeModal()">×</button></div><div class="formbox" style="margin-top:12px"><p class="muted">Choose JPG or PNG. The logo is stored in Supabase Storage.</p><input id="logoFile" type="file" accept="image/png,image/jpeg"><div class="actions" style="margin-top:12px"><button class="btn" onclick="uploadLogo()">UPLOAD</button></div></div>`)
+}
+function openModal(html){document.getElementById("modalBox").innerHTML=html;document.getElementById("modal").classList.remove("hidden")}
+function populateCampTop(){
+  const el=document.getElementById('campSelectTop'); if(!el)return;
+  const current=activeCamp?.id||'';
+  el.innerHTML='<option value="">Select Camp</option>'+camps.map(c=>`<option value="${esc(c.id)}" ${c.id===current?'selected':''}>${esc(c.camp_code)} - ${esc(c.camp_name)}</option>`).join('');
+  const lbl=document.getElementById('campActiveLabel'); if(lbl) lbl.textContent=activeCamp?`${activeCamp.camp_code} | ${activeCamp.camp_name}`:'No camp selected';
+}
+function populateUnitFilter(){
+  const el=document.getElementById("unitFilter");if(!el)return;const current=el.value;
+  el.innerHTML='<option value="">All Units</option>'+[...new Set([...UNITS,...items.map(i=>i.unit).filter(Boolean)])].map(u=>`<option ${u===current?"selected":""}>${esc(u)}</option>`).join("");
+}
+function populateVoucherSelects(){
+  const v=document.getElementById("outVoucher"),current=v.value;
+  if(v)v.innerHTML=VOUCHERS.map(x=>`<option ${x===current?"selected":""}>${x}</option>`).join("");
+}
+async function prepareCashVoucherNo(){if(!activeCamp){document.getElementById('cashVoucherNo').value='';return}const {data,error}=await sb.rpc('next_cashbook_voucher_no',{p_type:cashType});document.getElementById('cashVoucherNo').value=error?'':data}
+function printPage(){window.print()}
+async function renderCamps(){
+  const el=document.getElementById('campTable'); if(!el)return;
+  let h='<table><tr><th>Code</th><th>Camp Name</th><th>Station</th><th>From</th><th>To</th><th>Status</th><th>Action</th></tr>';
+  camps.forEach(c=>{const active=activeCamp?.id===c.id; h+=`<tr><td><b>${esc(c.camp_code)}</b></td><td>${esc(c.camp_name)}</td><td>${esc(c.station||'')}</td><td>${esc(c.from_date||'')}</td><td>${esc(c.to_date||'')}</td><td><span class="status ${active?'ok':'low'}">${active?'ACTIVE':'AVAILABLE'}</span></td><td>${active?'Current ':''}<button class="btn" onclick="switchCamp('${c.id}')">${active?'RESELECT':'SELECT'}</button> ${roleIs('ADMIN')?`<button class="btn red" onclick="deleteCamp('${c.id}')">DELETE</button>`:''}</td></tr>`});
+  h+='</table>'; el.innerHTML=camps.length?h:'<div class="empty">No camp found. ADMIN/MANAGER must start a new camp.</div>';
+}
+async function deleteCamp(id){
+  if(!roleIs('ADMIN')){alert('Only ADMIN can delete a camp.');return}
+  const c=camps.find(x=>x.id===id);if(!c)return;
+  if(!confirm(`Delete camp ${c.camp_code} - ${c.camp_name}? This will delete all camp records.`))return;
+  if(!confirm('Final confirmation: permanently delete this camp and its inventory, messing, POL, incidental and cash-book records?'))return;
+  const ops=[['cashbook_entries','camp_id'],['cashbook_day_closures','camp_id'],['incidental_vouchers','camp_id'],['pol_drawn_entries','camp_id'],['pol_vehicles','camp_id'],['stock_out_items','camp_id'],['stock_out_vouchers','camp_id'],['stock_in_items','camp_id'],['stock_in_invoices','camp_id'],['inventory_items','camp_id']];
+  for(const [table,col] of ops){const {error}=await sb.from(table).delete().eq(col,id);if(error){alert(`Cannot delete ${c.camp_code}: ${error.message}`);return}}
+  await sb.from('profiles').update({current_camp_id:null}).eq('current_camp_id',id);
+  const {error}=await sb.from('camps').delete().eq('id',id);
+  if(error){alert(error.message);return}
+  camps=camps.filter(x=>x.id!==id);if(activeCamp?.id===id)activeCamp=null;profile.current_camp_id=null;populateCampTop();await refreshAll();
+  showPage(canCampManage()?'camp':'dashboard',document.querySelector(`[data-page="${canCampManage()?'camp':'dashboard'}"]`));
+}
+function renderCashSources(){const st=document.getElementById('cashSourceType');if(!st)return;const current=st.value||'MESSING';st.innerHTML=cashSourceTypes().map(x=>`<option value="${x}" ${x===current?'selected':''}>${x.replaceAll('_',' ')}</option>`).join('');loadCashSources()}
+function renderInventory(){
+  const q=(document.getElementById("invSearch")?.value||"").toLowerCase(),u=document.getElementById("unitFilter")?.value||"";
+  const list=items.filter(i=>(i.name+" "+(i.category||"")).toLowerCase().includes(q)&&(!u||i.unit===u));
+  let h=`<table><tr><th>Ledger Page</th><th>Item Name</th><th>Category</th><th>Unit</th><th>Opening</th><th>Stock In</th><th>Stock Out</th><th>Balance</th><th>Reorder</th><th>Status</th><th>Action</th></tr>`;
+  list.forEach(i=>{
+    const b=balance(i),low=b<=+i.reorder_level;
+    const actions=canWriteInventory()?`<button class="btn ghost" onclick="openItemModal('${i.id}')">Edit</button> ${canDelete()?`<button class="btn red" onclick="deleteItem('${i.id}')">Delete</button>`:""}`:"Read only";
+    h+=`<tr><td><b>${esc(i.ledger_page_no||"")}</b></td><td><b>${esc(i.name)}</b></td><td>${esc(i.category||"")}</td><td>${esc(i.unit||"")}</td><td>${(+i.opening_stock||0).toFixed(2)}</td><td>${(+i.stock_in_qty||0).toFixed(2)}</td><td>${(+i.stock_out_qty||0).toFixed(2)}</td><td><b>${b.toFixed(2)}</b></td><td>${(+i.reorder_level||0).toFixed(2)}</td><td><span class="status ${low?"low":"ok"}">${low?"LOW":"OK"}</span></td><td>${actions}</td></tr>`;
   });
-  if(error){console.error('saveIncidentalRV_fixed',error);return setMsg('rvMsg',error.message)}
-  rvEditingId=data;
-  setMsg('rvMsg','Incidental RV saved successfully. You can now click GENERATE RV.',true);
+  h+="</table>";document.getElementById("inventoryTable").innerHTML=list.length?h:"<div class='empty'>No inventory items found.</div>";
+}
+function renderStockInList(){
+  let h=`<table><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Items</th><th>Total</th><th>Action</th></tr>`;
+  inInvoices.forEach(x=>{const total=(x.stock_in_items||[]).reduce((s,r)=>s+(+r.amount||(+r.quantity||0)*(+r.rate||0)),0);
+    let actions=canTxEdit()?`<button class="btn ghost" onclick="editStockIn('${x.id}')">Edit</button>`:"View";
+    if(canDelete())actions+=` <button class="btn red" onclick="deleteStockIn('${x.id}')">Delete</button>`;
+    h+=`<tr><td><b>${esc(x.invoice_number)}</b></td><td>${esc(x.invoice_date)}</td><td>${esc(x.supplier||"")}</td><td>${(x.stock_in_items||[]).length}</td><td>${money(total)}</td><td>${actions}</td></tr>`});
+  h+="</table>";document.getElementById("inList").innerHTML=inInvoices.length?h:"<div class='empty'>No purchase invoices saved yet.</div>";
+}
+function renderStockOutList(){
+  let h=`<table><tr><th>Voucher</th><th>Date</th><th>Issued To</th><th>Items</th><th>Total</th><th>Action</th></tr>`;
+  outVouchers.forEach(x=>{const total=(x.stock_out_items||[]).reduce((s,r)=>s+(+r.amount||(+r.quantity||0)*(+r.rate||0)),0);
+    let actions=canTxEdit()?`<button class="btn ghost" onclick="editStockOut('${x.id}')">Edit</button>`:"View";
+    if(canDelete())actions+=` <button class="btn red" onclick="deleteStockOut('${x.id}')">Delete</button>`;
+    h+=`<tr><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.voucher_date)}</td><td>${esc(x.issued_to||"")}</td><td>${(x.stock_out_items||[]).length}</td><td>${money(total)}</td><td>${actions}</td></tr>`});
+  h+="</table>";document.getElementById("outList").innerHTML=outVouchers.length?h:"<div class='empty'>No issue vouchers saved yet.</div>";
+}
+function renderUsers(){
+  if(!roleIs("ADMIN"))return;
+  let h=`<table><tr><th>Display Name</th><th>Role</th><th>UUID</th><th>Created</th></tr>`;
+  profiles.forEach(u=>h+=`<tr><td>${esc(u.display_name||"")}</td><td><span class="badge">${esc(u.role)}</span></td><td>${esc(u.id)}</td><td>${esc(u.created_at||"")}</td></tr>`);
+  h+="</table>";document.getElementById("usersTable").innerHTML=profiles.length?h:"<div class='empty'>No profiles found.</div>";
+}
+function resetStockInForm(){
+  if(!canStockCreate()&&!document.getElementById("editInId").value)return;
+  document.getElementById("editInId").value="";document.getElementById("inInvoice").value="";document.getElementById("inDate").value=today();document.getElementById("inSupplier").value="";
+  document.getElementById("stockInFormTitle").textContent="New Purchase Invoice";document.getElementById("inRows").innerHTML="";addInRow();setMsg("inMsg","");
+}
+function resetStockOutForm(){
+  if(!canStockCreate()&&!document.getElementById("editOutId").value)return;
+  document.getElementById("editOutId").value="";document.getElementById("outVoucher").value="IV-1";document.getElementById("outDate").value=today();document.getElementById("outIssuedTo").value="";
+  document.getElementById("stockOutFormTitle").textContent="New Issue Voucher";document.getElementById("outRows").innerHTML="";addOutRow();setMsg("outMsg","");
+}
+async function saveCamp(){
+  if(!canCampManage()){setMsg('campMsg','Only ADMIN or MANAGER can create a camp.');return}
+  const code=document.getElementById('campCode').value.trim().toUpperCase(), name=document.getElementById('campName').value.trim(), station=document.getElementById('campStation').value.trim(), from=document.getElementById('campFrom').value, to=document.getElementById('campTo').value||null, remarks=document.getElementById('campRemarks').value.trim();
+  if(!code||!name||!from){setMsg('campMsg','Camp code, camp name and from date are required.');return}
+  const {data,error}=await sb.from('camps').insert({camp_code:code,camp_name:name,station:station||null,from_date:from,to_date:to,remarks:remarks||null,created_by:currentUser.id}).select().single();
+  if(error){setMsg('campMsg',error.message);return}
+  camps=[data,...camps]; profile.current_camp_id=data.id; activeCamp=data; await sb.from('profiles').update({current_camp_id:data.id}).eq('id',currentUser.id); clearCampForm(); setMsg('campMsg','New camp started successfully.',true); populateCampTop(); renderCamps(); await refreshAll(); showPage('dashboard',document.querySelector('[data-page="dashboard"]'));
+}
+async function saveStockIn(){
+  if(!canTxEdit())return;
+  const id=document.getElementById("editInId").value||null,invoice=document.getElementById("inInvoice").value.trim(),date=document.getElementById("inDate").value,supplier=document.getElementById("inSupplier").value.trim();
+  if(!id&&!canStockCreate()){setMsg("inMsg","Your role can edit existing invoices but cannot create new invoices.");return}
+  if(!invoice||!date){setMsg("inMsg","Invoice number and date are required.");return}
+  const rows=[...document.querySelectorAll("#inRows .item-row")].map(r=>({item_id:r.querySelector(".in-item").value,quantity:+r.querySelector(".in-qty").value||0,rate:+r.querySelector(".in-rate").value||0})).filter(x=>x.item_id&&x.quantity>0);
+  if(!rows.length){setMsg("inMsg","Add at least one item with quantity.");return}
+  const {data,error}=await sb.rpc("save_stock_in_invoice",{p_id:id,p_invoice_number:invoice,p_invoice_date:date,p_supplier:supplier,p_items:rows});
+  if(error){setMsg("inMsg",error.message);return}
+  setMsg("inMsg","Invoice saved successfully.",true);resetStockInForm();await refreshAll();
+  showPage("stockin",document.querySelector('[data-page="stockin"]'));
+}
+async function saveStockOut(){
+  if(!canTxEdit())return;
+  const id=document.getElementById("editOutId").value||null,voucher=document.getElementById("outVoucher").value,date=document.getElementById("outDate").value,issued=document.getElementById("outIssuedTo").value.trim();
+  if(!id&&!canStockCreate()){setMsg("outMsg","Your role can edit existing vouchers but cannot create new vouchers.");return}
+  if(!date){setMsg("outMsg","Date is required.");return}
+  const rows=[...document.querySelectorAll("#outRows .item-row")].map(r=>({item_id:r.querySelector(".out-item").value,quantity:+r.querySelector(".out-qty").value||0})).filter(x=>x.item_id&&x.quantity>0);
+  if(!rows.length){setMsg("outMsg","Add at least one item with quantity.");return}
+  const {data,error}=await sb.rpc("save_stock_out_voucher",{p_id:id,p_voucher_number:voucher,p_voucher_date:date,p_issued_to:issued,p_items:rows});
+  if(error){setMsg("outMsg",error.message);return}
+  setMsg("outMsg","Voucher saved successfully.",true);resetStockOutForm();await refreshAll();
+  showPage("stockout",document.querySelector('[data-page="stockout"]'));
+}
+async function saveUserProfile(){
+  if(!roleIs("ADMIN"))return;
+  const id=document.getElementById("uId").value.trim(),name=document.getElementById("uName").value.trim(),role=document.getElementById("uRole").value;
+  if(!id){setMsg("userMsg","Auth User UUID is required.");return}
+  const {error}=await sb.from("profiles").upsert({id,display_name:name||null,role},{onConflict:"id"});
+  if(error){setMsg("userMsg",error.message);return}
+  setMsg("userMsg","User profile saved.",true);document.getElementById("uId").value="";document.getElementById("uName").value="";await refreshAll();
+}
+function setLogo(url){
+  document.getElementById("ncLogo").innerHTML=`<img src="${esc(url)}" alt="NC">`;
+  document.getElementById("loginLogo").innerHTML=`<img src="${esc(url)}" style="width:100%;height:100%;border-radius:15px;object-fit:cover" alt="NC">`;
+}
+async function switchCamp(id){
+  if(!id)return;
+  const c=camps.find(x=>x.id===id); if(!c)return;
+  activeCamp=c;
+  // Persist for roles allowed to update their current camp; otherwise keep the selection for the session.
+  const {error}=await sb.from('profiles').update({current_camp_id:id}).eq('id',currentUser.id);
+  if(!error) profile.current_camp_id=id;
+  populateCampTop();
   await refreshAll();
-  renderIncidentalRV();
+  showPage('dashboard',document.querySelector('[data-page="dashboard"]'));
+}
+function toggleMenu(force){
+  const s=document.getElementById("side");
+  if(force===false){s.classList.remove("expanded","open");return}
+  s.classList.toggle("expanded");s.classList.toggle("open");
+}
+function toggleMessingMenu(btn){
+  const sub=document.getElementById("messingSubnav");
+  if(!sub)return;
+  const open=sub.classList.toggle("open");
+  document.getElementById("messingArrow").textContent=open?"▾":"▸";
+  document.querySelectorAll(".nav").forEach(n=>n.classList.remove("active"));
+  btn.classList.add("active");
+  // Open the Messing landing page only when the section button is clicked.
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.getElementById("messing")?.classList.add("active");
+}
+function updateOutRow(sel){const r=sel.parentElement,i=items.find(x=>x.id===sel.value),b=i?balance(i):0;r.querySelector(".out-bal").textContent=b.toFixed(2);r.querySelector(".out-qty").max=Math.max(0,b);calcOutTotal()}
+async function uploadLogo(){
+  const f=document.getElementById("logoFile").files[0];if(!f)return;
+  const ext=(f.name.split(".").pop()||"png").toLowerCase(),path=`logos/nc-logo.${ext}`;
+  const {error}=await sb.storage.from("ims-assets").upload(path,f,{upsert:true,contentType:f.type});
+  if(error){alert(error.message);return}
+  const {data}=sb.storage.from("ims-assets").getPublicUrl(path);
+  const {error:e2}=await sb.from("app_settings").upsert({key:"nc_logo_path",value:data.publicUrl});
+  if(e2){alert(e2.message);return}closeModal();await refreshAll();
 }
 
-async function saveIncidentalIV(){
-  if(!canQsecEntry()) return setMsg('ivMsgInc','Only ADMIN, MANAGER or Q SEC can enter Incidental IV.');
-  if(!activeCamp) return setMsg('ivMsgInc','Select an active camp first.');
-  const rows=[...document.querySelectorAll('#ivItemsInc .rviv-item')];
-  if(!rows.length) return setMsg('ivMsgInc','Add at least one issue item.');
-  const items=rows.map(r=>({
-    desc:r.querySelector('.ix-desc')?.value.trim()||'',
-    unit:r.querySelector('.ix-unit')?.value||'',
-    type:r.querySelector('.ix-type')?.value||'Expendable',
-    qty:+r.querySelector('.ix-qty')?.value||0,
-    rate:+r.querySelector('.ix-rate')?.value||0,
-    page:r.querySelector('.ix-page')?.value.trim()||'',
-    authorised:r.querySelector('.ix-authorised')?.value.trim()||'',
-    remarks:r.querySelector('.ix-remarks')?.value.trim()||''
-  })).filter(x=>x.desc && x.qty>0);
-  if(!items.length) return setMsg('ivMsgInc','Add at least one valid issue item.');
-  const category=items.some(x=>String(x.type).toLowerCase().includes('non'))?'N-EXP':'EXP';
-  if(!ivEditingId && !(document.getElementById('ivNoAuto')?.value||'').trim()) await nextCIVNo(category);
-  const no=(document.getElementById('ivNoAuto')?.value||'').trim();
-  const unit=(document.getElementById('ivUnitInc')?.value||'').trim();
-  const station=(document.getElementById('ivStationInc')?.value||'').trim();
-  if(!no||!unit) return setMsg('ivMsgInc','IV number and Receiving Unit are required.');
-  const total=items.reduce((s,x)=>s+(x.qty*x.rate),0);
-  const {data,error}=await sb.rpc('save_incidental_voucher_fixed',{
-    p_id:ivEditingId||null,
-    p_type:'IV',
-    p_voucher_no:no,
-    p_voucher_date:document.getElementById('ivDateInc')?.value||today(),
-    p_party:unit,
-    p_invoice_number:null,
-    p_vendor_address:null,
-    p_station:station||null,
-    p_crv_no:null,
-    p_authority:'Camp Commandant',
-    p_unit:unit,
-    p_items:items,
-    p_subtotal:total,
-    p_gst_mode:'inclusive',
-    p_gst_rate:0,
-    p_gst_amount:0,
-    p_amount:total,
-    p_description:''
-  });
-  if(error){console.error('saveIncidentalIV_fixed',error);return setMsg('ivMsgInc',error.message)}
-  ivEditingId=data;
-  setMsg('ivMsgInc','Incidental IV saved successfully.',true);
-  await refreshAll();
-  renderIncidentalIV();
+async function saveItem(id){
+  if(!canWriteInventory()){alert('Read-only access.');return}
+  if(!activeCamp){alert('Select/start a camp first.');return}
+  const payload={camp_id:activeCamp.id,ledger_page_no:document.getElementById('fLedger').value.trim(),name:document.getElementById('fName').value.trim(),category:document.getElementById('fCat').value.trim(),unit:document.getElementById('fUnit').value,opening_stock:+document.getElementById('fOpening').value||0,reorder_level:+document.getElementById('fReorder').value||0};
+  if(!payload.name){alert('Item name is required.');return}
+  const q=id?sb.from('inventory_items').update(payload).eq('id',id).eq('camp_id',activeCamp.id):sb.from('inventory_items').insert(payload); const {error}=await q; if(error){alert(error.message);return} closeModal(); await refreshAll();
 }
 
-function generateCurrentRV(){
-  let x=null;
-  if(rvEditingId) x=incidentals.find(a=>String(a.id)===String(rvEditingId));
-  if(!x){
-    const crv=(document.getElementById('rvCrv')?.value||'').trim();
-    if(crv) x=incidentals.find(a=>a.voucher_type==='RV' && String(a.crv_no||a.voucher_no)===crv);
+function resetCampGate(){ if(!activeCamp) { if(canCampManage()) showPage('camp',document.querySelector('[data-page="camp"]')); } }
+
+/* POL module - based on the supplied POL Drawn entry fields */
+function clearPOLVehicle(){['polVehNo','polUnit','polVehType','polKM','polBal','polKPL','polDriver','polAuth'].forEach(id=>{document.getElementById(id).value=''});setMsg('polVehMsg','')}
+function renderPOL(){
+  const vt=document.getElementById('polVehiclesTable'), et=document.getElementById('polEntriesTable'); if(!vt||!et)return;
+  let h='<table><tr><th>Vehicle No</th><th>Type</th><th>Unit</th><th>KM</th><th>POL Balance</th><th>KPL</th><th>Driver</th><th>Authority</th><th>Action</th></tr>';
+  polVehicles.forEach(v=>h+=`<tr><td><b>${esc(v.vehicle_no)}</b></td><td>${esc(v.vehicle_type)}</td><td>${esc(v.unit)}</td><td>${(+v.km_reading||0).toFixed(1)}</td><td>${(+v.pol_balance||0).toFixed(2)}</td><td>${(+v.kpl||0).toFixed(2)}</td><td>${esc(v.driver_name)}</td><td>${esc(v.authority_no)}</td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:''}</td></tr>`); h+='</table>'; vt.innerHTML=polVehicles.length?h:'<div class="empty">No vehicles saved for this camp.</div>';
+  let e='<table><tr><th>Date</th><th>Vehicle</th><th>Fuel</th><th>Invoice</th><th>Petrol Bunk</th><th>Previous</th><th>Drawn</th><th>Present</th><th>Rate</th><th>Total</th><th>Action</th></tr>';
+  polEntries.forEach(x=>e+=`<tr><td>${esc(x.entry_date||'')}</td><td><b>${esc(x.vehicle_no||'')}</b></td><td>${esc(x.fuel_type)}</td><td>${esc(x.invoice_number)}</td><td>${esc(x.petrol_bunk)}</td><td>${(+x.previous_fuel||0).toFixed(2)}</td><td>${(+x.litres||0).toFixed(2)}</td><td>${(+x.present_fuel||0).toFixed(2)}</td><td>${money(x.rate)}</td><td>${money(x.total_amount)}</td><td>${canQsecEntry()?`<button class="btn ghost" onclick="editPOLEntry('${x.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deletePOLEntry('${x.id}')">Delete</button>`:''}</td></tr>`); e+='</table>'; et.innerHTML=polEntries.length?e:'<div class="empty">No POL drawn entries for this camp.</div>';
+  loadPOLVehicleSelect();
+}
+function loadPOLVehicleSelect(){const s=document.getElementById('polVehSelect');if(!s)return;const c=s.value;s.innerHTML='<option value="">Select Vehicle</option>'+polVehicles.map(v=>`<option value="${esc(v.id)}" ${v.id===c?'selected':''}>${esc(v.vehicle_no)} - ${esc(v.vehicle_type)}</option>`).join('')}
+function loadPOLVehicle(){const v=polVehicles.find(x=>x.id===document.getElementById('polVehSelect').value);document.getElementById('polPrev').value=v?(+v.pol_balance||0).toFixed(2):'0.00';document.getElementById('polPresent').value=v?(+v.pol_balance||0).toFixed(2):'0.00';document.getElementById('polVehicleInfo').textContent=v?`Vehicle Type: ${v.vehicle_type} | Unit: ${v.unit} | KM: ${v.km_reading} | Current POL Balance: ${(+v.pol_balance||0).toFixed(2)} Ltr | KPL: ${v.kpl} | Driver: ${v.driver_name} | Authority: ${v.authority_no}`:'No vehicle selected.'}
+function calcPOL(){const p=+document.getElementById('polPrev').value||0,l=+document.getElementById('polLitres').value||0,r=+document.getElementById('polRate').value||0;document.getElementById('polPresent').value=(p+l).toFixed(2);document.getElementById('polAmount').value=money(l*r)}
+async function savePOLVehicle(){if(!canQsecEntry()){setMsg('polVehMsg','No entry permission for this role.');return}if(!activeCamp){setMsg('polVehMsg','Select a camp first.');return}const payload={camp_id:activeCamp.id,vehicle_no:document.getElementById('polVehNo').value.trim().toUpperCase(),unit:document.getElementById('polUnit').value.trim(),vehicle_type:document.getElementById('polVehType').value,km_reading:+document.getElementById('polKM').value||0,pol_balance:+document.getElementById('polBal').value||0,kpl:+document.getElementById('polKPL').value||0,driver_name:document.getElementById('polDriver').value.trim(),authority_no:document.getElementById('polAuth').value.trim()};if(!payload.vehicle_no||!payload.unit||!payload.vehicle_type||payload.kpl<=0||!payload.driver_name||!payload.authority_no){setMsg('polVehMsg','Fill all required vehicle fields.');return}const existing=polVehicles.find(v=>v.vehicle_no===payload.vehicle_no);let q=existing?sb.from('pol_vehicles').update(payload).eq('id',existing.id).eq('camp_id',activeCamp.id):sb.from('pol_vehicles').insert(payload);const {error}=await q;if(error){setMsg('polVehMsg',error.message);return}setMsg('polVehMsg','Vehicle saved.',true);clearPOLVehicle();await refreshAll()}
+function editPOLVehicle(id){const v=polVehicles.find(x=>x.id===id);if(!v)return;document.getElementById('polVehNo').value=v.vehicle_no;document.getElementById('polUnit').value=v.unit;document.getElementById('polVehType').value=v.vehicle_type;document.getElementById('polKM').value=v.km_reading;document.getElementById('polBal').value=v.pol_balance;document.getElementById('polKPL').value=v.kpl;document.getElementById('polDriver').value=v.driver_name;document.getElementById('polAuth').value=v.authority_no;window.scrollTo({top:0,behavior:'smooth'})}
+async function deletePOLVehicle(id){if(!canDelete())return alert('Only ADMIN/MANAGER can delete vehicles.');if(!confirm('Delete this vehicle attachment?'))return;const {error}=await sb.from('pol_vehicles').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await refreshAll()}
+function clearPOLEntry(){document.getElementById('polSaveBtn').onclick=function(){savePOLEntry()};['polVehSelect','polFuel','polInvoice','polBunk'].forEach(id=>document.getElementById(id).value='');document.getElementById('polPrev').value='0.00';document.getElementById('polLitres').value='';document.getElementById('polPresent').value='0.00';document.getElementById('polRate').value='';document.getElementById('polAmount').value='₹0.00';document.getElementById('polDate').value=today();document.getElementById('polVehicleInfo').textContent='No vehicle selected.';setMsg('polMsg','')}
+async function savePOLEntry(id=null){if(!canQsecEntry()){setMsg('polMsg','No entry permission for this role.');return}const vehicle=polVehicles.find(v=>v.id===document.getElementById('polVehSelect').value), fuel=document.getElementById('polFuel').value, invoice=document.getElementById('polInvoice').value.trim(), bunk=document.getElementById('polBunk').value.trim(), litres=+document.getElementById('polLitres').value||0, rate=+document.getElementById('polRate').value||0, date=document.getElementById('polDate').value||today();if(!vehicle||!fuel||!invoice||!bunk||litres<=0||rate<=0){setMsg('polMsg','Fill all required POL entry fields.');return}const {error}=await sb.rpc('save_pol_drawn_entry',{p_id:id,p_vehicle_id:vehicle.id,p_fuel_type:fuel,p_invoice_number:invoice,p_petrol_bunk:bunk,p_litres:litres,p_rate:rate,p_entry_date:date});if(error){setMsg('polMsg',error.message);return}setMsg('polMsg','POL entry saved.',true);clearPOLEntry();await refreshAll()}
+function editPOLEntry(id){const x=polEntries.find(v=>v.id===id);if(!x)return;document.getElementById('polVehSelect').value=x.vehicle_id;loadPOLVehicle();document.getElementById('polFuel').value=x.fuel_type;document.getElementById('polInvoice').value=x.invoice_number;document.getElementById('polBunk').value=x.petrol_bunk;document.getElementById('polLitres').value=x.litres;document.getElementById('polRate').value=x.rate;document.getElementById('polDate').value=x.entry_date;document.getElementById('polSaveBtn').onclick=function(){savePOLEntry(id)};calcPOL();window.scrollTo({top:0,behavior:'smooth'})}
+async function deletePOLEntry(id){if(!canDelete())return alert('Only ADMIN/MANAGER can delete POL entries.');if(!confirm('Delete this POL drawn entry? Vehicle balance will be restored.'))return;const {error}=await sb.rpc('delete_pol_drawn_entry',{p_id:id});if(error)alert(error.message);else await refreshAll()}
+function exportPOLCSV(){const rows=[['Date','Vehicle No','Fuel Type','Invoice','Petrol Bunk','Previous Fuel','Drawn Ltr','Present Fuel','Rate','Total Amount'],...polEntries.map(x=>[x.entry_date,x.vehicle_no,x.fuel_type,x.invoice_number,x.petrol_bunk,x.previous_fuel,x.litres,x.present_fuel,x.rate,x.total_amount])];const csv='\uFEFF'+rows.map(r=>r.map(v=>'"'+String(v??'').replaceAll('"','""')+'"').join(',')).join('\r\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='POL_Drawn_Register.csv';a.click()}
+
+/* ===== Fresh Incidental RV / IV ===== */
+let incidentalEditingId=null;
+const incUnits=['Nos','Pcs','Ltr','Reams','Kg','Kgs','Ltrs','Sets','Boxes','Packets','Meters','Dozens','Other'];
+function incUnitOptions(v='Nos'){return incUnits.map(u=>`<option ${u===v?'selected':''}>${u}</option>`).join('')}
+let rvEditingId=null, ivEditingId=null;
+function incUnitOptions(v){return UNITS.map(u=>`<option ${v===u?'selected':''}>${u}</option>`).join('')}
+function addIncItemGeneric(containerId, item={}){
+  const box=document.getElementById(containerId); if(!box)return;
+  const wrap=document.createElement('div');wrap.className='rviv-item';
+  wrap.innerHTML=`<div class="rviv-item-grid">
+    <div class="field"><label>Nomenclature *</label><input class="ix-desc" value="${esc(item.desc||'')}" required></div>
+    <div class="field"><label>A/u</label><select class="ix-unit">${incUnitOptions(item.unit||'Nos')}</select></div>
+    <div class="field"><label>Exp / N-Exp</label><select class="ix-type"><option ${item.type==='Expendable'||!item.type?'selected':''}>Expendable</option><option ${item.type==='Non-Expendable'?'selected':''}>Non-Expendable</option></select></div>
+    <div class="field"><label>Qty *</label><input class="ix-qty" type="number" min="0.01" step="any" value="${item.qty??''}" required></div>
+    <div class="field"><label>Rate *</label><input class="ix-rate" type="number" min="0" step="any" value="${item.rate??''}" required></div>
+    <div class="field"><label>Page No.</label><input class="ix-page" value="${esc(item.page||'')}"></div>
+    <div class="field"><label>Authorised Units</label><input class="ix-authorised" value="${esc(item.authorised||'')}"></div>
+    <div class="field"><label>Remarks</label><input class="ix-remarks" value="${esc(item.remarks||'')}"></div>
+    <button type="button" class="btn red" onclick="this.closest('.rviv-item').remove();recalcIncidentalForms()">Remove</button>
+  </div>`;
+  box.appendChild(wrap);wrap.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',recalcIncidentalForms));recalcIncidentalForms();
+}
+function addRVItem(item={}){addIncItemGeneric('rvItems',item)}
+function addIVItem(item={}){addIncItemGeneric('ivItemsInc',item)}
+function readIncItems(containerId){return [...document.querySelectorAll(`#${containerId} .rviv-item`)].map(row=>({
+  desc:row.querySelector('.ix-desc').value.trim(),unit:row.querySelector('.ix-unit').value,type:row.querySelector('.ix-type').value,
+  qty:+row.querySelector('.ix-qty').value||0,rate:+row.querySelector('.ix-rate').value||0,page:row.querySelector('.ix-page').value.trim(),
+  authorised:row.querySelector('.ix-authorised').value.trim(),remarks:row.querySelector('.ix-remarks').value.trim()
+})).filter(x=>x.desc&&x.qty>0)
+}
+function calcIncFor(prefix,containerId){
+  const items=readIncItems(containerId),base=items.reduce((s,x)=>s+x.qty*x.rate,0);let gst=0,total=base;
+  const mode=document.getElementById(prefix+'GstMode')?.value||'inclusive',rate=+document.getElementById(prefix+'GstRate')?.value||0;
+  if(mode==='inclusive')gst=rate?base*rate/(100+rate):0;else{gst=base*rate/100;total=base+gst}
+  const put=(id,v)=>{const e=document.getElementById(id);if(e)e.value=money(v)};put(prefix+'Subtotal',base);put(prefix+'GstAmount',gst);put(prefix+'Amount',total)
+}
+function recalcIncidentalForms(){calcIncFor('rv','rvItems')}
+async function nextIncNo(type,inputId){if(!activeCamp){document.getElementById(inputId).value='';return}const {data,error}=await sb.rpc('next_incidental_voucher_no',{p_type:type});document.getElementById(inputId).value=error?'':data}
+function clearIncidentalRV(){rvEditingId=null;['rvInvoice','rvParty','rvAddress','rvStation','rvCrv','rvAuthority','rvCodeHead','rvDesc'].forEach(id=>document.getElementById(id).value='');document.getElementById('rvDate').value=today();document.getElementById('rvMode').value='CASH';document.getElementById('rvGstMode').value='inclusive';document.getElementById('rvGstRate').value='';document.getElementById('rvItems').innerHTML='';document.getElementById('rvSubtotal').value='₹0.00';document.getElementById('rvGstAmount').value='₹0.00';document.getElementById('rvAmount').value='₹0.00';setMsg('rvMsg','');addRVItem({});nextIncNo('RV','rvNoAuto')}
+function clearIncidentalIV(){ivEditingId=null;['ivUnitInc','ivStationInc','ivAuthorityInc','ivPartyInc','ivCodeHeadInc','ivDescInc'].forEach(id=>document.getElementById(id).value='');document.getElementById('ivDateInc').value=today();document.getElementById('ivModeInc').value='CASH';document.getElementById('ivItemsInc').innerHTML='';setMsg('ivMsgInc','');addIVItem({});nextIncNo('IV','ivNoAuto')}
+async function saveIncidentalGeneric(type,editingId,ids,msgId,containerId){
+  if(!canQsecEntry()){setMsg(msgId,'Only ADMIN, MANAGER or Q SEC can enter incidental RV/IV.');return}
+  if(!activeCamp){setMsg(msgId,'Select a camp first.');return}
+  const items=readIncItems(containerId);if(!items.length){setMsg(msgId,'Add at least one item with quantity and rate.');return}
+  let date,party,address,station,invoice,crv,authority,unit,mode,head,desc,gstMode='inclusive',gstRate=0,subtotal=0,gstAmount=0,total=0,no;
+  if(type==='RV'){
+    calcIncFor('rv',containerId);date=document.getElementById('rvDate').value||today();party=document.getElementById('rvParty').value.trim();address=document.getElementById('rvAddress').value.trim();station=document.getElementById('rvStation').value.trim();invoice=document.getElementById('rvInvoice').value.trim();crv=document.getElementById('rvCrv').value.trim();authority=document.getElementById('rvAuthority').value.trim();unit='';mode=document.getElementById('rvMode').value;head=document.getElementById('rvCodeHead').value.trim();desc=document.getElementById('rvDesc').value.trim();gstMode=document.getElementById('rvGstMode').value;gstRate=+document.getElementById('rvGstRate').value||0;subtotal=+(document.getElementById('rvSubtotal').value.replace(/[^0-9.]/g,''))||0;gstAmount=+(document.getElementById('rvGstAmount').value.replace(/[^0-9.]/g,''))||0;total=+(document.getElementById('rvAmount').value.replace(/[^0-9.]/g,''))||0;no=document.getElementById('rvNoAuto').value;if(!party||!invoice||!authority||!no){setMsg(msgId,'Vendor, invoice, authority and RV number are required.');return}
+  }else{
+    date=document.getElementById('ivDateInc').value||today();party=document.getElementById('ivPartyInc').value.trim();address='';station=document.getElementById('ivStationInc').value.trim();invoice='';crv='';authority=document.getElementById('ivAuthorityInc').value.trim();unit=document.getElementById('ivUnitInc').value.trim();mode=document.getElementById('ivModeInc').value;head=document.getElementById('ivCodeHeadInc').value.trim();desc=document.getElementById('ivDescInc').value.trim();no=document.getElementById('ivNoAuto').value;subtotal=items.reduce((s,x)=>s+x.qty*x.rate,0);total=subtotal;if(!unit||!authority||!no){setMsg(msgId,'Receiving unit, authority and IV number are required.');return}
   }
-  if(!x) return alert('Save the RV first, then Generate.');
-  printIncidental(x.id);
+  const {error}=await sb.rpc('save_incidental_voucher',{p_id:editingId,p_type:type,p_voucher_no:no,p_voucher_date:date,p_party:party||null,p_invoice_number:invoice||null,p_vendor_address:address||null,p_station:station||null,p_crv_no:crv||null,p_authority:authority||null,p_unit:unit||null,p_items:items,p_subtotal:subtotal,p_gst_mode:gstMode,p_gst_rate:gstRate,p_gst_amount:gstAmount,p_amount:total,p_mode:mode,p_code_head:head||null,p_description:desc||null});
+  if(error){setMsg(msgId,error.message);return}
+  setMsg(msgId,`${type==='RV'?'RV':'IV'} saved successfully.`,true);type==='RV'?clearIncidentalRV():clearIncidentalIV();await refreshAll();
 }
-function generateCurrentIV(){
-  let x=null;
-  if(ivEditingId) x=incidentals.find(a=>String(a.id)===String(ivEditingId));
-  if(!x){
-    const no=(document.getElementById('ivNoAuto')?.value||'').trim();
-    if(no) x=incidentals.find(a=>a.voucher_type==='IV' && String(a.voucher_no)===no);
-  }
-  if(!x) return alert('Save the IV first, then Generate.');
-  printIncidental(x.id);
-}
+function saveIncidentalRV(){return saveIncidentalGeneric('RV',rvEditingId,'rv','rvMsg','rvItems')}
+function saveIncidentalIV(){return saveIncidentalGeneric('IV',ivEditingId,'iv','ivMsgInc','ivItemsInc')}
+function incidentalRegisterTable(type,editFn){const rows=incidentals.filter(x=>x.voucher_type===type);let h='<table><tr><th>Voucher No.</th><th>Date</th><th>Invoice / Ref</th><th>Party</th><th>Items</th><th>Mode</th><th>Total</th><th>Action</th></tr>';rows.forEach(x=>{h+=`<tr><td><b>${esc(x.voucher_no)}</b></td><td>${esc(x.voucher_date)}</td><td>${esc(x.invoice_number||'')}</td><td>${esc(x.party||'')}</td><td>${Array.isArray(x.items)?x.items.length:0}</td><td>${esc(x.mode||'')}</td><td>${money(x.amount)}</td><td><button class="btn" onclick="printIncidental('${x.id}')">Generate</button> ${canTxEdit()?`<button class="btn ghost" onclick="${editFn}('${x.id}')">Edit</button>`:'View'} ${canDelete()?`<button class="btn red" onclick="deleteIncidental('${x.id}')">Delete</button>`:''}</td></tr>`});h+='</table>';return rows.length?h:'<div class="empty">No saved '+(type==='RV'?'Incidental RV':'Incidental IV')+' entries for this camp.</div>'}
+function renderIncidentalRV(){const el=document.getElementById('incidentalRVTable');if(el)el.innerHTML=incidentalRegisterTable('RV','editIncidentalRV')}
+function renderIncidentalIV(){const el=document.getElementById('incidentalIVTable');if(el)el.innerHTML=incidentalRegisterTable('IV','editIncidentalIV')}
+function editIncidentalRV(id){const x=incidentals.find(a=>a.id===id&&a.voucher_type==='RV');if(!x)return;rvEditingId=id;document.getElementById('rvNoAuto').value=x.voucher_no;document.getElementById('rvDate').value=x.voucher_date;document.getElementById('rvInvoice').value=x.invoice_number||'';document.getElementById('rvParty').value=x.party||'';document.getElementById('rvAddress').value=x.vendor_address||'';document.getElementById('rvStation').value=x.station||'';document.getElementById('rvCrv').value=x.crv_no||'';document.getElementById('rvAuthority').value=x.authority||'';document.getElementById('rvMode').value=x.mode||'CASH';document.getElementById('rvCodeHead').value=x.code_head||'';document.getElementById('rvDesc').value=x.description||'';document.getElementById('rvGstMode').value=x.gst_mode||'inclusive';document.getElementById('rvGstRate').value=x.gst_rate||'';document.getElementById('rvItems').innerHTML='';(x.items||[]).forEach(addRVItem);recalcIncidentalForms();showPage('incidentalRV',document.querySelector('[data-page="incidentalRV"]'))}
+function editIncidentalIV(id){const x=incidentals.find(a=>a.id===id&&a.voucher_type==='IV');if(!x)return;ivEditingId=id;document.getElementById('ivNoAuto').value=x.voucher_no;document.getElementById('ivDateInc').value=x.voucher_date;document.getElementById('ivUnitInc').value=x.unit||'';document.getElementById('ivStationInc').value=x.station||'';document.getElementById('ivAuthorityInc').value=x.authority||'';document.getElementById('ivPartyInc').value=x.party||'';document.getElementById('ivModeInc').value=x.mode||'CASH';document.getElementById('ivCodeHeadInc').value=x.code_head||'';document.getElementById('ivDescInc').value=x.description||'';document.getElementById('ivItemsInc').innerHTML='';(x.items||[]).forEach(addIVItem);showPage('incidentalIV',document.querySelector('[data-page="incidentalIV"]'))}
+async function deleteIncidental(id){if(!canDelete())return alert('Only ADMIN/MANAGER can delete incidental vouchers.');if(!confirm('Delete this incidental voucher?'))return;const {error}=await sb.from('incidental_vouchers').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await refreshAll()}
+function incidentalVoucherSheet(r){const iv=r.voucher_type==='IV';const items=r.items||[];const rows=items.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.desc)}</td><td>${esc(x.unit||'')}</td><td>${x.qty}</td><td>${money(x.rate)}</td><td>${esc(x.page||'')}</td><td>${esc(x.remarks||'')}</td></tr>`).join('');return `<div style="font-size:10px;text-align:right;text-decoration:underline">In lieu of IAFZ- 2076</div><h1>${iv?'ISSUE':'RECEIPT'} EXPENSE VOUCHER</h1><div class="heads"><div><b>To be completed by Issuing Officer</b><br>${iv?'Issue (a) IV No- ':'Receipt (a) RV No- '}${esc(r.voucher_no)}<br>${esc(r.party||'')}<br>Address: ${esc(r.vendor_address||'')}<br>Stn: ${esc(r.station||'')}<br>Dated: ${esc(r.voucher_date||'')}<br>Authority: ${esc(r.authority||'')}</div><div><b>To be completed by Receiving Officer</b><br>Invoice/Ref: ${esc(r.invoice_number||'')}<br>CRV No: ${esc(r.crv_no||'')}<br>Unit: ${esc(r.unit||'39 Kar Bn NCC')}<br>Stn: ${esc(r.station||'')}<br>Dated: ${esc(r.voucher_date||'')}</div></div><table><tr><th>Sl No</th><th>Nomenclature</th><th>A/u</th><th>Qty</th><th>Rate</th><th>Page No</th><th>Remarks</th></tr>${rows}</table><div style="text-align:right;margin-top:12px"><b>Subtotal: ${money(r.subtotal)}</b><br>GST: ${money(r.gst_amount)}<br><b>Total: ${money(r.amount)}</b></div><div style="display:grid;grid-template-columns:1fr 1fr 1fr;margin-top:70px;font-size:11px;text-decoration:underline"><div>ISSUED BY</div><div>COLLECTED BY</div><div>RECEIVED BY</div></div>`}
+function printIncidental(id){const r=incidentals.find(a=>a.id===id);if(!r)return;document.getElementById('incidentalPrintSheet').innerHTML=incidentalVoucherSheet(r);document.body.classList.add('print-rviv');window.print();setTimeout(()=>document.body.classList.remove('print-rviv'),300)}
 
+/* ===== Cash Book / Manual RV-PV + Payment Auto Fetch + Day Close ===== */
+function setCashType(type){
+  cashType=type;
+  document.getElementById('cashReceiptTab').classList.toggle('active',type==='RECEIPT');
+  document.getElementById('cashPaymentTab').classList.toggle('active',type==='PAYMENT');
+  document.getElementById('cashDrawnTab').classList.toggle('active',type==='CASH_DRAWN');
+  document.getElementById('cashDayTab').classList.toggle('active',type==='DAY');
+  document.getElementById('cashReceiptFormWrap').classList.toggle('hidden',type!=='RECEIPT');
+  document.getElementById('cashPaymentFormWrap').classList.toggle('hidden',type!=='PAYMENT');
+  document.getElementById('cashDrawnFormWrap').classList.toggle('hidden',type!=='CASH_DRAWN');
+  document.getElementById('cashDayWrap').classList.toggle('hidden',type!=='DAY');
+  if(type==='PAYMENT')loadCashSources();
+  if(type==='DAY')renderDayClose();
+}
+function cashPaymentSourceTypes(){return ['MESSING_RV','INCIDENTAL_RV','POL_DRAWN']}
+function availablePaymentSources(type){
+  if(type==='MESSING_RV')return inInvoices.map(x=>{const gross=(x.stock_in_items||[]).reduce((s,r)=>s+(+r.amount||(+r.quantity||0)*(+r.rate||0)),0),paid=cashbookEntries.filter(e=>e.entry_type==='PAYMENT'&&e.source_type==='MESSING_RV'&&e.source_id===x.id).reduce((s,e)=>s+(+e.amount||0),0),remaining=Math.max(0,gross-paid),its=(x.stock_in_items||[]).map(r=>{const it=items.find(i=>i.id===r.item_id);return{name:it?.name||'Item',unit:it?.unit||'',qty:+r.quantity||0,rate:+r.rate||0,amount:+r.amount||0}});return{id:x.id,label:`${x.invoice_number} | ${x.invoice_date} | ${x.supplier||''} | Balance ${money(remaining)}`,ref:x.invoice_number,party:x.supplier||'',amount:remaining,date:x.invoice_date,onAccount:'MESSING',items:its}}).filter(x=>x.amount>0);
+  if(type==='INCIDENTAL_RV')return incidentals.filter(x=>x.voucher_type==='RV').map(x=>{const paid=cashbookEntries.filter(e=>e.entry_type==='PAYMENT'&&e.source_type==='INCIDENTAL_RV'&&e.source_id===x.id).reduce((s,e)=>s+(+e.amount||0),0),remaining=Math.max(0,(+x.amount||0)-paid),its=(x.items||[]).map(r=>({name:r.desc||'',unit:r.unit||'',qty:+r.qty||0,rate:+r.rate||0,amount:(+r.qty||0)*(+r.rate||0)}));return{id:x.id,label:`${x.voucher_no} | ${x.invoice_number||'-'} | ${x.party||''} | Balance ${money(remaining)}`,ref:x.invoice_number||x.voucher_no,party:x.party||'',amount:remaining,date:x.voucher_date,onAccount:'INC',items:its}}).filter(x=>x.amount>0);
+  if(type==='POL_DRAWN')return polEntries.map(x=>{const paid=cashbookEntries.filter(e=>e.entry_type==='PAYMENT'&&e.source_type==='POL_DRAWN'&&e.source_id===x.id).reduce((s,e)=>s+(+e.amount||0),0),remaining=Math.max(0,(+x.total_amount||0)-paid),its=[{name:`${x.fuel_type} – ${x.vehicle_no}`,unit:'Ltr',qty:+x.litres||0,rate:+x.rate||0,amount:+x.total_amount||0}];return{id:x.id,label:`${x.invoice_number} | ${x.entry_date} | ${x.petrol_bunk||''} | Balance ${money(remaining)}`,ref:x.invoice_number,party:x.petrol_bunk||'',amount:remaining,date:x.entry_date,onAccount:'POL',items:its}}).filter(x=>x.amount>0);
+  return [];
+}
+function sourceTypeForHead(head){return head==='MESSING'?'MESSING_RV':head==='INC'?'INCIDENTAL_RV':head==='POL'?'POL_DRAWN':''}
+function paymentHeadChanged(){const code=document.getElementById('cashPaymentCodeHead').value,linked=['MESSING','INC','POL'].includes(code),sw=document.getElementById('cashSourceWrap'),stw=document.getElementById('cashSourceTypeWrap');const ids=['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount'];if(linked){stw.classList.remove('hidden');sw.classList.remove('hidden');document.getElementById('cashInvoice').readOnly=true;document.getElementById('cashPaymentParty').readOnly=true;document.getElementById('cashPaymentAccount').readOnly=true;document.getElementById('cashPaymentAmount').readOnly=true;ids.forEach(id=>document.getElementById(id).classList.add('auto-field'));document.getElementById('cashPaymentAmount').classList.add('calculated');document.getElementById('cashSourceType').value=sourceTypeForHead(code);loadCashSources()}else{stw.classList.add('hidden');sw.classList.add('hidden');clearPaymentSourceFields();document.getElementById('cashInvoice').readOnly=false;document.getElementById('cashPaymentParty').readOnly=false;document.getElementById('cashPaymentAccount').readOnly=false;document.getElementById('cashPaymentAmount').readOnly=false;ids.forEach(id=>document.getElementById(id).classList.remove('auto-field','calculated'));document.getElementById('cashPaymentAccount').value=code;document.getElementById('cashPaymentParty').value='';document.getElementById('cashInvoice').value='';document.getElementById('cashPaymentAmount').value=''}updatePaymentBalancePreview()}
+function loadCashSources(){if(cashType!=='PAYMENT')return;const code=document.getElementById('cashPaymentCodeHead').value;if(!['MESSING','INC','POL'].includes(code)){clearPaymentSourceFields();return}const type=sourceTypeForHead(code),sel=document.getElementById('cashSource'),list=availablePaymentSources(type);document.getElementById('cashSourceType').value=type;sel.innerHTML='<option value="">Select source</option>'+list.map(x=>`<option value="${x.id}">${esc(x.label)}</option>`).join('');clearPaymentSourceFields(false)}
+function clearPaymentSourceFields(clearSource=true){if(clearSource)document.getElementById('cashSource').value='';['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(id=>document.getElementById(id).value='');document.getElementById('cashSourceItemsBody').innerHTML='';document.getElementById('cashSourceDetails').classList.add('hidden');updatePaymentBalancePreview()}
+function fillCashSource(){const type=document.getElementById('cashSourceType').value,id=document.getElementById('cashSource').value,x=availablePaymentSources(type).find(a=>String(a.id)===String(id));if(!x){clearPaymentSourceFields(false);return}document.getElementById('cashInvoice').value=x.ref||'';document.getElementById('cashPaymentParty').value=x.party||'';document.getElementById('cashPaymentAccount').value=x.onAccount||'';document.getElementById('cashPaymentAmount').value=money(x.amount);document.getElementById('cashSourceDate').value=x.date||'';document.getElementById('cashSourceParty').value=x.party||'';document.getElementById('cashSourceTotal').value=money(x.amount);document.getElementById('cashSourceItemsBody').innerHTML=(x.items||[]).map(it=>`<tr><td>${esc(it.name||'')}</td><td>${esc(it.unit||'')}</td><td>${it.qty??''}</td><td>${money(it.rate)}</td><td>${money(it.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';document.getElementById('cashSourceDetails').classList.remove('hidden');updatePaymentBalancePreview()}
+function showReceiptAllocation(id,amount){
+  pendingReceiptAllocationId=id;pendingReceiptAllocationAmount=Number(amount||0);
+  document.getElementById('receiptAllocationInfo').textContent=`Receipt saved for ${money(amount)}. Distribute the full amount across Messing, INC, POL, Rank Pay, TA Cadets, TA/DA Civ Staff, Rent or Others.`;
+  ['allocMessing','allocInc','allocPol','allocRankPay','allocTaCadets','allocTaDaCiv','allocRent','allocOthers'].forEach(x=>document.getElementById(x).value='0');
+  document.getElementById('receiptAllocationWrap').classList.remove('hidden');
+  updateReceiptAllocationTotal();
+}
+function hideReceiptAllocation(){pendingReceiptAllocationId=null;pendingReceiptAllocationAmount=0;document.getElementById('receiptAllocationWrap').classList.add('hidden');setMsg('receiptAllocationMsg','')}
+function receiptAllocationValues(){return {"Messing":+document.getElementById('allocMessing').value||0,"INC":+document.getElementById('allocInc').value||0,"POL":+document.getElementById('allocPol').value||0,"Rank Pay":+document.getElementById('allocRankPay').value||0,"TA Cadets":+document.getElementById('allocTaCadets').value||0,"TA/DA Civ":+document.getElementById('allocTaDaCiv').value||0,"Rent":+document.getElementById('allocRent').value||0,"Others":+document.getElementById('allocOthers').value||0};}
+function updateReceiptAllocationTotal(){
+  const a=receiptAllocationValues();const total=Object.values(a).reduce((s,v)=>s+v,0);const diff=pendingReceiptAllocationAmount-total;
+  document.getElementById('receiptAllocationInfo').textContent=`Receipt amount: ${money(pendingReceiptAllocationAmount)} | Allocated: ${money(total)} | Remaining: ${money(diff)}`;
+}
+['allocMessing','allocInc','allocPol','allocRankPay','allocTaCadets','allocTaDaCiv','allocRent','allocOthers'].forEach(id=>document.getElementById(id)?.addEventListener('input',updateReceiptAllocationTotal));
+
+async function saveCashbook(){
+  if(!canAccountsEntry()){setMsg('cashMsg','Cash Book entry is restricted to ACCOUNTS and ADMIN.');setMsg('paymentMsg','Cash Book entry is restricted to ACCOUNTS and ADMIN.');return}
+  if(!activeCamp){setMsg('cashMsg','Select a camp first.');return}
+  if(cashType==='PAYMENT'){
+    const date=document.getElementById('payDate').value||today(),voucher=document.getElementById('payVoucherNo').value.trim(),head=document.getElementById('cashPaymentCodeHead').value,sourceType=document.getElementById('cashSourceType').value,sourceId=['MESSING_RV','INCIDENTAL_RV','POL_DRAWN'].includes(sourceType)?(document.getElementById('cashSource').value||null):null,ref=document.getElementById('cashInvoice').value.trim(),party=document.getElementById('cashPaymentParty').value.trim(),amt=+(document.getElementById('cashPaymentAmount').value.replace(/[^0-9.]/g,''))||0,mode=document.getElementById('cashPaymentMode').value,narr=document.getElementById('cashPaymentNarration').value.trim();
+    if(!voucher||!date||!head||amt<=0){setMsg('paymentMsg','Enter Date, PV No., Code Head and valid amount.');return}
+    if(['MESSING','INC','POL'].includes(head)&&!sourceId){setMsg('paymentMsg','Select the linked source record.');return}
+    if(!['MESSING','INC','POL'].includes(head)&&(ref===''||party==='')){setMsg('paymentMsg','Enter Invoice/Reference and To Whom Paid for this account head.');return}
+    const {error}=await sb.rpc('save_cashbook_entry_manual',{p_entry_type:'PAYMENT',p_voucher_number:voucher,p_entry_date:date,p_source_type:sourceType,p_source_id:sourceId,p_reference_no:ref||null,p_party:party||null,p_amount:amt,p_mode:mode,p_code_head:head,p_narration:narr||null});
+    if(error){setMsg('paymentMsg',error.message);return}
+    setMsg('paymentMsg','Payment voucher saved successfully.',true);clearCashbookForm();await refreshAll();return;
+  }
+  if(cashType==='RECEIPT'){
+    const date=document.getElementById('cashDate').value||today(),voucher=document.getElementById('cashVoucherNo').value.trim(),party=document.getElementById('cashParty').value.trim(),account=document.getElementById('cashAccountText').value.trim(),amount=+document.getElementById('cashAmount').value||0,mode=document.getElementById('cashMode').value,init=document.getElementById('cashInitial').value.trim(),narr=document.getElementById('cashNarration').value.trim();
+    if(!voucher||!party||amount<=0){setMsg('cashMsg','Enter Date, RV No., To Whom Received and a valid Amount.');return}
+    const finalNarr=init?(narr?`${narr} | Initial: ${init}`:`Initial: ${init}`):narr;const {data,error}=await sb.rpc('save_cashbook_entry_manual',{p_entry_type:'RECEIPT',p_voucher_number:voucher,p_entry_date:date,p_source_type:'OTHER',p_source_id:null,p_reference_no:account||null,p_party:party,p_amount:amount,p_mode:mode,p_code_head:null,p_narration:finalNarr||null});
+    if(error){setMsg('cashMsg',error.message);return}
+    setMsg('cashMsg','Receipt voucher saved. Now distribute the receipt amount.',true);clearReceiptEntryOnly();showReceiptAllocation(data,amount);await refreshAll();return;
+  }
+}
 async function saveReceiptAllocation(){
-  if(!canAccountsEntry()) return setMsg('receiptAllocationMsg','Only ACCOUNTS/ADMIN can distribute a receipt.');
-  if(!pendingReceiptAllocationId) return setMsg('receiptAllocationMsg','Save a receipt first.');
-  const allocations=receiptAllocationValues();
-  const total=Object.values(allocations).reduce((s,v)=>s+(Number(v)||0),0);
-  const expected=Number(pendingReceiptAllocationAmount||0);
-  if(Math.abs(total-expected)>0.01)
-    return setMsg('receiptAllocationMsg',`Allocation must equal receipt amount. Allocated ${money(total)} of ${money(expected)}.`);
-  const {error}=await sb.rpc('save_cashbook_receipt_distribution',{p_entry_id:pendingReceiptAllocationId,p_allocations:allocations});
-  if(error){console.error('save_cashbook_receipt_distribution',error);return setMsg('receiptAllocationMsg',error.message)}
-  setMsg('receiptAllocationMsg','Distribution saved successfully.',true);
-  hideReceiptAllocation();
-  await refreshAll();
+  if(!canAccountsEntry()){setMsg('receiptAllocationMsg','Only ACCOUNTS/ADMIN can distribute a receipt.');return}
+  if(!pendingReceiptAllocationId)return setMsg('receiptAllocationMsg','Save a receipt first.');
+  const allocations=receiptAllocationValues();const total=Object.values(allocations).reduce((s,v)=>s+v,0);
+  if(Math.abs(total-pendingReceiptAllocationAmount)>0.01){setMsg('receiptAllocationMsg',`Allocation must equal the receipt amount. Remaining: ${money(pendingReceiptAllocationAmount-total)}`);return}
+  const {error}=await sb.rpc('save_cashbook_receipt_allocation',{p_entry_id:pendingReceiptAllocationId,p_allocations:allocations});
+  if(error){setMsg('receiptAllocationMsg',error.message);return}
+  setMsg('receiptAllocationMsg','Distribution saved successfully.',true);hideReceiptAllocation();await refreshAll();
 }
+function clearReceiptEntryOnly(){document.getElementById('cashDate').value=today();document.getElementById('cashVoucherNo').value='';document.getElementById('cashParty').value='';document.getElementById('cashAccountText').value='';document.getElementById('cashAmount').value='';document.getElementById('cashInitial').value='';document.getElementById('cashNarration').value='';setMsg('cashMsg','');}
 
-async function saveCarDiary(){
-  if(!canQsecEntry()) return setMsg('diaryMsg','No entry permission.');
-  if(!activeCamp) return setMsg('diaryMsg','Select an active camp first.');
-  const vid=document.getElementById('diaryVehicle')?.value||'';
-  const v=polVehicles.find(x=>String(x.id)===String(vid));
-  if(!v) return setMsg('diaryMsg','Select a vehicle.');
-  const payload={
-    p_vehicle_id:vid,
-    p_entry_date:document.getElementById('diaryDate')?.value||today(),
-    p_nature_of_duty:document.getElementById('diaryNature')?.value||'Camp Duty',
-    p_purpose_of_duty:(document.getElementById('diaryPurpose')?.value||'').trim(),
-    p_from_location:(document.getElementById('diaryFrom')?.value||'').trim(),
-    p_to_location:(document.getElementById('diaryTo')?.value||'').trim(),
-    p_km_run:+document.getElementById('diaryKmRun')?.value||0,
-    p_remarks:(document.getElementById('diaryRemarks')?.value||'').trim()
-  };
-  if(!payload.p_purpose_of_duty||!payload.p_from_location||!payload.p_to_location)
-    return setMsg('diaryMsg','Purpose, From and To are required.');
-  if(payload.p_km_run<0) return setMsg('diaryMsg','KM Run must be valid.');
-  const {error}=await sb.rpc('save_pol_car_diary_fixed',payload);
-  if(error){console.error('save_pol_car_diary_fixed',error);return setMsg('diaryMsg',error.message)}
-  setMsg('diaryMsg','Car diary entry saved successfully.',true);
-  clearCarDiary();
-  await loadCarDiary();
+async function saveCashDrawn(){
+  if(!canAccountsEntry()){setMsg('cashDrawnMsg','Only ACCOUNTS/ADMIN can save Cash Drawn.');return}
+  if(!activeCamp)return setMsg('cashDrawnMsg','Select a camp first.');
+  const date=document.getElementById('cdDate').value||today(),no=document.getElementById('cdNo').value.trim(),ref=document.getElementById('cdCheque').value.trim(),amount=+document.getElementById('cdAmount').value||0,purpose=document.getElementById('cdPurpose').value.trim();
+  if(!no||amount<=0){setMsg('cashDrawnMsg','Enter CD No. and valid amount.');return}
+  const {error}=await sb.rpc('save_cash_drawn_entry',{p_voucher_number:no,p_entry_date:date,p_reference_no:ref||null,p_amount:amount,p_narration:purpose||null});if(error){setMsg('cashDrawnMsg',error.message);return}setMsg('cashDrawnMsg','Cash Drawn saved successfully.',true);clearCashDrawn();await refreshAll();
 }
-
-function loadDiaryVehicle(){
-  const id=document.getElementById('diaryVehicle')?.value||'';
-  if(!id) return;
-  const v=polVehicles.find(x=>String(x.id)===String(id));
-  if(!v) return;
-  const last=[...(window.carDiaryEntries||[])].filter(x=>String(x.vehicle_id)===String(id))
-    .sort((a,b)=>String(b.entry_date).localeCompare(String(a.entry_date)))[0];
-  document.getElementById('diaryOpeningKm').value=(last?last.closing_km:(v.km_reading||0));
-  document.getElementById('diaryKpl').value=(+v.kpl||0).toFixed(2);
-  calcDiary();
+function clearCashDrawn(){document.getElementById('cdDate').value=today();document.getElementById('cdNo').value='';document.getElementById('cdCheque').value='';document.getElementById('cdAmount').value='';document.getElementById('cdPurpose').value='';setMsg('cashDrawnMsg','')}
+function clearCashbookForm(){
+  clearReceiptEntryOnly();
+  document.getElementById('payDate').value=today();document.getElementById('payVoucherNo').value='';document.getElementById('cashPaymentCodeHead').value='';document.getElementById('cashSourceType').value='MESSING_RV';document.getElementById('cashPaymentNarration').value='';clearPaymentSourceFields();setMsg('paymentMsg','');hideReceiptAllocation();paymentHeadChanged();
 }
-
-async function closeCashbookDay(){
-  if(!canAccountsEntry()) return alert('Only ACCOUNTS/ADMIN can close the Cash Book day.');
-  if(!activeCamp) return alert('Select an active camp first.');
-  const d=document.getElementById('cashDayDate').value||today();
-  if(calculateDay(d).closed) return alert('Day is already closed.');
-  if(!confirm(`Close Cash Book for ${d}? No further entries will be allowed for this date.`)) return;
-  const {data,error}=await sb.rpc('close_cashbook_day',{p_close_date:d});
-  if(error){console.error('close_cashbook_day',error);return alert(error.message)}
-  await refreshAll(); renderDayClose();
-  alert(`Day closed. Closing Cash: ${money(data.closing_cash)} | Closing Bank: ${money(data.closing_bank)}`);
+function allocationSummary(x){
+  if(x.head_allocations){let a=typeof x.head_allocations==='string'?JSON.parse(x.head_allocations):x.head_allocations;const labels=[];Object.entries(a||{}).forEach(([k,v])=>{if(Number(v)>0)labels.push(`${k}: ${money(v)}`)});if(labels.length)return labels.join(' | ')}
+  return x.code_head||'';
 }
-async function reopenCashbookDay(){
-  if(profile?.role!=='ADMIN') return alert('Only ADMIN can reopen a closed Cash Book day.');
-  if(!activeCamp) return alert('Select an active camp first.');
-  const d=document.getElementById('cashDayDate').value||today();
-  if(!calculateDay(d).closed) return alert('This day is already OPEN.');
-  if(!confirm(`Re-open Cash Book for ${d}? This removes the day-close lock so corrections can be made.`)) return;
-  const {error}=await sb.rpc('reopen_cashbook_day_fixed',{p_close_date:d});
-  if(error){console.error('reopen_cashbook_day_fixed',error);return alert(error.message)}
-  await refreshAll(); renderDayClose();
-  alert(`Cash Book day ${d} is OPEN again.`);
-}
-function renderDayClose(){
-  const d=document.getElementById('cashDayDate')?.value||today(),s=calculateDay(d);
-  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};
-  set('bfCash',s.bfCash);set('bfBank',s.bfBank);set('dayReceiptCash',s.rc);set('dayReceiptBank',s.rb);
-  set('dayPaymentCash',s.pc);set('dayPaymentBank',s.pb);set('dayCashDrawn',s.draw);set('cfCash',s.cfCash);set('cfBank',s.cfBank);set('dayNet',s.net);
-  const st=document.getElementById('cashDayStatus');if(st)st.value=s.closed?'CLOSED':'OPEN';
-  const note=document.getElementById('cashDayNote');if(note)note.textContent=s.closed?'Day is CLOSED. ADMIN can reopen it for correction.':'Close the day after all Accounts entries are complete. The next day B/F comes from the previous day C/F.';
-  const btn=document.getElementById('reopenDayBtn');if(btn)btn.style.display=(profile?.role==='ADMIN'&&s.closed)?'inline-block':'none';
-  const closeBtn=document.querySelector('#cashDayWrap button[onclick="closeCashbookDay()"]');if(closeBtn)closeBtn.style.display=s.closed?'none':'inline-block';
-}
-function renderAccountsReports(){
-  if(profile?.role!=='ACCOUNTS' && profile?.role!=='ADMIN') return;
-  const d=document.getElementById('accReportDate')?.value||today(),s=calculateDay(d);
-  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};
-  set('accRepCash',s.cfCash);set('accRepBank',s.cfBank);set('accRepReceipts',s.rc+s.rb);set('accRepPayments',s.pc+s.pb);
-  /* retain existing report renderer below if page-specific markup is present */
-  const el=document.getElementById('accountsReportContent');
-  if(el && !el.innerHTML.trim()) el.innerHTML='<div class="empty">No Accounts report data for the selected date.</div>';
-}
-
-/* Ensure the day-close controls are correct immediately after role UI refresh. */
-setTimeout(()=>{try{renderDayClose()}catch(_){ }},50);
-
-
-/* ===== V3 FIXES: CASHBOOK HEAD ALLOCATIONS + POL CAR DIARY + VEHICLE FORM ===== */
-const HEAD_CANONICAL = {
-  'MESSING':'Messing','INC':'INC','POL':'POL','RANK PAY':'Rank Pay',
-  'TA CADETS':'TA Cadets','TA/DA CIV STAFF':'TA/DA Civ Staff','TA/DA CIV':'TA/DA Civ Staff',
-  'TA DA CIV STAFF':'TA/DA Civ Staff','RENT':'Rent','OTHERS':'Others','OTHER':'Others'
-};
-function canonicalHead(name){
-  const raw=String(name||'').trim();
-  return HEAD_CANONICAL[raw.toUpperCase()] || raw;
-}
-function normalizedAlloc(obj){
-  const src=(obj&&typeof obj==='object')?obj:{};
-  const out={Messing:0,INC:0,POL:0,'Rank Pay':0,'TA Cadets':0,'TA/DA Civ Staff':0,Rent:0,Others:0};
-  Object.keys(src).forEach(k=>{const c=canonicalHead(k); if(Object.prototype.hasOwnProperty.call(out,c)) out[c]+=Number(src[k]||0);});
-  return out;
-}
-function headFromEntry(e,head){
-  const c=canonicalHead(head);
-  const a=normalizedAlloc(jsonObj(e?.head_allocations));
-  if(e?.entry_type==='RECEIPT') return Number(a[c]||0);
-  if(e?.entry_type==='PAYMENT') return canonicalHead(e.code_head)===c ? -Number(e.amount||0) : 0;
-  return 0;
-}
-
-// Fix receipt distribution persistence using a unique RPC name that avoids older function-signature conflicts.
-async function saveReceiptAllocation(){
-  if(!canAccountsEntry()) return setMsg('receiptAllocationMsg','Only ACCOUNTS/ADMIN can distribute a receipt.');
-  if(!pendingReceiptAllocationId) return setMsg('receiptAllocationMsg','Save a receipt first.');
-  const allocations=receiptAllocationValues();
-  const total=Object.values(allocations).reduce((s,v)=>s+(Number(v)||0),0);
-  const expected=Number(pendingReceiptAllocationAmount||0);
-  if(Math.abs(total-expected)>0.01) return setMsg('receiptAllocationMsg',`Allocation must equal receipt amount. Allocated ${money(total)} of ${money(expected)}.`);
-  const {error}=await sb.rpc('save_cashbook_receipt_distribution_v2',{p_entry_id:pendingReceiptAllocationId,p_allocations:allocations});
-  if(error){console.error('save_cashbook_receipt_distribution_v2',error);return setMsg('receiptAllocationMsg',error.message)}
-  setMsg('receiptAllocationMsg','Distribution saved successfully.',true);
-  hideReceiptAllocation();
-  await refreshAll();
-}
-
-function currentHeadBalance(head,date=today()){
-  const c=canonicalHead(head); let total=0;
-  (cashbookEntries||[]).filter(e=>e.entry_date<=date).forEach(e=>{total+=headFromEntry(e,c)});
-  return total;
-}
-
-// Rebuild day calculations with normalized head-allocation keys.
-function calculateDay(date){
-  const d=date||today();
-  const rows=(cashbookEntries||[]).filter(e=>e.entry_date===d);
-  const before=(cashbookEntries||[]).filter(e=>e.entry_date<d);
-  const sumMode=(arr,type,mode)=>arr.filter(e=>e.entry_type===type&&e.mode===mode).reduce((s,e)=>s+Number(e.amount||0),0);
-  const bfCash=before.reduce((s,e)=>{if(e.entry_type==='RECEIPT'&&e.mode==='CASH')return s+Number(e.amount||0);if(e.entry_type==='PAYMENT'&&e.mode==='CASH')return s-Number(e.amount||0);if(e.entry_type==='CASH_DRAWN')return s+Number(e.amount||0);return s},0);
-  const bfBank=before.reduce((s,e)=>{if(e.entry_type==='RECEIPT'&&e.mode==='BANK')return s+Number(e.amount||0);if(e.entry_type==='PAYMENT'&&e.mode==='BANK')return s-Number(e.amount||0);if(e.entry_type==='CASH_DRAWN')return s-Number(e.amount||0);return s},0);
-  const rc=sumMode(rows,'RECEIPT','CASH'), rb=sumMode(rows,'RECEIPT','BANK'), pc=sumMode(rows,'PAYMENT','CASH'), pb=sumMode(rows,'PAYMENT','BANK');
-  const draw=rows.filter(e=>e.entry_type==='CASH_DRAWN').reduce((s,e)=>s+Number(e.amount||0),0);
-  const cfCash=bfCash+rc-pc+draw, cfBank=bfBank+rb-pb-draw;
-  const closed=(cashbookDayClosures||[]).some(x=>x.close_date===d);
-  const heads=['Messing','INC','POL','Rank Pay','TA Cadets','TA/DA Civ Staff','Rent','Others'];
-  const bfHeads={}; const dayReceipts={}; const dayPayments={}; const cfHeads={};
-  const earlierClosures=(cashbookDayClosures||[]).filter(x=>x.close_date<d).sort((a,b)=>String(b.close_date).localeCompare(String(a.close_date)));
-  const prev=earlierClosures[0];
-  heads.forEach(h=>{bfHeads[h]=Number(normalizedAlloc(prev?.closing_heads)[h]||0);dayReceipts[h]=0;dayPayments[h]=0;});
-  rows.forEach(e=>{
-    heads.forEach(h=>{
-      if(e.entry_type==='RECEIPT') dayReceipts[h]+=Number(headFromEntry(e,h));
-      else if(e.entry_type==='PAYMENT') dayPayments[h]+=Math.max(0,-Number(headFromEntry(e,h)));
-    });
-  });
-  heads.forEach(h=>cfHeads[h]=bfHeads[h]+dayReceipts[h]-dayPayments[h]);
-  return {bfCash,bfBank,rc,rb,pc,pb,draw,cfCash,cfBank,net:(rc+rb)-(pc+pb),closed,bfHeads,dayReceipts,dayPayments,cfHeads};
-}
-
-// Accounts dashboard head balances now use the same normalized mapping.
-function renderAccountsDashboard(){
-  if(profile?.role!=='ACCOUNTS' && profile?.role!=='ADMIN') return;
-  const d=today(), s=calculateDay(d);
-  const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};
-  set('accCash',s.cfCash);set('accBank',s.cfBank);set('accTotalReceipt',s.rc+s.rb);set('accTotalPayment',s.pc+s.pb);
-  const body=document.getElementById('accountsHeadBody'); if(body){body.innerHTML=Object.keys(s.cfHeads).map(h=>`<tr><td>${esc(h)}</td><td>${money(s.bfHeads[h])}</td><td>${money(s.dayReceipts[h])}</td><td>${money(s.dayPayments[h])}</td><td><b>${money(s.cfHeads[h])}</b></td></tr>`).join('')}
-}
-
+function sourceDetailObject(x){let d=x?.source_details||{};if(typeof d==='string'){try{d=JSON.parse(d)}catch(_){d={}}}d=d||{};if(!d.to_whom_paid&&x?.party)d.to_whom_paid=x.party;if(!d.on_account&&x?.code_head)d.on_account=x.code_head;if(!d.source_reference&&x?.reference_no)d.source_reference=x.reference_no;return d}
+function itemSummary(x){const d=sourceDetailObject(x),items=Array.isArray(d.items)?d.items:[];return items.map(it=>`${it.name||it.item||it.desc||''}${it.qty!=null?` (${it.qty} ${it.unit||''})`:''}`).filter(Boolean).join(', ')}
+function renderCashbook(){const el=document.getElementById('cashbookTable');if(!el)return;let h='<table><tr><th>Date</th><th>Type</th><th>RV / PV No.</th><th>Source Type</th><th>Invoice / Ref</th><th>To Whom / Party</th><th>On What Account</th><th>Mode</th><th>Code Head / Distribution</th><th>Purchased Items / Particulars</th><th>Amount</th><th>Action</th></tr>';cashbookEntries.forEach(x=>{const d=sourceDetailObject(x);h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td><b>${esc(x.voucher_number)}</b></td><td>${esc(x.source_type||'')}</td><td>${esc(x.reference_no||'')}</td><td>${esc(d.to_whom_paid||x.party||'')}</td><td>${esc(d.on_account||x.code_head||x.reference_no||'')}</td><td>${esc(x.mode||'')}</td><td>${esc(allocationSummary(x))}</td><td>${esc(itemSummary(x))}</td><td>${money(x.amount)}</td><td>${canAccountsEntry()?`<button class="btn red" onclick="deleteCashbook('${x.id}')">Delete</button>`:'View'}</td></tr>`});h+='</table>';el.innerHTML=cashbookEntries.length?h:'<div class="empty">No Cash Book entries for this camp.</div>'}
+function latestClosureBefore(date){return [...cashbookClosures].filter(x=>x.close_date<date).sort((a,b)=>b.close_date.localeCompare(a.close_date))[0]||null}
+const CASH_HEADS=['Messing','INC','POL','Rank Pay','TA Cadets','TA/DA Civ Staff','Rent','Others'];
+function jsonObj(v){if(!v)return {};if(typeof v==='string'){try{return JSON.parse(v)}catch(_){return {}}}return v}
+function headZero(){const o={};CASH_HEADS.forEach(h=>o[h]=0);return o}
+function dayHeadValues(rows){const receipts=headZero(),payments=headZero();rows.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);Object.entries(a).forEach(([k,v])=>{if(receipts[k]!==undefined)receipts[k]+=Number(v)||0})}else if(e.entry_type==='PAYMENT'){if(payments[e.code_head]!==undefined)payments[e.code_head]+=Number(e.amount)||0}});return{receipts,payments}}
+function calculateDay(date){const prev=latestClosureBefore(date);let bfCash=prev?+prev.closing_cash:0,bfBank=prev?+prev.closing_bank:0,bfHeads=jsonObj(prev?.closing_heads);CASH_HEADS.forEach(h=>{if(bfHeads[h]==null)bfHeads[h]=0});let rc=0,rb=0,pc=0,pb=0,draw=0;const rows=cashbookEntries.filter(x=>x.entry_date===date);rows.forEach(e=>{const a=+e.amount||0;if(e.entry_type==='RECEIPT'){if(e.mode==='CASH')rc+=a;else rb+=a}else if(e.entry_type==='PAYMENT'){if(e.mode==='CASH')pc+=a;else pb+=a}else if(e.entry_type==='CASH_DRAWN')draw+=a});const hv=dayHeadValues(rows),cfHeads=headZero();CASH_HEADS.forEach(h=>cfHeads[h]=(Number(bfHeads[h])||0)+(Number(hv.receipts[h])||0)-(Number(hv.payments[h])||0));const cfCash=bfCash+rc-pc+draw,cfBank=bfBank+rb-pb-draw;return{bfCash,bfBank,rc,rb,pc,pb,draw,cfCash,cfBank,net:cfCash+cfBank,rows,closed:!!cashbookClosures.find(x=>x.close_date===date),bfHeads,headReceipts:hv.receipts,headPayments:hv.payments,cfHeads}}
+function currentHeadBalance(head,date=today()){let total=0;cashbookEntries.filter(e=>e.entry_date<=date).forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);total+=Number(a[head]||0)}else if(e.entry_type==='PAYMENT'&&e.code_head===head)total-=Number(e.amount||0)});return total}
+function currentSourceBalance(mode){let total=0;cashbookEntries.forEach(e=>{const a=Number(e.amount)||0;if(e.entry_type==='RECEIPT'&&e.mode===mode)total+=a;if(e.entry_type==='PAYMENT'&&e.mode===mode)total-=a;if(e.entry_type==='CASH_DRAWN'){if(mode==='CASH')total+=a;if(mode==='BANK')total-=a}});return total}
 function updatePaymentBalancePreview(){
-  const head=canonicalHead(document.getElementById('cashPaymentCodeHead')?.value||'');
   const mode=document.getElementById('cashPaymentMode')?.value||'CASH';
-  const date=document.getElementById('payDate')?.value||today();
-  const bank=(cashbookEntries||[]).filter(e=>e.entry_date<=date).reduce((s,e)=>{if(e.entry_type==='RECEIPT'&&e.mode==='BANK')return s+Number(e.amount||0);if(e.entry_type==='PAYMENT'&&e.mode==='BANK')return s-Number(e.amount||0);if(e.entry_type==='CASH_DRAWN')return s-Number(e.amount||0);return s},0);
-  const cash=(cashbookEntries||[]).filter(e=>e.entry_date<=date).reduce((s,e)=>{if(e.entry_type==='RECEIPT'&&e.mode==='CASH')return s+Number(e.amount||0);if(e.entry_type==='PAYMENT'&&e.mode==='CASH')return s-Number(e.amount||0);if(e.entry_type==='CASH_DRAWN')return s+Number(e.amount||0);return s},0);
-  const hb=currentHeadBalance(head,date); const el=document.getElementById('paymentBalanceNote');
-  if(el) el.textContent=`${mode} Balance: ${money(mode==='BANK'?bank:cash)} | ${head||'Head'} Balance: ${money(hb)}`;
-  const hbal=document.getElementById('cashCurrentHeadBalance'); if(hbal)hbal.value=money(hb);
+  const head=document.getElementById('cashPaymentCodeHead')?.value||'';
+  const rawAmt=String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,'');
+  const amt=Number(rawAmt)||0;
+  const cash=currentSourceBalance('CASH'),bank=currentSourceBalance('BANK');
+  const sourceType=document.getElementById('cashSourceType')?.value||'';
+  const sourceId=document.getElementById('cashSource')?.value||'';
+  const src=(sourceType&&sourceId)?availablePaymentSources(sourceType).find(x=>String(x.id)===String(sourceId)):null;
+  const headBal=head?currentHeadBalance(head):0;
+  const set=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=money(v)};
+  set('payBankCurrent',bank);set('payHeadCurrent',headBal);set('payBankAfter',mode==='BANK'?bank-amt:bank);set('payHeadAfter',headBal-amt);
+  const srcBox=document.getElementById('cashSourceTotal');if(srcBox&&src)srcBox.value=money(Number(src.amount)||0);
+  ['payBankAfter','payHeadAfter'].forEach(id=>{const el=document.getElementById(id);if(!el)return;el.classList.remove('balance-good','balance-bad');const n=Number(el.textContent.replace(/[^0-9.-]/g,''));if(n<0)el.classList.add('balance-bad');else el.classList.add('balance-good')});
+  const note=document.getElementById('paymentBalanceNote');if(note)note.textContent='Cash in Hand: '+money(cash)+' | Bank Balance: '+money(bank)+' | '+(head||'Head')+' Balance: '+money(headBal)+(src?' | Source Remaining: '+money(src.amount):'');
 }
 
-// CAR DIARY: load through secure RPC, calculate opening/closing/consumption, and carry forward tank balance.
-async function loadCarDiary(){
-  if(!activeCamp||!sb){window.carDiaryEntries=[];renderCarDiaryRegister();return}
-  let data,error;
-  ({data,error}=await sb.rpc('get_pol_car_diary_v2'));
-  if(error){console.warn('get_pol_car_diary_v2',error); const res=await sb.from('pol_car_diary').select('*').eq('camp_id',activeCamp.id).order('entry_date',{ascending:false}).order('created_at',{ascending:false}); data=res.data; error=res.error;}
-  window.carDiaryEntries=data||[];
-  renderCarDiaryRegister();
-}
-function loadDiaryVehicle(){
-  const id=document.getElementById('diaryVehicle')?.value||''; if(!id)return;
-  const v=polVehicles.find(x=>String(x.id)===String(id)); if(!v)return;
-  const last=[...(window.carDiaryEntries||[])].filter(x=>String(x.vehicle_id)===String(id)).sort((a,b)=>{const d=String(b.entry_date).localeCompare(String(a.entry_date));return d||String(b.created_at||'').localeCompare(String(a.created_at||''));})[0];
-  document.getElementById('diaryOpeningKm').value=Number(last?.closing_km ?? v.km_reading ?? 0).toFixed(1);
-  document.getElementById('diaryKpl').value=Number(v.kpl||0).toFixed(2);
-  calcDiary();
-}
-function calcDiary(){
-  const o=Number(document.getElementById('diaryOpeningKm')?.value||0), k=Number(document.getElementById('diaryKmRun')?.value||0), kpl=Number(document.getElementById('diaryKpl')?.value||0);
-  const c=o+Math.max(0,k), used=kpl>0?Math.max(0,k)/kpl:0;
-  const close=document.getElementById('diaryClosingKm'), cons=document.getElementById('diaryPolConsumed'); if(close)close.value=c.toFixed(1); if(cons)cons.value=used.toFixed(2);
-}
-async function saveCarDiary(){
-  if(!canQsecEntry())return setMsg('diaryMsg','No entry permission.');
-  if(!activeCamp)return setMsg('diaryMsg','Select an active camp first.');
-  const vid=document.getElementById('diaryVehicle')?.value||''; const v=polVehicles.find(x=>String(x.id)===String(vid));
-  if(!v)return setMsg('diaryMsg','Select vehicle.');
-  const km=Number(document.getElementById('diaryKmRun')?.value||0); if(km<0)return setMsg('diaryMsg','KM Run must be valid.');
-  const purpose=(document.getElementById('diaryPurpose')?.value||'').trim(), from=(document.getElementById('diaryFrom')?.value||'').trim(), to=(document.getElementById('diaryTo')?.value||'').trim();
-  if(!purpose||!from||!to)return setMsg('diaryMsg','Purpose, From and To are required.');
-  const {data,error}=await sb.rpc('save_pol_car_diary_v2',{p_vehicle_id:vid,p_entry_date:document.getElementById('diaryDate')?.value||today(),p_nature_of_duty:document.getElementById('diaryNature')?.value||'Camp Duty',p_purpose_of_duty:purpose,p_from_location:from,p_to_location:to,p_km_run:km,p_remarks:(document.getElementById('diaryRemarks')?.value||'').trim()});
-  if(error){console.error('save_pol_car_diary_v2',error);return setMsg('diaryMsg',error.message)}
-  setMsg('diaryMsg','Car diary entry saved successfully.',true);
-  await refreshAll();
-  const sel=document.getElementById('diaryVehicle'); if(sel){sel.value=vid;loadDiaryVehicle();}
-  ['diaryKmRun','diaryPurpose','diaryFrom','diaryTo','diaryRemarks'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
-  calcDiary();
-  renderCarDiaryRegister();
+function renderDayClose(){const d=document.getElementById('cashDayDate')?.value||today();if(!document.getElementById('cashDayDate'))return;const s=calculateDay(d);['bfCash','bfBank','dayReceiptCash','dayReceiptBank','dayPaymentCash','dayPaymentBank','dayCashDrawn','cfCash','cfBank','dayNet'].forEach(id=>{if(document.getElementById(id))document.getElementById(id).textContent=money({bfCash:s.bfCash,bfBank:s.bfBank,dayReceiptCash:s.rc,dayReceiptBank:s.rb,dayPaymentCash:s.pc,dayPaymentBank:s.pb,dayCashDrawn:s.draw,cfCash:s.cfCash,cfBank:s.cfBank,dayNet:s.net}[id])});document.getElementById('cashDayStatus').value=s.closed?'CLOSED':'OPEN';document.getElementById('cashDayNote').textContent=s.closed?'Day closed. Next day B/F will carry forward this day\'s C/F.':'Close the day after all Accounts entries are complete. The next day B/F is taken from the previous day C/F.';let hb='<table><tr><th>Account Head</th><th>B/F</th><th>Day Receipts / Allotment</th><th>Day Payments</th><th>C/F</th></tr>';CASH_HEADS.forEach(h=>hb+=`<tr><td>${esc(h)}</td><td>${money(s.bfHeads[h])}</td><td>${money(s.headReceipts[h])}</td><td>${money(s.headPayments[h])}</td><td><b>${money(s.cfHeads[h])}</b></td></tr>`);hb+='</table>';document.getElementById('dayHeadBalances').innerHTML=hb;let h='<table><tr><th>Date</th><th>Type</th><th>Voucher No</th><th>Ref</th><th>Party</th><th>Mode</th><th>Amount</th></tr>';s.rows.forEach(x=>h+=`<tr><td>${esc(x.entry_date)}</td><td>${esc(x.entry_type)}</td><td>${esc(x.voucher_number)}</td><td>${esc(x.reference_no||'')}</td><td>${esc(sourceDetailObject(x).to_whom_paid||x.party||'')}</td><td>${esc(x.mode||'')}</td><td>${money(x.amount)}</td></tr>`);h+='</table>';document.getElementById('dayEntriesTable').innerHTML=h}
+function prepareDayCashbook(){document.getElementById('cashDayDate').value=document.getElementById('cashDayDate').value||today();renderDayClose()}
+async function closeCashbookDay(){if(!canAccountsEntry()){alert('Only ACCOUNTS/ADMIN can close the Cash Book day.');return}const d=document.getElementById('cashDayDate').value||today();if(calculateDay(d).closed){alert('This day is already closed.');return}if(!confirm(`Close Cash Book for ${d}? No further entries will be allowed for this date.`))return;const{data,error}=await sb.rpc('close_cashbook_day',{p_close_date:d});if(error){alert(error.message);return}await refreshAll();renderDayClose();alert(`Day closed. Closing Cash: ${money(data.closing_cash)} | Closing Bank: ${money(data.closing_bank)}`)}
+function printDayCashbook(){const d=document.getElementById('cashDayDate').value||today(),s=calculateDay(d),camp=activeCamp||{},rows=s.rows;let html=`<h1>CAMP CASH BOOK</h1><h2 style="font-size:12px;margin-top:4px">RECEIPTS AND PAYMENTS</h2><div class="meta"><b>Camp:</b> ${esc(camp.camp_name||'')} &nbsp; | &nbsp; <b>Code:</b> ${esc(camp.camp_code||'')} &nbsp; | &nbsp; <b>Station:</b> ${esc(camp.station||'')} &nbsp; | &nbsp; <b>Date:</b> ${d}</div>`;html+=`<table><tr><th colspan="6">RECEIPTS</th><th colspan="10">PAYMENTS</th></tr><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Date</th><th>PV No.</th><th>Source</th><th>Invoice / Ref</th><th>To Whom Paid</th><th>On What Account</th><th>Particulars / Items</th><th>Mode</th><th>Amount</th><th>Head</th></tr>`;const receipts=rows.filter(x=>x.entry_type==='RECEIPT'),payments=rows.filter(x=>x.entry_type==='PAYMENT'),n=Math.max(receipts.length,payments.length,1);for(let i=0;i<n;i++){const r=receipts[i],p=payments[i],pd=sourceDetailObject(p);html+=`<tr><td>${r?esc(r.entry_date):''}</td><td>${r?esc(r.voucher_number):''}</td><td>${r?esc(r.party||''):''}</td><td>${r?esc((r.reference_no||'')+(allocationSummary(r)?' | '+allocationSummary(r):'')):''}</td><td class="num">${r&&r.mode==='CASH'?money(r.amount):''}</td><td class="num">${r&&r.mode==='BANK'?money(r.amount):''}</td><td>${p?esc(p.entry_date):''}</td><td>${p?esc(p.voucher_number):''}</td><td>${p?esc(p.source_type||''):''}</td><td>${p?esc(p.reference_no||''):''}</td><td>${p?esc(pd.to_whom_paid||p.party||''):''}</td><td>${p?esc(pd.on_account||p.code_head||''):''}</td><td>${p?esc(itemSummary(p)):''}</td><td>${p?esc(p.mode||''):''}</td><td class="num">${p?money(p.amount):''}</td><td>${p?esc(allocationSummary(p)):''}</td></tr>`}html+=`<tr class="total"><td colspan="4">BALANCE B/F</td><td class="num">${money(s.bfCash)}</td><td class="num">${money(s.bfBank)}</td><td colspan="4">TOTAL PAYMENTS</td><td colspan="2"></td><td class="num">${money(s.pc+s.pb)}</td><td colspan="2"></td></tr>`;html+=`<tr class="total"><td colspan="4">TOTAL RECEIPTS</td><td class="num">${money(s.rc)}</td><td class="num">${money(s.rb)}</td><td colspan="4">CASH DRAWN</td><td colspan="2"></td><td class="num">${money(s.draw)}</td><td colspan="2"></td></tr>`;html+=`<tr class="total"><td colspan="4">BALANCE C/F</td><td class="num">${money(s.cfCash)}</td><td class="num">${money(s.cfBank)}</td><td colspan="10">DAY STATUS: ${s.closed?'CLOSED':'OPEN'}</td></tr></table>`;html+=`<h3 style="margin-top:18px">Account Head Balance – Carry Forward</h3><table><tr><th>Head</th><th>B/F</th><th>Receipts/Allotment</th><th>Payments</th><th>C/F</th></tr>${CASH_HEADS.map(h=>`<tr><td>${esc(h)}</td><td>${money(s.bfHeads[h])}</td><td>${money(s.headReceipts[h])}</td><td>${money(s.headPayments[h])}</td><td><b>${money(s.cfHeads[h])}</b></td></tr>`).join('')}</table>`;document.getElementById('cashPrintSheet').innerHTML=html;document.body.classList.add('print-cash');window.print();setTimeout(()=>document.body.classList.remove('print-cash'),300)}
+
+function initExtension(){
+  const d=document.getElementById('polDate');if(d)d.value=today();const cd=document.getElementById('cashDate');if(cd)cd.value=today();const pd=document.getElementById('payDate');if(pd)pd.value=today();const cdd=document.getElementById('cdDate');if(cdd)cdd.value=today();const day=document.getElementById('cashDayDate');if(day)day.value=today();const ard=document.getElementById('accReportDate');if(ard)ard.value=today();const rvd=document.getElementById('rvDate');if(rvd)rvd.value=today();const ivd=document.getElementById('ivDateInc');if(ivd)ivd.value=today();const rvi=document.getElementById('rvItems');if(rvi&&!rvi.children.length)addRVItem({});const ivi=document.getElementById('ivItemsInc');if(ivi&&!ivi.children.length)addIVItem({});setCashType('RECEIPT');
 }
 
-// Correct vehicle save/edit after Make/Model and Year of Mfg were removed from the UI.
-async function savePOLVehicle(){
-  if(!canQsecEntry())return setMsg('polVehMsg','No entry permission for this role.');
-  if(!activeCamp)return setMsg('polVehMsg','Select a camp first.');
-  const get=id=>document.getElementById(id)?.value||'';
-  const payload={camp_id:activeCamp.id,vehicle_no:get('polVehNo').trim().toUpperCase(),unit:get('polUnit').trim(),vehicle_type:get('polVehType'),km_reading:Number(get('polKM')||0),pol_balance:Number(get('polBal')||0),kpl:Number(get('polKPL')||0),driver_name:get('polDriver').trim(),authority_no:get('polAuth').trim(),fuel_type:get('polFuelType')||'Diesel',attached_from:get('polAttachedFrom')||null,attached_to:get('polAttachedTo')||null,driver_contact:get('polDriverContact').trim()};
-  if(!payload.vehicle_no||!payload.unit||!payload.vehicle_type||payload.kpl<=0||!payload.driver_name||!payload.authority_no)return setMsg('polVehMsg','Fill all required vehicle fields.');
-  const existing=polVehicles.find(v=>v.vehicle_no===payload.vehicle_no); const q=existing?sb.from('pol_vehicles').update(payload).eq('id',existing.id).eq('camp_id',activeCamp.id):sb.from('pol_vehicles').insert(payload);
-  const {error}=await q; if(error)return setMsg('polVehMsg',error.message); setMsg('polVehMsg','Vehicle saved.',true); clearPOLVehicle(); await refreshAll(); setPOLTab('vehicle');
-}
-function editPOLVehicle(id){const v=polVehicles.find(x=>String(x.id)===String(id));if(!v)return;const map={polVehNo:'vehicle_no',polUnit:'unit',polVehType:'vehicle_type',polKPL:'kpl',polDriver:'driver_name',polAuth:'authority_no',polAttachedFrom:'attached_from',polAttachedTo:'attached_to',polDriverContact:'driver_contact',polKM:'km_reading',polBal:'pol_balance'};Object.entries(map).forEach(([id,k])=>{const e=document.getElementById(id);if(e)e.value=v[k]??''});if(document.getElementById('polFuelType'))document.getElementById('polFuelType').value=v.fuel_type||'Diesel';setPOLTab('vehicle');window.scrollTo({top:0,behavior:'smooth'})}
-
-// Rebind the day-close renderer so ADMIN always gets OPEN/CLOSE controls.
-function renderDayClose(){
-  const d=document.getElementById('cashDayDate')?.value||today(),s=calculateDay(d); const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};
-  set('bfCash',s.bfCash);set('bfBank',s.bfBank);set('dayReceiptCash',s.rc);set('dayReceiptBank',s.rb);set('dayPaymentCash',s.pc);set('dayPaymentBank',s.pb);set('dayCashDrawn',s.draw);set('cfCash',s.cfCash);set('cfBank',s.cfBank);
-  const st=document.getElementById('cashDayStatus');if(st)st.value=s.closed?'CLOSED':'OPEN';
-  const note=document.getElementById('cashDayNote');if(note)note.textContent=s.closed?'Day is CLOSED. ADMIN can reopen it for correction.':'Close the day after all Accounts entries are complete. The next day B/F comes from the previous day C/F.';
-  const rb=document.getElementById('reopenDayBtn');if(rb)rb.style.display=(profile?.role==='ADMIN'&&s.closed)?'inline-block':'none';
+async function start(){
+  document.getElementById('inDate').value=today();document.getElementById('outDate').value=today();populateVoucherSelects();document.getElementById('fromDate').value='';document.getElementById('toDate').value='';initExtension();
+  sb.auth.getSession().then(({data})=>{if(data.session){currentUser=data.session.user;loadApp()}});
 }
 
-setTimeout(()=>{try{renderAccountsDashboard();renderDayClose();updatePaymentBalancePreview();}catch(e){console.warn(e)}},300);
+start();
 
+function showPage(id,btn){
+  if(profile?.role==='ACCOUNTS' && !['dashboard','cashbook','reports'].includes(id)) return;
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById(id)?.classList.add('active');document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));btn?.classList.add('active');toggleMenu(false);if(id==='dashboard')renderDashboard();if(id==='reports')renderReports();
+}
+function renderAccountsDashboard(){
+  const cash=currentSourceBalance('CASH'),bank=currentSourceBalance('BANK');const ce=document.getElementById('accCashInHand'),be=document.getElementById('accCashAtBank');if(ce)ce.textContent=money(cash);if(be)be.textContent=money(bank);const allot={},paid={};CASH_HEADS.forEach(h=>{allot[h]=0;paid[h]=0});cashbookEntries.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);CASH_HEADS.forEach(h=>allot[h]+=Number(a[h]||0))}else if(e.entry_type==='PAYMENT'&&paid[e.code_head]!==undefined)paid[e.code_head]+=Number(e.amount||0)});let h='<table><tr><th>Code Head</th><th>Allotment / Receipt</th><th>Payments / Remitted</th><th>Balance</th></tr>';CASH_HEADS.forEach(head=>{const bal=allot[head]-paid[head];h+=`<tr><td><b>${esc(head)}</b></td><td>${money(allot[head])}</td><td>${money(paid[head])}</td><td><b>${money(bal)}</b></td></tr>`});h+='</table>';const el=document.getElementById('accountsHeadDashboard');if(el)el.innerHTML=h;const d=today(),s=calculateDay(d),set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};set('accDayCashReceipts',s.rc);set('accDayBankReceipts',s.rb);set('accDayCashPayments',s.pc);set('accDayBankPayments',s.pb);set('accDayCashDrawn',s.draw);set('accDayCashCF',s.cfCash);set('accDayBankCF',s.cfBank);const st=document.getElementById('accDayStatus');if(st)st.textContent=s.closed?'CLOSED':'OPEN';const cap=document.getElementById('accountsDayCaption');if(cap)cap.textContent='Day position: '+d;
+}
+function renderDashboard(){
+  const isAccounts=profile?.role==='ACCOUNTS';document.getElementById('accountsDashboard')?.classList.toggle('hidden',!isAccounts);document.getElementById('inventoryDashboard')?.classList.toggle('hidden',isAccounts);if(isAccounts){renderAccountsDashboard();return;}const ia=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0),iq=inInvoices.reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0),oa=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.amount||0),0),0),oq=outVouchers.reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(+r.quantity||0),0),0);document.getElementById('dInAmt').textContent=money(ia);document.getElementById('dOutAmt').textContent=money(oa);document.getElementById('dInQty').textContent=iq.toFixed(2);document.getElementById('dOutQty').textContent=oq.toFixed(2);document.getElementById('dItemCount').textContent=items.length+' items';let low=0,h=`<table><tr><th>Ledger</th><th>Item</th><th>Unit</th><th>Balance</th><th>Reorder</th><th>Status</th></tr>`;items.forEach(i=>{const b=balance(i),isLow=b<=+i.reorder_level;if(isLow)low++;h+=`<tr><td>${esc(i.ledger_page_no||'')}</td><td><b>${esc(i.name)}</b></td><td>${esc(i.unit||'')}</td><td>${b.toFixed(2)}</td><td>${(+i.reorder_level||0).toFixed(2)}</td><td><span class="status ${isLow?'low':'ok'}">${isLow?'LOW':'OK'}</span></td></tr>`});h+='</table>';document.getElementById('dashTable').innerHTML=items.length?h:"<div class='empty'>No inventory items yet.</div>";const pct=items.length?Math.round(low/items.length*100):0;document.getElementById('riskPct').textContent=pct+'%';document.getElementById('riskLegend').innerHTML=`<div><span class="status low">${low} Low stock</span></div><div style="margin-top:8px"><span class="status ok">${Math.max(items.length-low,0)} OK</span></div><p class="kpi-note">Maintain reorder levels to reduce stock-outs.</p>`;
+}
+function renderAccountsReports(){if(profile?.role!=='ACCOUNTS')return;const d=document.getElementById('accReportDate')?.value||today(),s=calculateDay(d),set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};set('accRepCash',s.cfCash);set('accRepBank',s.cfBank);set('accRepReceipts',s.rc+s.rb);set('accRepPayments',s.pc+s.pb);const receipts=s.rows.filter(x=>x.entry_type==='RECEIPT'),payments=s.rows.filter(x=>x.entry_type==='PAYMENT');let h=`<div class="cash-report-head"><h2 style="margin:0">CAMP CASH BOOK</h2><p style="margin:4px 0">RECEIPTS AND PAYMENTS | DATE: ${esc(d)}</p></div>`;h+=`<table><tr><th colspan="7" class="receipt-head">RECEIPT</th><th colspan="9" class="payment-head">PAYMENTS</th></tr><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Distribution</th><th>Date</th><th>PV No.</th><th>Source Type</th><th>Invoice / Ref</th><th>To Whom Paid</th><th>On What Account</th><th>Particulars / Items</th><th>Mode</th><th>Amount</th></tr>`;const n=Math.max(receipts.length,payments.length,1);for(let i=0;i<n;i++){const r=receipts[i],p=payments[i],pd=sourceDetailObject(p);h+=`<tr><td>${r?esc(r.entry_date):''}</td><td>${r?esc(r.voucher_number):''}</td><td>${r?esc(r.party||''):''}</td><td>${r?esc(r.reference_no||''):''}</td><td class="num">${r&&r.mode==='CASH'?money(r.amount):''}</td><td class="num">${r&&r.mode==='BANK'?money(r.amount):''}</td><td>${r?esc(allocationSummary(r)):''}</td><td>${p?esc(p.entry_date):''}</td><td>${p?esc(p.voucher_number):''}</td><td>${p?esc(p.source_type||''):''}</td><td>${p?esc(p.reference_no||''):''}</td><td>${p?esc(pd.to_whom_paid||p.party||''):''}</td><td>${p?esc(pd.on_account||p.code_head||''):''}</td><td>${p?esc(itemSummary(p)):''}</td><td>${p?esc(p.mode||''):''}</td><td class="num">${p?money(p.amount):''}</td></tr>`}h+='</table><div class="report-total-grid"><div><b>Balance B/F - Cash</b><span>'+money(s.bfCash)+'</span></div><div><b>Balance B/F - Bank</b><span>'+money(s.bfBank)+'</span></div><div><b>Total Receipts</b><span>'+money(s.rc+s.rb)+'</span></div><div><b>Total Payments</b><span>'+money(s.pc+s.pb)+'</span></div><div><b>Cash Drawn</b><span>'+money(s.draw)+'</span></div><div><b>Balance C/F - Cash</b><span>'+money(s.cfCash)+'</span></div><div><b>Balance C/F - Bank</b><span>'+money(s.cfBank)+'</span></div></div><h3 style="margin-top:18px">Code Head Allotment / Balance</h3><table><tr><th>Code Head</th><th>B/F</th><th>Day Allotment</th><th>Day Payments</th><th>C/F</th></tr>';CASH_HEADS.forEach(head=>h+=`<tr><td>${esc(head)}</td><td>${money(s.bfHeads[head])}</td><td>${money(s.headReceipts[head])}</td><td>${money(s.headPayments[head])}</td><td><b>${money(s.cfHeads[head])}</b></td></tr>`);h+='</table><p style="margin-top:12px">Status: <b>'+(s.closed?'CLOSED':'OPEN')+'</b></p>';const el=document.getElementById('accountsReportContent');if(el)el.innerHTML=h;}
+function clearAccountsReport(){const e=document.getElementById('accReportDate');if(e)e.value=today();renderAccountsReports()}function printAccountsReport(){renderAccountsReports();window.print()}function renderReports(){if(profile?.role==='ACCOUNTS'){renderAccountsReports();return;}
+}
 </script>
 <script id="pol-v4-overrides">
 /* ================= POL V4: IMMUTABLE ATTACHMENT BASE + VEHICLE DETACHMENT ================= */
