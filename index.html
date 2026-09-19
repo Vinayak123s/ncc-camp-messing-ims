@@ -78,7 +78,8 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 /* ===== CAMP / Q SEC / ACCOUNTS / CASHBOOK EXTENSION ===== */
 .camp-top{display:flex;align-items:center;gap:8px;margin-left:22px;color:#9eb2c7;font-size:11px}.camp-top select{min-width:210px;padding:7px 10px;border:1px solid #34475c;border-radius:7px;background:#0f1722;color:#eef6ff;font-weight:700}
 .nav.qsec-nav,.nav.cash-nav,.nav.camp-nav,.nav.pol-nav,.nav.incident-nav,.nav.messing-nav{display:flex}
-.module-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.module-card{background:#111d29;border:1px solid #283a4e;border-radius:10px;padding:16px}.module-card h3{margin:0 0 8px}.module-card p{color:#8ea2b6;font-size:12px;min-height:34px}.camp-active{background:#0d3c3f;border:1px solid #1d7276;color:#9cf3f5;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:800}.readonly-note{padding:10px 12px;border:1px dashed #42566c;border-radius:8px;color:#8ea2b6;font-size:12px;margin-bottom:12px}
+.module-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.module-card{background:#111d29;border:1px solid #283a4e;border-radius:10px;padding:16px}.module-card h3{margin:0 0 8px}.module-card p{color:#8ea2b6;font-size:12px;min-height:34px}.camp-budget-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.camp-budget-card{background:#101a25;border:1px solid #2b3f54;border-radius:9px;padding:12px}.camp-budget-card b{font-size:18px;display:block;margin-top:5px}.camp-strength-total{font-size:18px;font-weight:900;color:#9cf3f5}.camp-update-btn{margin-left:6px}.camp-days{color:#9eb2c7;font-size:12px;margin-top:6px}@media(max-width:700px){.camp-budget-grid{grid-template-columns:1fr}}
+.camp-active{background:#0d3c3f;border:1px solid #1d7276;color:#9cf3f5;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:800}.readonly-note{padding:10px 12px;border:1px dashed #42566c;border-radius:8px;color:#8ea2b6;font-size:12px;margin-bottom:12px}
 .pol-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.pol-form{background:#101a25;border:1px solid #263546;border-radius:9px;padding:14px}.pol-info{margin-top:10px;padding:11px 13px;border-radius:8px;background:#0e2b22;border:1px solid #1f624b;color:#a9edc9;font-size:12px}.register-actions{display:flex;gap:7px;flex-wrap:wrap}.source-row{display:grid;grid-template-columns:1.1fr 1.1fr .9fr .9fr 1fr 1fr;gap:8px;align-items:end}.source-row .field{min-width:0}.cash-tabs{display:flex;gap:8px;margin-bottom:12px}.cash-tab{padding:9px 14px;border:1px solid #38506a;background:#152232;color:#bcd0e5;border-radius:8px;font-weight:900;cursor:pointer}.cash-tab.active{background:#1f8da0;color:#fff}.cash-layout{display:grid;grid-template-columns:1.1fr 1.4fr;gap:14px}.small-kpi{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px}.small-kpi .chip b{display:block;font-size:19px;margin-top:5px}.camp-list table,.cash-list table,.pol-list table,.incident-list table{min-width:1050px}.print-title{display:none}
 @media(max-width:1100px){.module-grid{grid-template-columns:1fr 1fr}.pol-grid{grid-template-columns:1fr 1fr}.source-row{grid-template-columns:1fr 1fr 1fr}.cash-layout{grid-template-columns:1fr}}
 @media(max-width:700px){.camp-top{display:none}.module-grid,.pol-grid,.source-row{grid-template-columns:1fr}.small-kpi{grid-template-columns:1fr}.cash-layout{grid-template-columns:1fr}}
@@ -1219,8 +1220,11 @@ async function prepareCashVoucherNo(){if(!activeCamp){document.getElementById('c
 function printPage(){window.print()}
 async function renderCamps(){
   const el=document.getElementById('campTable'); if(!el)return;
-  let h='<table><tr><th>Code</th><th>Camp Name</th><th>Station</th><th>From</th><th>To</th><th>Status</th><th>Action</th></tr>';
-  camps.forEach(c=>{const active=activeCamp?.id===c.id; h+=`<tr><td><b>${esc(c.camp_code)}</b></td><td>${esc(c.camp_name)}</td><td>${esc(c.station||'')}</td><td>${esc(c.from_date||'')}</td><td>${esc(c.to_date||'')}</td><td><span class="status ${active?'ok':'low'}">${active?'ACTIVE':'AVAILABLE'}</span></td><td>${active?'Current ':''}<button class="btn" onclick="switchCamp('${c.id}')">${active?'RESELECT':'SELECT'}</button> ${roleIs('ADMIN')?`<button class="btn red" onclick="deleteCamp('${c.id}')">DELETE</button>`:''}</td></tr>`});
+  let h='<table><tr><th>Code</th><th>Camp Name</th><th>Camp Loc</th><th>From</th><th>To</th><th>Strength</th><th>Budget</th><th>Status</th><th>Action</th></tr>';
+  camps.forEach(c=>{
+    const active=activeCamp?.id===c.id, total=Number(c.total_strength||0), budget=Number(c.total_budget||0);
+    h+=`<tr><td><b>${esc(c.camp_code)}</b></td><td>${esc(c.camp_name)}</td><td>${esc(c.station||'')}</td><td>${esc(c.from_date||'')}</td><td>${esc(c.to_date||'')}</td><td>${total||'—'}</td><td>${budget?money(budget):'—'}</td><td><span class="status ${active?'ok':'low'}">${active?'ACTIVE':'AVAILABLE'}</span></td><td>${active?'Current ':''}<button class="btn" onclick="switchCamp('${c.id}')">${active?'RESELECT':'SELECT'}</button> <button class="btn ghost camp-update-btn" onclick="openCampUpdate('${c.id}')">UPDATE</button> ${roleIs('ADMIN')?`<button class="btn red" onclick="deleteCamp('${c.id}')">DELETE</button>`:''}</td></tr>`;
+  });
   h+='</table>'; el.innerHTML=camps.length?h:'<div class="empty">No camp found. ADMIN/MANAGER must start a new camp.</div>';
 }
 async function deleteCamp(id){
@@ -1279,6 +1283,70 @@ function resetStockOutForm(){
   if(!canStockCreate()&&!document.getElementById("editOutId").value)return;
   document.getElementById("editOutId").value="";document.getElementById("outVoucher").value="IV-1";document.getElementById("outDate").value=today();document.getElementById("outIssuedTo").value="";
   document.getElementById("stockOutFormTitle").textContent="New Issue Voucher";document.getElementById("outRows").innerHTML="";addOutRow();setMsg("outMsg","");
+}
+function campDays(from,to){
+  if(!from||!to)return 0;
+  const a=new Date(from+'T00:00:00'),b=new Date(to+'T00:00:00');
+  const d=Math.floor((b-a)/86400000)+1;
+  return d>0?d:0;
+}
+function campBudgetCalc(from,to,officers,pi,anos,cadets,polRate){
+  const days=campDays(from,to), total=officers+pi+anos+cadets;
+  const messing=220*days*total;
+  const incidental=24.5*10*(anos+cadets);
+  const pol=cadets*polRate;
+  return {days,total,messing,incidental,pol,grand:messing+incidental+pol};
+}
+function openCampUpdate(id){
+  if(!canCampManage()){alert('Only ADMIN or MANAGER can update camp details.');return}
+  const c=camps.find(x=>String(x.id)===String(id));if(!c)return;
+  const off=Number(c.officers||0),pi=Number(c.pi_staffs||0),anos=Number(c.anos||0),cad=Number(c.cadets||0),pol=Number(c.pol_rate_per_cadet||0);
+  const b=campBudgetCalc(c.from_date,c.to_date,off,pi,anos,cad,pol);
+  openModal(`<div class="modalhead"><h2>Update Camp • ${esc(c.camp_name||'')}</h2><button class="close" onclick="closeModal()">×</button></div>
+  <div class="formbox" style="margin-top:12px">
+    <div class="form-grid">
+      <div class="field"><label>Camp Name</label><input id="cuName" value="${esc(c.camp_name||'')}"></div>
+      <div class="field"><label>Camp Loc</label><input id="cuLoc" value="${esc(c.station||'')}"></div>
+      <div class="field"><label>From</label><input id="cuFrom" type="date" value="${esc(c.from_date||'')}" oninput="recalcCampUpdate()"></div>
+      <div class="field"><label>To</label><input id="cuTo" type="date" value="${esc(c.to_date||'')}" oninput="recalcCampUpdate()"></div>
+    </div>
+    <h3 style="margin:18px 0 10px">Camp Strength</h3>
+    <div class="form-grid">
+      <div class="field"><label>Officers</label><input id="cuOfficers" type="number" min="0" step="1" value="${off}" oninput="recalcCampUpdate()"></div>
+      <div class="field"><label>PI Staffs</label><input id="cuPI" type="number" min="0" step="1" value="${pi}" oninput="recalcCampUpdate()"></div>
+      <div class="field"><label>ANOs</label><input id="cuANOs" type="number" min="0" step="1" value="${anos}" oninput="recalcCampUpdate()"></div>
+      <div class="field"><label>Cadets</label><input id="cuCadets" type="number" min="0" step="1" value="${cad}" oninput="recalcCampUpdate()"></div>
+      <div class="field"><label>Total Camp Strength</label><div id="cuTotal" class="camp-strength-total">${b.total}</div></div>
+      <div class="field"><label>Camp Days</label><div id="cuDays" class="camp-days">${b.days}</div></div>
+    </div>
+    <h3 style="margin:18px 0 10px">Budget</h3>
+    <div class="camp-budget-grid">
+      <div class="camp-budget-card"><div>Messing @ ₹220/day/person</div><b id="cuMessing">${money(b.messing)}</b></div>
+      <div class="camp-budget-card"><div>Incidental @ ₹24.50 × 10 days (Cadets + ANOs)</div><b id="cuInc">${money(b.incidental)}</b></div>
+      <div class="camp-budget-card"><div>POL Amount per Cadet</div><input id="cuPolRate" type="number" min="0" step="0.01" value="${pol}" oninput="recalcCampUpdate()"><b id="cuPOL">${money(b.pol)}</b></div>
+      <div class="camp-budget-card"><div>Total Camp Budget</div><b id="cuGrand">${money(b.grand)}</b></div>
+    </div>
+    <div id="cuMsg" class="msg"></div>
+    <div class="actions" style="margin-top:14px"><button class="btn green" onclick="saveCampUpdate('${c.id}')">SAVE CAMP UPDATE</button><button class="btn ghost" onclick="closeModal()">CANCEL</button></div>
+  </div>`);
+}
+function recalcCampUpdate(){
+  const n=id=>Number(document.getElementById(id)?.value||0);
+  const b=campBudgetCalc(document.getElementById('cuFrom')?.value||'',document.getElementById('cuTo')?.value||'',n('cuOfficers'),n('cuPI'),n('cuANOs'),n('cuCadets'),n('cuPolRate'));
+  const put=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=typeof v==='number'&&id!=='cuDays'?money(v):String(v)};
+  put('cuTotal',b.total);put('cuDays',b.days);put('cuMessing',b.messing);put('cuInc',b.incidental);put('cuPOL',b.pol);put('cuGrand',b.grand);
+}
+async function saveCampUpdate(id){
+  if(!canCampManage())return;
+  const name=document.getElementById('cuName')?.value.trim(),loc=document.getElementById('cuLoc')?.value.trim(),from=document.getElementById('cuFrom')?.value,to=document.getElementById('cuTo')?.value||null;
+  const n=x=>Number(document.getElementById(x)?.value||0);
+  if(!name||!from||!to){setMsg('cuMsg','Camp Name, From and To are required.');return}
+  const b=campBudgetCalc(from,to,n('cuOfficers'),n('cuPI'),n('cuANOs'),n('cuCadets'),n('cuPolRate'));
+  if(!b.days){setMsg('cuMsg','To date must be on or after From date.');return}
+  const payload={camp_name:name,station:loc||null,from_date:from,to_date:to,officers:n('cuOfficers'),pi_staffs:n('cuPI'),anos:n('cuANOs'),cadets:n('cuCadets'),total_strength:b.total,messing_budget:b.messing,incidental_budget:b.incidental,pol_rate_per_cadet:n('cuPolRate'),pol_budget:b.pol,total_budget:b.grand};
+  const {data,error}=await sb.from('camps').update(payload).eq('id',id).select().single();
+  if(error){setMsg('cuMsg',error.message);return}
+  camps=camps.map(x=>String(x.id)===String(id)?data:x);if(activeCamp?.id===id)activeCamp=data;populateCampTop();renderCamps();closeModal();setMsg('campMsg','Camp details and budget updated successfully.',true);await refreshAll();
 }
 async function saveCamp(){
   if(!canCampManage()){setMsg('campMsg','Only ADMIN or MANAGER can create a camp.');return}
@@ -4212,7 +4280,9 @@ window.addEventListener('DOMContentLoaded',()=>{
     return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&approved(e)&&String(e.source_type||'')===String(sourceType)&&String(e.source_id||'')===String(id)).reduce((s,e)=>s+numx(e.amount),0);
   }
   function spentAllForSource(sourceType,id){
-    return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.source_type||'')===String(sourceType)&&String(e.source_id||'')===String(id)&&String(e.approval_status||'APPROVED').toUpperCase()!=='REJECTED').reduce((s,e)=>s+numx(e.amount),0);
+    // Pending Manager-approval payments must NOT consume/hide the source bill.
+    // Only approved payments reduce the available bill balance.
+    return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&approved(e)&&String(e.source_type||'')===String(sourceType)&&String(e.source_id||'')===String(id)).reduce((s,e)=>s+numx(e.amount),0);
   }
 
   function paymentSourcesV38(type){
