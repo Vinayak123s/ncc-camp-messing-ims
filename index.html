@@ -247,6 +247,25 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 @media(max-width:650px){.all-report-filters{grid-template-columns:1fr}.all-report-summary{grid-template-columns:1fr}}
 </style>
 
+
+<style id="approval-v38-css">
+#accountsRoleDashboardV38{margin-top:10px}
+.v38-accounts-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+.v38-card{background:#101d2a;border:1px solid #294254;border-radius:10px;padding:14px}
+.v38-card h3{margin:0 0 8px;font-size:15px}.v38-kpi{font-size:10px;color:#8ea6b8}.v38-kpi b{display:block;color:#fff;font-size:23px;margin-top:7px}
+.v38-section{margin-top:14px;background:#101a27;border:1px solid #294254;border-radius:10px;padding:14px}
+.v38-section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.v38-status{display:inline-block;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:900;background:#5b4211;color:#ffd56a}
+.v38-status.approved{background:#123f2b;color:#70e0a0}.v38-status.pending{background:#5b4211;color:#ffd56a}
+.v38-approval-panel{margin:0 0 14px;background:#102131;border:1px solid #3a5970;border-radius:10px;padding:14px}
+.v38-approval-row{padding:10px;border:1px solid #294254;border-radius:8px;background:#0c1723;margin-top:8px}
+.v38-approval-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.v38-approval-details{color:#8fa8ba;font-size:11px;line-height:1.5}
+.v38-table{width:100%;border-collapse:collapse;font-size:11px}.v38-table th,.v38-table td{border:1px solid #294254;padding:7px;text-align:left}.v38-table th{background:#142536;color:#a9bdcc}
+@media(max-width:1000px){.v38-accounts-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.v38-accounts-grid{grid-template-columns:1fr}.v38-table{font-size:10px}}
+</style>
+
 </head>
 <body>
 
@@ -1741,8 +1760,7 @@ function exportMessingReportCSV(){
 function printMessingReport(){
   generateMessingReport();
   const el=document.getElementById('reportsContent'); if(!el)return;
-  const w=window.open('','_blank'); if(!w){alert('Please allow pop-ups for Print / PDF.');return;}
-  w.document.write('<!doctype html><html><head><title>NCC Camp Messing Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:20px}h1,h2,h3{text-align:center}.meta{text-align:center;margin-bottom:15px;color:#444}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #555;padding:6px}th{background:#eee;text-align:left}.num{text-align:right}</style></head><body><h1>NCC CAMP MESSING</h1><h2>'+esc((activeCamp?.camp_code||'')+' - '+(activeCamp?.camp_name||''))+'</h2><div class="meta">'+esc(messingReportType==='DAY'?'Day-wise Purchase / Issue Summary':messingReportType==='ITEM'?'Item-wise Purchase / Balance Report':'Statement of Item Received / Issued')+'</div>'+el.innerHTML+'</body></html>');
+  const w=window.open('','_blank'); if(!w){alert('Please allow pop-ups for Print / PDF.');return;}  w.document.write('<!doctype html><html><head><title>NCC Camp Messing Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:20px}h1,h2,h3{text-align:center}.meta{text-align:center;margin-bottom:15px;color:#444}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #555;padding:6px}th{background:#eee;text-align:left}.num{text-align:right}</style></head><body><h1>NCC CAMP MESSING</h1><h2>'+esc((activeCamp?.camp_code||'')+' - '+(activeCamp?.camp_name||''))+'</h2><div class="meta">'+esc(messingReportType==='DAY'?'Day-wise Purchase / Issue Summary':messingReportType==='ITEM'?'Item-wise Purchase / Balance Report':'Statement of Item Received / Issued')+'</div>'+el.innerHTML+'</body></html>');
   w.document.close();setTimeout(()=>{w.focus();w.print()},300);
 }
 function renderReports(){
@@ -4115,26 +4133,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     runAllReportsHub();
     const html=document.getElementById('allReportsResults')?.innerHTML||'';
     const w=window.open('','_blank','width=1200,height=800');if(!w){alert('Please allow popups for reports.');return;}
-    w.document.write(`<!doctype html><html><head><title>NCC CAMP MESSING - All Reports</title><style>body{font-family:Arial,sans-serif;color:#111;padding:18px}h2{text-align:center}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px}th{background:#eee}.num{text-align:right}</style>
-<style id="approval-v38-css">
-#accountsRoleDashboardV38{margin-top:10px}
-.v38-accounts-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
-.v38-card{background:#101d2a;border:1px solid #294254;border-radius:10px;padding:14px}
-.v38-card h3{margin:0 0 8px;font-size:15px}.v38-kpi{font-size:10px;color:#8ea6b8}.v38-kpi b{display:block;color:#fff;font-size:23px;margin-top:7px}
-.v38-section{margin-top:14px;background:#101a27;border:1px solid #294254;border-radius:10px;padding:14px}
-.v38-section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
-.v38-status{display:inline-block;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:900;background:#5b4211;color:#ffd56a}
-.v38-status.approved{background:#123f2b;color:#70e0a0}.v38-status.pending{background:#5b4211;color:#ffd56a}
-.v38-approval-panel{margin:0 0 14px;background:#102131;border:1px solid #3a5970;border-radius:10px;padding:14px}
-.v38-approval-row{padding:10px;border:1px solid #294254;border-radius:8px;background:#0c1723;margin-top:8px}
-.v38-approval-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
-.v38-approval-details{color:#8fa8ba;font-size:11px;line-height:1.5}
-.v38-table{width:100%;border-collapse:collapse;font-size:11px}.v38-table th,.v38-table td{border:1px solid #294254;padding:7px;text-align:left}.v38-table th{background:#142536;color:#a9bdcc}
-@media(max-width:1000px){.v38-accounts-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:650px){.v38-accounts-grid{grid-template-columns:1fr}.v38-table{font-size:10px}}
-</style>
-
-</head><body><h2>NCC CAMP MESSING IMS - ALL REPORTS</h2>${html}</body></html>`);
+    w.document.write(`<!doctype html><html><head><title>NCC CAMP MESSING - All Reports</title><style>body{font-family:Arial,sans-serif;color:#111;padding:18px}h2{text-align:center}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px}th{background:#eee}.num{text-align:right}</style></head><body><h2>NCC CAMP MESSING IMS - ALL REPORTS</h2>${html}</body></html>`);
     w.document.close();setTimeout(()=>{w.focus();w.print()},300);
   }
   window.printAllReportsHub=printAllReportsHub;
@@ -4153,6 +4152,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   window.exportAllReportsHub=exportAllReportsHub;
 })();
 </script>
+
 
 <script id="ims-v38-accounts-approval">
 (function(){
@@ -4211,28 +4211,25 @@ window.addEventListener('DOMContentLoaded',()=>{
   function spentApproved(sourceType,id){
     return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&approved(e)&&String(e.source_type||'')===String(sourceType)&&String(e.source_id||'')===String(id)).reduce((s,e)=>s+numx(e.amount),0);
   }
-  function spentAllForSource(sourceType,id){
-    return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.source_type||'')===String(sourceType)&&String(e.source_id||'')===String(id)&&String(e.approval_status||'APPROVED').toUpperCase()!=='REJECTED').reduce((s,e)=>s+numx(e.amount),0);
-  }
 
   function paymentSourcesV38(type){
     if(type==='MESSING_RV'){
       return (inInvoices||[]).map(h=>{
         const rows=h.stock_in_items||[];
         const its=rows.map(r=>{const it=(items||[]).find(i=>String(i.id)===String(r.item_id));return {name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty:numx(r.quantity),rate:numx(r.rate),amount:numx(r.amount)||numx(r.quantity)*numx(r.rate)};});
-        const total=its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-spentAllForSource('MESSING_RV',h.id));
+        const total=its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-spentApproved('MESSING_RV',h.id));
         return {id:h.id,label:`${h.invoice_number||''} | ${h.invoice_date||''} | ${h.supplier||''} | Balance ${money8x(rem)}`,ref:h.invoice_number||'',party:h.supplier||'',amount:rem,date:h.invoice_date||'',onAccount:'MESSING',items:its};
       }).filter(x=>x.amount>0.005);
     }
     if(type==='INCIDENTAL_RV'){
       return (incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()==='RV').map(x=>{
         const its=(x.items||[]).map(i=>({name:i.name||i.desc||i.item||'',unit:i.unit||'',qty:numx(i.qty),rate:numx(i.rate),amount:numx(i.amount)||numx(i.qty)*numx(i.rate)}));
-        const total=numx(x.amount)||its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-spentAllForSource('INCIDENTAL_RV',x.id));
+        const total=numx(x.amount)||its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-spentApproved('INCIDENTAL_RV',x.id));
         return {id:x.id,label:`${x.crv_no||x.voucher_no||''} | ${x.invoice_number||''} | ${x.party||''} | Balance ${money8x(rem)}`,ref:x.invoice_number||x.voucher_no||'',party:x.party||'',amount:rem,date:x.voucher_date||'',onAccount:'INC',items:its};
       }).filter(x=>x.amount>0.005);
     }
     if(type==='POL_DRAWN'){
-      return (polEntries||[]).map(x=>{const total=numx(x.total_amount)||numx(x.total)||numx(x.litres)*numx(x.rate),rem=Math.max(0,total-spentAllForSource('POL_DRAWN',x.id));return {id:x.id,label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${money8x(rem)}`,ref:x.invoice_number||'',party:x.petrol_bunk||'',amount:rem,date:x.entry_date||'',onAccount:'POL',items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:numx(x.litres),rate:numx(x.rate),amount:total}]};}).filter(x=>x.amount>0.005);
+      return (polEntries||[]).map(x=>{const total=numx(x.total_amount)||numx(x.total)||numx(x.litres)*numx(x.rate),rem=Math.max(0,total-spentApproved('POL_DRAWN',x.id));return {id:x.id,label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${money8x(rem)}`,ref:x.invoice_number||'',party:x.petrol_bunk||'',amount:rem,date:x.entry_date||'',onAccount:'POL',items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:numx(x.litres),rate:numx(x.rate),amount:total}]};}).filter(x=>x.amount>0.005);
     }
     return [];
   }
@@ -4393,5 +4390,48 @@ window.addEventListener('DOMContentLoaded',()=>{
 })();
 </script>
 
+<style id="manager-approval-dashboard-v39-css">
+.v39-manager-approval{margin:0 0 16px;background:#102131;border:1px solid #355a70;border-radius:10px;padding:14px}
+.v39-manager-approval.hidden{display:none!important}
+.v39-manager-approval .v39-row{background:#0b1824;border:1px solid #29485c;border-radius:8px;padding:10px;margin-top:8px}
+.v39-manager-approval .v39-actions{display:flex;gap:8px;justify-content:flex-end;align-items:center;margin-top:8px;flex-wrap:wrap}
+.v39-manager-approval .v39-pill{display:inline-block;padding:5px 9px;border-radius:999px;background:#6d1d22;color:#fff;font-size:10px;font-weight:800}
+</style>
+<script id="manager-approval-dashboard-v39-js">
+(function(){
+  function role(){return String((typeof profile!=='undefined'&&profile&&profile.role)||'').trim().toUpperCase()}
+  function esc9(v){return typeof esc==='function'?esc(v):String(v??'')}
+  function money9(v){return typeof money==='function'?money(v):'₹'+(Number(v)||0).toFixed(2)}
+  function source9(e){if(typeof jsonx==='function')return jsonx(e?.source_details);if(!e?.source_details)return {};try{return typeof e.source_details==='string'?JSON.parse(e.source_details):e.source_details}catch(_){return {}}}
+  function ensure(){
+    const dash=document.getElementById('dashboard'); if(!dash)return null;
+    let el=document.getElementById('managerApprovalDashboardV39');
+    if(el)return el;
+    el=document.createElement('div'); el.id='managerApprovalDashboardV39'; el.className='v39-manager-approval hidden';
+    const first=dash.firstElementChild; if(first) dash.insertBefore(el,first); else dash.appendChild(el);
+    return el;
+  }
+  window.renderManagerApprovalDashboardV39=function(){
+    const el=ensure(); if(!el)return;
+    const r=role();
+    if(!['MANAGER','ADMIN'].includes(r)){el.classList.add('hidden');el.innerHTML='';return}
+    const rows=(typeof cashbookEntries!=='undefined'?cashbookEntries:[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.approval_status||'APPROVED').toUpperCase()==='PENDING_MANAGER')
+      .sort((a,b)=>String(b.entry_date||'').localeCompare(String(a.entry_date||''))||String(b.created_at||'').localeCompare(String(a.created_at||'')));
+    el.classList.remove('hidden');
+    let html='<div class="v39-actions" style="justify-content:space-between"><div><h2 style="margin:0">Payments Awaiting Manager Approval</h2><div class="kpi-note">Accounts payment vouchers remain excluded from balances until verified and approved.</div></div><span class="v39-pill">'+rows.length+' PENDING</span></div>';
+    if(!rows.length){html+='<div class="empty" style="margin-top:10px">No Accounts payment vouchers are awaiting approval.</div>';} else {
+      html+=rows.map(e=>{const d=source9(e);const items=(d.items||[]).map(i=>`${esc9(i.name||i.item||'')} ${i.qty!=null?'× '+esc9(i.qty):''}`).join(', ');
+        return `<div class="v39-row"><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px"><div><small>DATE</small><br><b>${esc9(e.entry_date)}</b></div><div><small>PV NO.</small><br><b>${esc9(e.voucher_number)}</b></div><div><small>CODE HEAD</small><br><b>${esc9(e.code_head||'')}</b></div><div><small>TO WHOM PAID</small><br><b>${esc9(d.to_whom_paid||e.party||'')}</b></div><div><small>ACCOUNT</small><br><b>${esc9(d.on_account||e.code_head||'')}</b></div><div><small>MODE</small><br><b>${esc9(e.mode||'')}</b></div><div><small>AMOUNT</small><br><b>${money9(e.amount)}</b></div></div><div class="kpi-note" style="margin-top:8px"><b>Source:</b> ${esc9(e.source_type||'OTHER')} &nbsp; <b>Invoice/Ref:</b> ${esc9(e.reference_no||'')} &nbsp; <b>Items:</b> ${items||'—'}</div><div class="v39-actions"><button class="btn green" onclick="approveAccountsPayment('${e.id}')">✓ VERIFY & APPROVE</button><button class="btn dark" onclick="showPage('cashbook',document.querySelector('[data-page=cashbook]'))">OPEN CASH BOOK</button></div></div>`;
+      }).join('');
+    }
+    el.innerHTML=html;
+  };
+  const oldRender=window.renderDashboard;
+  window.renderDashboard=function(){try{if(typeof oldRender==='function')oldRender()}catch(e){};try{renderManagerApprovalDashboardV39()}catch(e){console.warn('manager approval dashboard',e)}};
+  const oldRefresh=window.refreshAll;
+  window.refreshAll=async function(){const r=await oldRefresh();try{renderManagerApprovalDashboardV39()}catch(e){}return r};
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{try{renderManagerApprovalDashboardV39()}catch(e){}},700));
+})();
+</script>
 </body>
 </html>
