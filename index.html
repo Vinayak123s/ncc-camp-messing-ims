@@ -221,6 +221,32 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 @media(max-width:1150px){.dash-v32-head{grid-template-columns:1fr 1fr}.dash-v32-user{align-items:flex-start}.dash-v32-grid{grid-template-columns:1fr 1fr}.dash-v32-card.span-2{grid-column:1/-1}.dash-v32-card.span-3{grid-column:1/-1}.dash-report-grid{grid-template-columns:1fr 1fr}.dash-v32-kpis.four{grid-template-columns:1fr 1fr}}
 @media(max-width:720px){.dash-v32-head{grid-template-columns:1fr}.dash-v32-grid{grid-template-columns:1fr}.dash-v32-card.span-2,.dash-v32-card.span-3{grid-column:auto}.dash-report-grid{grid-template-columns:1fr}.dash-v32-kpis.four,.dash-v32-kpis.three,.dash-v32-kpis.two,.dash-v32-summary{grid-template-columns:1fr 1fr}}
 </style>
+
+<style id="dashboard-v36-allreports-css">
+/* ===== DASHBOARD V36 / ALL REPORTS ===== */
+.dash-graph-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.dash-graph-panel{background:#0d1a26;border:1px solid #294355;border-radius:9px;padding:10px;min-height:145px}
+.dash-graph-title{font-size:10px;color:#9fb4c4;font-weight:900;margin-bottom:12px}
+.dash-bars{height:100px;display:flex;align-items:flex-end;gap:10px;padding:8px 4px 2px;border-bottom:1px solid #2a4052}
+.dash-bar-wrap{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px}
+.dash-bar{width:34px;border-radius:6px 6px 0 0;background:linear-gradient(180deg,#31d7e7,#11798a);min-height:3px}
+.dash-bar.alt{background:linear-gradient(180deg,#e4a623,#9b6808)}
+.dash-bar.green{background:linear-gradient(180deg,#32d583,#176f49)}
+.dash-bar-label{font-size:9px;color:#8ea6b8}
+.dash-bar-value{font-size:9px;color:#dce9f2;font-weight:900}
+.all-reports-hub{margin-bottom:16px}
+.all-report-filters{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}
+.all-report-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.all-report-summary .chip{background:#0f1d2a;border:1px solid #2a4052;border-radius:8px;padding:10px}
+.all-report-summary .chip span{display:block;color:#8ea6b8;font-size:10px}
+.all-report-summary .chip b{display:block;font-size:18px;margin-top:5px}
+.all-report-results{overflow:auto}
+.all-report-results table{min-width:1050px}
+.all-report-results .num{text-align:right;white-space:nowrap}
+@media(max-width:1100px){.all-report-filters{grid-template-columns:repeat(3,1fr)}.all-report-summary{grid-template-columns:repeat(2,1fr)}.dash-graph-grid{grid-template-columns:1fr}}
+@media(max-width:650px){.all-report-filters{grid-template-columns:1fr}.all-report-summary{grid-template-columns:1fr}}
+</style>
+
 </head>
 <body>
 
@@ -318,8 +344,8 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
   </div>
 
   <div id="dashboardAdminControls" class="dash-v32-actions">
-    <button class="btn ghost" onclick="showPage('camp',document.querySelector('[data-page=camp]'))">🏕 CAMP DETAILS</button>
-    <button class="btn" onclick="showPage('reports',document.querySelector('[data-page=reports]'))">▤ ALL REPORTS</button>
+    <button id="dashCampBtn" class="btn ghost" onclick="showPage('camp',document.querySelector('[data-page=camp]'))">🏕 CAMP DETAILS</button>
+    <button id="dashAllReportsBtn" class="btn" onclick="showPage('reports',document.querySelector('[data-page=reports]'));setTimeout(()=>window.prepareAllReportsHub&&window.prepareAllReportsHub(),50)">▤ ALL REPORTS</button>
   </div>
 
   <div class="dash-v32-grid">
@@ -426,6 +452,27 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="dash-v32-foot"><span id="dashInvStatus">No inventory items</span><button class="dash-more" onclick="dashGo('inventory')">VIEW MORE →</button></div>
     </div>
 
+    <div id="dashAnalyticsCard" class="dash-v32-card span-3">
+      <div class="dash-v32-card-head">
+        <div><h3>Visual Monitoring</h3><p>Live graphs for the active camp</p></div>
+        <span class="dash-v32-icon">▥</span>
+      </div>
+      <div class="dash-graph-grid">
+        <div class="dash-graph-panel">
+          <div class="dash-graph-title">Messing • Purchase vs Issue</div>
+          <div id="dashMessGraph" class="dash-bars"></div>
+        </div>
+        <div class="dash-graph-panel">
+          <div class="dash-graph-title">Financial • Receipts vs Payments</div>
+          <div id="dashCashGraph" class="dash-bars"></div>
+        </div>
+        <div class="dash-graph-panel">
+          <div class="dash-graph-title">POL • Drawn vs Consumed</div>
+          <div id="dashPolGraph" class="dash-bars"></div>
+        </div>
+      </div>
+    </div>
+
     <div id="dashReportsCard" class="dash-v32-card span-3">
       <div class="dash-v32-card-head">
         <div><h3>Reports</h3><p>Open the detailed report for the selected module</p></div>
@@ -517,6 +564,42 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 </section>
 
 <section id="reports" class="page">
+  <div id="allReportsHub" class="panel all-reports-hub">
+    <div class="section-head" style="margin-bottom:10px">
+      <div><h1>All Reports</h1><p>Central report monitor for Messing, Incidental, POL and Cash Book. Use filters to locate records quickly.</p></div>
+      <div class="actions">
+        <button class="btn" onclick="runAllReportsHub()">SEARCH / REFRESH</button>
+        <button class="btn dark" onclick="printAllReportsHub()">PRINT / PDF</button>
+        <button class="btn green" onclick="exportAllReportsHub()">EXPORT CSV</button>
+      </div>
+    </div>
+    <div class="all-report-filters">
+      <div class="field"><label>Report Module</label>
+        <select id="allRepModule" onchange="prepareAllReportsHub()">
+          <option value="ALL">All Modules</option>
+          <option value="MESSING">Messing</option>
+          <option value="INCIDENTAL">Incidental</option>
+          <option value="POL">POL</option>
+          <option value="CASHBOOK">Cash Book</option>
+        </select>
+      </div>
+      <div class="field"><label>From Date</label><input id="allRepFrom" type="date"></div>
+      <div class="field"><label>To Date</label><input id="allRepTo" type="date"></div>
+      <div class="field"><label>Search</label><input id="allRepSearch" placeholder="Item / invoice / voucher / vendor / vehicle"></div>
+      <div class="field"><label>Item</label><select id="allRepItem"><option value="">All Items</option></select></div>
+      <div class="field"><label>Vehicle</label><select id="allRepVehicle"><option value="">All Vehicles</option></select></div>
+    </div>
+    <div class="actions" style="margin-top:10px">
+      <button class="btn ghost" onclick="openAllReport('MESSING')">MESSING DETAILED</button>
+      <button class="btn ghost" onclick="openAllReport('INCIDENTAL')">INCIDENTAL DETAILED</button>
+      <button class="btn ghost" onclick="openAllReport('POL')">POL DETAILED</button>
+      <button class="btn ghost" onclick="openAllReport('CASHBOOK')">CASH BOOK DETAILED</button>
+      <button class="btn dark" onclick="clearAllReportsHub()">CLEAR FILTERS</button>
+    </div>
+    <div id="allReportsSummary" class="all-report-summary" style="margin-top:12px"></div>
+    <div id="allReportsResults" class="all-report-results" style="margin-top:12px"></div>
+  </div>
+
   <div id="accountsReports" class="accounts-report hidden">
     <div class="section-head"><div><h1>Cash Book Reports</h1><p>Accounts day report and carry-forward position</p></div><div class="actions"><button class="btn dark" onclick="printAccountsReport()">PRINT / PDF</button></div></div>
     <div class="panel no-print"><div class="toolbar"><input id="accReportDate" type="date"><button class="btn" onclick="renderAccountsReports()">VIEW DAY</button><button class="btn dark" onclick="clearAccountsReport()">TODAY</button></div></div>
@@ -3802,17 +3885,34 @@ window.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('load',()=>setTimeout(()=>{prepareIncidentalReportFilters();},300));
 })();
 </script>
-<style id="role-dashboard-v35-css">.role-dash-hidden{display:none!important}</style>
-<script id="role-dashboard-v35-js">
+<style id="role-dashboard-v36-css">
+.role-dash-hidden{display:none!important}
+</style>
+<script id="role-dashboard-v36-js">
 (function(){
-  function setVisible(id,show){const el=document.getElementById(id);if(el)el.classList.toggle('role-dash-hidden',!show);}
-  function applyRoleDashboardV35(){
-    const role=String(window.profile?.role||'').toUpperCase();
+  function setVisible(id,show){
+    const el=document.getElementById(id);
+    if(el)el.classList.toggle('role-dash-hidden',!show);
+  }
+  function currentRole(){
+    return String((typeof profile!=='undefined' && profile && profile.role) ? profile.role : '').trim().toUpperCase();
+  }
+  function applyRoleDashboardV36(){
+    const role=currentRole();
     const finance=['ADMIN','MANAGER','ACCOUNTS'].includes(role);
     const ops=['ADMIN','MANAGER','Q_SEC'].includes(role);
     const cash=['ADMIN','MANAGER','ACCOUNTS'].includes(role);
     const incidental=['ADMIN','MANAGER','Q_SEC'].includes(role);
     const pol=['ADMIN','MANAGER','Q_SEC'].includes(role);
+    const inventory=['ADMIN','MANAGER'].includes(role);
+    const reportHub=['ADMIN','MANAGER','Q_SEC'].includes(role);
+
+    // First clear old V35/V34 hidden state so a prior role evaluation cannot blank the dashboard.
+    ['dashFinanceCard','dashMessingCard','dashIncRVCard','dashIncIVCard','dashPOLCard',
+     'dashCashBookCard','dashDayCloseCard','dashInventoryCard','dashReportsCard','dashAnalyticsCard'].forEach(id=>{
+       document.getElementById(id)?.classList.remove('role-dash-hidden');
+    });
+
     setVisible('dashFinanceCard',finance);
     setVisible('dashMessingCard',ops);
     setVisible('dashIncRVCard',incidental);
@@ -3820,17 +3920,218 @@ window.addEventListener('DOMContentLoaded',()=>{
     setVisible('dashPOLCard',pol);
     setVisible('dashCashBookCard',cash);
     setVisible('dashDayCloseCard',cash);
-    setVisible('dashInventoryCard',role==='ADMIN'||role==='MANAGER');
-    setVisible('dashReportsCard',role==='ADMIN'||role==='MANAGER');
+    setVisible('dashInventoryCard',inventory);
+    setVisible('dashReportsCard',reportHub);
+    setVisible('dashAnalyticsCard',role && role!=='VIEWER');
+
     const controls=document.getElementById('dashboardAdminControls');
-    if(controls)controls.classList.toggle('role-dash-hidden',!['ADMIN','MANAGER'].includes(role));
+    if(controls)controls.classList.toggle('role-dash-hidden',!['ADMIN','MANAGER','Q_SEC','ACCOUNTS'].includes(role));
+    const campBtn=document.getElementById('dashCampBtn');
+    if(campBtn)campBtn.classList.toggle('role-dash-hidden',!['ADMIN','MANAGER'].includes(role));
+    const allBtn=document.getElementById('dashAllReportsBtn');
+    if(allBtn)allBtn.classList.toggle('role-dash-hidden',!['ADMIN','MANAGER','Q_SEC'].includes(role));
+
+    if(role==='ACCOUNTS'){
+      setVisible('dashAnalyticsCard',true);
+    }
   }
-  window.applyRoleDashboardV35=applyRoleDashboardV35;
+  window.applyRoleDashboardV36=applyRoleDashboardV36;
+
+  // Replace prior broken V35 wrapper with a safe wrapper.
   const oldApply=window.applyRoleUI;
-  window.applyRoleUI=function(){if(typeof oldApply==='function')oldApply();applyRoleDashboardV35();};
+  window.applyRoleUI=function(){
+    try{ if(typeof oldApply==='function') oldApply(); }catch(err){ console.warn('role ui',err); }
+    applyRoleDashboardV36();
+  };
+
   const oldShow=window.showPage;
-  window.showPage=function(id,btn){const r=typeof oldShow==='function'?oldShow(id,btn):undefined;if(id==='dashboard')setTimeout(applyRoleDashboardV35,0);return r;};
-  window.addEventListener('load',()=>setTimeout(applyRoleDashboardV35,100));
+  window.showPage=function(id,btn){
+    const r=typeof oldShow==='function'?oldShow(id,btn):undefined;
+    if(id==='dashboard'){
+      setTimeout(()=>{
+        applyRoleDashboardV36();
+        try{ if(typeof renderDashboard==='function') renderDashboard(); }catch(err){ console.error('dashboard render',err); }
+      },0);
+    }
+    if(id==='reports'){
+      setTimeout(()=>{try{prepareAllReportsHub();runAllReportsHub()}catch(err){console.warn('all reports',err)}},60);
+    }
+    return r;
+  };
+
+  function barHTML(a,b,labels){
+    const vals=[Number(a)||0,Number(b)||0];
+    const max=Math.max(vals[0],vals[1],1);
+    return vals.map((v,i)=>`<div class="dash-bar-wrap"><div class="dash-bar ${i?'alt':''}" style="height:${Math.max(4,(v/max)*76)}px" title="${v.toFixed(2)}"></div><div class="dash-bar-value">${money(v)}</div><div class="dash-bar-label">${labels[i]}</div></div>`).join('');
+  }
+
+  function updateDashboardGraphs(){
+    const tIn=(inInvoices||[]).reduce((s,h)=>s+(h.stock_in_items||[]).reduce((a,r)=>a+(Number(r.amount)||0),0),0);
+    const tOut=(outVouchers||[]).reduce((s,h)=>s+(h.stock_out_items||[]).reduce((a,r)=>a+(Number(r.amount)||0),0),0);
+    const day=typeof calculateDay==='function'?calculateDay(today()):{rc:0,rb:0,pc:0,pb:0};
+    const pDraw=(polEntries||[]).reduce((s,x)=>s+(Number(x.litres)||0),0);
+    const pCons=(window.carDiaryEntries||[]).reduce((s,x)=>s+(Number(x.pol_consumed)||0),0);
+    const dg=document.getElementById('dashMessGraph');if(dg)dg.innerHTML=barHTML(tIn,tOut,['PURCHASE','ISSUE']);
+    const cg=document.getElementById('dashCashGraph');if(cg)cg.innerHTML=barHTML((day.rc||0)+(day.rb||0),(day.pc||0)+(day.pb||0),['RECEIPTS','PAYMENTS']);
+    const pg=document.getElementById('dashPolGraph');if(pg)pg.innerHTML=barHTML(pDraw,pCons,['DRAWN LTR','CONSUMED LTR']);
+  }
+  window.updateDashboardGraphs=updateDashboardGraphs;
+
+  // Wrap renderDashboard so graphs and role state update after data refresh.
+  const oldRenderDashboard=window.renderDashboard;
+  window.renderDashboard=function(){
+    try{ if(typeof oldRenderDashboard==='function') oldRenderDashboard(); }catch(err){ console.error('renderDashboard',err); }
+    try{applyRoleDashboardV36();updateDashboardGraphs();}catch(err){console.error('dashboard extras',err);}
+  };
+
+  // Re-apply after login/profile load and after any async refresh.
+  window.addEventListener('load',()=>setTimeout(()=>{
+    applyRoleDashboardV36();
+    try{window.renderDashboard&&window.renderDashboard()}catch(_){}
+  },150));
+
+  // ===== ALL REPORTS HUB =====
+  function dateOK(d,from,to){return (!from||d>=from)&&(!to||d<=to)}
+  function s(v){return String(v??'').toLowerCase()}
+  function matches(q,...vals){q=s(q).trim();return !q||vals.some(v=>s(v).includes(q))}
+  function uniq(arr){return [...new Set(arr.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b)))}
+
+  function prepareAllReportsHub(){
+    const itemSel=document.getElementById('allRepItem');
+    const vehSel=document.getElementById('allRepVehicle');
+    if(itemSel){
+      const cur=itemSel.value;
+      itemSel.innerHTML='<option value="">All Items</option>'+uniq((items||[]).map(i=>`${i.id}||${i.name||''}`)).map(x=>{
+        const [id,name]=x.split('||');return `<option value="${esc(id)}">${esc(name)}</option>`;
+      }).join('');
+      if(cur)itemSel.value=cur;
+    }
+    if(vehSel){
+      const cur=vehSel.value;
+      vehSel.innerHTML='<option value="">All Vehicles</option>'+uniq((polVehicles||[]).map(v=>`${v.id}||${v.vehicle_no||''}`)).map(x=>{
+        const [id,name]=x.split('||');return `<option value="${esc(id)}">${esc(name)}</option>`;
+      }).join('');
+      if(cur)vehSel.value=cur;
+    }
+  }
+  window.prepareAllReportsHub=prepareAllReportsHub;
+
+  function runAllReportsHub(){
+    const module=document.getElementById('allRepModule')?.value||'ALL';
+    const from=document.getElementById('allRepFrom')?.value||'';
+    const to=document.getElementById('allRepTo')?.value||'';
+    const q=document.getElementById('allRepSearch')?.value||'';
+    const itemId=document.getElementById('allRepItem')?.value||'';
+    const vehicleId=document.getElementById('allRepVehicle')?.value||'';
+
+    const rows=[];
+    let counts={MESSING:0,INCIDENTAL:0,POL:0,CASHBOOK:0};
+    if(module==='ALL'||module==='MESSING'){
+      (inInvoices||[]).forEach(h=>(h.stock_in_items||[]).forEach(r=>{
+        const name=r.item_name||((items||[]).find(i=>String(i.id)===String(r.item_id))||{}).name||'';
+        if(itemId&&String(r.item_id)!==String(itemId))return;
+        if(!dateOK(String(h.invoice_date||'').slice(0,10),from,to)||!matches(q,h.invoice_number,h.supplier,name))return;
+        counts.MESSING++;
+        rows.push(['MESSING','RECEIVED',h.invoice_date,h.invoice_number||'',h.supplier||'',name,r.unit||'',Number(r.quantity)||0,Number(r.amount)||0,'']);
+      }));
+      (outVouchers||[]).forEach(h=>(h.stock_out_items||[]).forEach(r=>{
+        const name=r.item_name||((items||[]).find(i=>String(i.id)===String(r.item_id))||{}).name||'';
+        if(itemId&&String(r.item_id)!==String(itemId))return;
+        if(!dateOK(String(h.voucher_date||'').slice(0,10),from,to)||!matches(q,h.voucher_number,h.issued_to,name))return;
+        counts.MESSING++;
+        rows.push(['MESSING','ISSUED',h.voucher_date,h.voucher_number||'',h.issued_to||'',name,r.unit||'',Number(r.quantity)||0,Number(r.amount)||0,'']);
+      }));
+    }
+    if(module==='ALL'||module==='INCIDENTAL'){
+      (incidentals||[]).forEach(h=>{
+        if(!dateOK(String(h.voucher_date||'').slice(0,10),from,to)||!matches(q,h.voucher_no,h.party,h.invoice_number,h.unit))return;
+        counts.INCIDENTAL++;
+        rows.push(['INCIDENTAL',h.voucher_type||'',h.voucher_date,h.voucher_no||h.crv_no||'',h.party||h.unit||'',h.invoice_number||'', '', '', Number(h.amount)||0,'']);
+      });
+    }
+    if(module==='ALL'||module==='POL'){
+      (polEntries||[]).forEach(p=>{
+        if(vehicleId&&String(p.vehicle_id)!==String(vehicleId))return;
+        const veh=(polVehicles||[]).find(v=>String(v.id)===String(p.vehicle_id));
+        if(!dateOK(String(p.date||'').slice(0,10),from,to)||!matches(q,p.invoice_number,p.petrol_bunk,veh?.vehicle_no))return;
+        counts.POL++;
+        rows.push(['POL','DRAWN',p.date,p.invoice_number||'',veh?.vehicle_no||'',p.fuel_type||'', '',Number(p.litres)||0,Number(p.total_amount)||0,p.petrol_bunk||'']);
+      });
+      (window.carDiaryEntries||[]).forEach(d=>{
+        if(vehicleId&&String(d.vehicle_id)!==String(vehicleId))return;
+        const veh=(polVehicles||[]).find(v=>String(v.id)===String(d.vehicle_id));
+        if(!dateOK(String(d.entry_date||'').slice(0,10),from,to)||!matches(q,d.nature_of_duty,d.purpose_of_duty,d.from_location,d.to_location,veh?.vehicle_no))return;
+        counts.POL++;
+        rows.push(['POL','CAR DIARY',d.entry_date,veh?.vehicle_no||'',d.nature_of_duty||'',d.purpose_of_duty||'', '',Number(d.km_run)||0,Number(d.pol_consumed)||0,'']);
+      });
+    }
+    if(module==='ALL'||module==='CASHBOOK'){
+      (cashbookEntries||[]).forEach(c=>{
+        if(!dateOK(String(c.entry_date||'').slice(0,10),from,to)||!matches(q,c.voucher_number,c.party,c.code_head,c.source_type,c.reference_no))return;
+        counts.CASHBOOK++;
+        rows.push(['CASHBOOK',c.entry_type,c.entry_date,c.voucher_number||'',c.party||'',c.code_head||'',c.mode||'', '',Number(c.amount)||0,'']);
+      });
+    }
+
+    rows.sort((a,b)=>String(b[2]).localeCompare(String(a[2])));
+    const total=rows.reduce((n,r)=>n+(Number(r[8])||0),0);
+    const sumEl=document.getElementById('allReportsSummary');
+    if(sumEl)sumEl.innerHTML=`
+      <div class="chip"><span>MESSING MATCHES</span><b>${counts.MESSING}</b></div>
+      <div class="chip"><span>INCIDENTAL MATCHES</span><b>${counts.INCIDENTAL}</b></div>
+      <div class="chip"><span>POL MATCHES</span><b>${counts.POL}</b></div>
+      <div class="chip"><span>CASH BOOK MATCHES</span><b>${counts.CASHBOOK}</b></div>
+    `;
+    const out=document.getElementById('allReportsResults'); if(!out)return;
+    let h='<div class="tablewrap"><table><tr><th>Module</th><th>Type</th><th>Date</th><th>Invoice / Voucher</th><th>Party / Vehicle</th><th>Account / Item</th><th>Mode / A/u</th><th>Qty / KM</th><th>Amount / Ltr</th><th>Reference</th></tr>';
+    rows.forEach(r=>h+=`<tr><td><span class="source-tag">${esc(r[0])}</span></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td>${esc(r[3])}</td><td>${esc(r[4])}</td><td>${esc(r[5])}</td><td>${esc(r[6])}</td><td>${Number(r[7]||0).toFixed(2)}</td><td class="num">${money(r[8])}</td><td>${esc(r[9])}</td></tr>`);
+    if(!rows.length)h+='<tr><td colspan="10" class="empty">No matching records found for the selected filters.</td></tr>';
+    h+='</table></div>';
+    out.innerHTML=h;
+  }
+  window.runAllReportsHub=runAllReportsHub;
+
+  function clearAllReportsHub(){
+    ['allRepFrom','allRepTo','allRepSearch'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});
+    ['allRepModule','allRepItem','allRepVehicle'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=id==='allRepModule'?'ALL':''});
+    prepareAllReportsHub();runAllReportsHub();
+  }
+  window.clearAllReportsHub=clearAllReportsHub;
+
+  function openAllReport(module){
+    if(module==='MESSING'){
+      showPage('reports',document.querySelector('[data-page="reports"]'));setTimeout(()=>{setMessingReport('DAY');generateMessingReport()},80);
+    }else if(module==='INCIDENTAL'){
+      showPage('incidentalReports',document.querySelector('[data-page="incidentalReports"]'));
+    }else if(module==='POL'){
+      showPage('pol',document.querySelector('[data-page="pol"]'));setTimeout(()=>setPOLTab('report'),80);
+    }else if(module==='CASHBOOK'){
+      showPage('cashbook',document.querySelector('[data-page="cashbook"]'));setTimeout(()=>setCashType('DAY'),80);
+    }
+  }
+  window.openAllReport=openAllReport;
+
+  function printAllReportsHub(){
+    runAllReportsHub();
+    const html=document.getElementById('allReportsResults')?.innerHTML||'';
+    const w=window.open('','_blank','width=1200,height=800');if(!w){alert('Please allow popups for reports.');return;}
+    w.document.write(`<!doctype html><html><head><title>NCC CAMP MESSING - All Reports</title><style>body{font-family:Arial,sans-serif;color:#111;padding:18px}h2{text-align:center}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px}th{background:#eee}.num{text-align:right}</style></head><body><h2>NCC CAMP MESSING IMS - ALL REPORTS</h2>${html}</body></html>`);
+    w.document.close();setTimeout(()=>{w.focus();w.print()},300);
+  }
+  window.printAllReportsHub=printAllReportsHub;
+
+  function exportAllReportsHub(){
+    runAllReportsHub();
+    const table=document.querySelector('#allReportsResults table');
+    if(!table){alert('No report rows to export.');return;}
+    const rows=[...table.querySelectorAll('tr')].map(tr=>[...tr.children].map(td=>td.textContent.trim()));
+    if(typeof downloadCSV==='function')downloadCSV(rows,'NCC_All_Reports.csv');
+    else{
+      const csv=rows.map(r=>r.map(v=>`"${v.replace(/"/g,'""')}"`).join(',')).join('\n');
+      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download='NCC_All_Reports.csv';a.click();
+    }
+  }
+  window.exportAllReportsHub=exportAllReportsHub;
 })();
 </script>
 </body>
