@@ -85,7 +85,6 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 @media(max-width:700px){.camp-top{display:none}.module-grid,.pol-grid,.source-row{grid-template-columns:1fr}.small-kpi{grid-template-columns:1fr}.cash-layout{grid-template-columns:1fr}}
 @media print{.print-title{display:block}.no-print{display:none!important}}
 
-
 /* ===== FRESH RV/IV + DAY CASH BOOK AMENDMENT ===== */
 .rviv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
 .rviv-wide{grid-column:span 2}.rviv-full{grid-column:1/-1}
@@ -149,7 +148,6 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 .source-tag{display:inline-block;padding:4px 7px;border-radius:6px;background:#0f3445;color:#6ddcf0;font-size:10px;font-weight:900}
 @media(max-width:1050px){.card-grid-3{grid-template-columns:1fr 1fr}.diary-grid,.report-filter{grid-template-columns:1fr 1fr}}
 @media(max-width:650px){.card-grid-3,.diary-grid,.report-filter{grid-template-columns:1fr}}
-
 
 /* ===== MESSING REPORTS V33 ===== */
 #inventoryReports .toolbar .field{min-width:170px}
@@ -766,8 +764,6 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
   </div>
 </section>
 
-
-
 <section id="incidentalRV" class="page">
   <div class="module-banner"><div><div class="crumb">INCIDENTAL • RECEIPT</div><h2>Incidental Receipt Voucher (RV)</h2><div class="muted">Fresh camp-wise receipt voucher with auto CRV numbering and printable official format.</div></div><div class="side-pill">CRV / 39KAR / FY / CAMP / Auto</div></div>
   <div class="panel">
@@ -1111,8 +1107,6 @@ async function refreshAll(){
   if(l.data?.value)setLogo(l.data.value);
   renderDashboard();renderInventory();renderStockInList();renderStockOutList();renderReports();renderUsers();renderCamps();renderPOL();renderIncidentalRV();renderIncidentalIV();renderCashbook();populateUnitFilter();populateVoucherSelects();populateCampTop();if(cashType==='PAYMENT')loadCashSources();if(cashType==='DAY')renderDayClose();
 }
-
-
 
 /* ===== Restored core navigation / inventory / camp functions ===== */
 function addInRow(data={}) {
@@ -1810,80 +1804,7 @@ function printMessingReport(){
   generateMessingReport();
   const el=document.getElementById('reportsContent'); if(!el)return;
   const w=window.open('','_blank'); if(!w){alert('Please allow pop-ups for Print / PDF.');return;}
-  w.document.write('<!doctype html><html><head><title>NCC Camp Messing Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:20px}h1,h2,h3{text-align:center}.meta{text-align:center;margin-bottom:15px;color:#444}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #555;padding:6px}th{background:#eee;text-align:left}.num{text-align:right}</style></head><body><h1>NCC CAMP MESSING</h1><h2>'+esc((activeCamp?.camp_code||'')+' - '+(activeCamp?.camp_name||''))+'</h2><div class="meta">'+esc(messingReportType==='DAY'?'Day-wise Purchase / Issue Summary':messingReportType==='ITEM'?'Item-wise Purchase / Balance Report':'Statement of Item Received / Issued')+'</div>'+el.innerHTML+'
-<script>
-/* ===== V42 ACCOUNTS PAYMENT SOURCE FIX =====
-   The Accounts role gets payment-source bills through a SECURITY DEFINER RPC.
-   This avoids an RLS mismatch on stock_in_items that otherwise leaves MESSING
-   source list empty even though the invoice is visible elsewhere in the app.
-*/
-(function(){
-  const _v42Cache = {MESSING_RV:[], INCIDENTAL_RV:[], POL_DRAWN:[]};
-  function v42Money(n){try{return typeof money8x==='function'?money8x(n):typeof money==='function'?money(n):'₹'+Number(n||0).toFixed(2)}catch(_){return '₹'+Number(n||0).toFixed(2)}}
-  function v42Esc(s){try{return typeof escx==='function'?escx(s):String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}catch(_){return String(s??'')}}
-  function v42Head(){return String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase()}
-  function v42Type(){const h=v42Head();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''}
-  function v42ItemRows(raw){
-    if(Array.isArray(raw))return raw;
-    if(typeof raw==='string'){try{const x=JSON.parse(raw);return Array.isArray(x)?x:[]}catch(_){}}
-    return [];
-  }
-  async function v42Fetch(type){
-    if(!activeCamp?.id || !sb || !type)return [];
-    const {data,error}=await sb.rpc('get_accounts_payment_sources_v42',{p_camp_id:activeCamp.id,p_source_type:type});
-    if(error){console.warn('V42 payment source RPC:',error);return []}
-    const rows=Array.isArray(data)?data:[];
-    const result=rows.map(x=>{
-      const rawItems=v42ItemRows(x.items);
-      const its=rawItems.map(r=>{
-        const it=(items||[]).find(i=>String(i.id)===String(r.item_id));
-        const qty=Number(r.quantity)||0,rate=Number(r.rate)||0,amount=Number(r.amount)||(qty*rate);
-        return {name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty,rate,amount};
-      });
-      const amount=Number(x.amount)||0;
-      return {id:x.id,label:`${x.reference_no||''} | ${x.entry_date||''} | ${x.party||''} | Balance ${v42Money(amount)}`,ref:x.reference_no||'',party:x.party||'',amount,date:x.entry_date||'',onAccount:x.on_account||'',items:its};
-    });
-    _v42Cache[type]=result;
-    return result;
-  }
-  async function v42LoadSources(){
-    if(typeof cashType!=='undefined' && cashType!=='PAYMENT')return;
-    const head=v42Head(),linked=['MESSING','INC','POL'].includes(head);
-    const tw=document.getElementById('cashSourceTypeWrap'),sw=document.getElementById('cashSourceWrap'),sel=document.getElementById('cashSource'),st=document.getElementById('cashSourceType');
-    if(!tw||!sw)return;
-    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
-    tw.classList.remove('hidden');sw.classList.remove('hidden');
-    const type=v42Type(); if(st)st.value=type;
-    if(sel)sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
-    const list=await v42Fetch(type);
-    if(sel){sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${v42Esc(x.id)}">${v42Esc(x.label)}</option>`).join('');}
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
-  }
-  function v42FillSource(){
-    const type=document.getElementById('cashSourceType')?.value||v42Type(),id=document.getElementById('cashSource')?.value||'';
-    const x=(_v42Cache[type]||[]).find(a=>String(a.id)===String(id));
-    if(!x){
-      ['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(k=>{const e=document.getElementById(k);if(e)e.value=''});
-      document.getElementById('cashSourceDetails')?.classList.add('hidden');
-      if(typeof updateBalanceV38==='function')updateBalanceV38();
-      return;
-    }
-    const set=(k,v)=>{const e=document.getElementById(k);if(e)e.value=v??''};
-    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',Number(x.amount||0).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',Number(x.amount||0).toFixed(2));
-    const body=document.getElementById('cashSourceItemsBody');if(body)body.innerHTML=(x.items||[]).map(i=>`<tr><td>${v42Esc(i.name)}</td><td>${v42Esc(i.unit||'')}</td><td>${i.qty??''}</td><td>${v42Money(i.rate)}</td><td>${v42Money(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
-    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
-  }
-  // Keep synchronous callers working with the last fetched source list.
-  window.paymentSourcesV42=()=>_v42Cache[v42Type()]||[];
-  window.loadCashSources=v42LoadSources;
-  window.paymentHeadChanged=v42LoadSources;
-  window.fillCashSource=v42FillSource;
-  window.addEventListener('load',()=>setTimeout(()=>v42LoadSources(),250));
-  setTimeout(()=>v42LoadSources(),400);
-})();
-</script>
-</body></html>');
+  w.document.write('<!doctype html><html><head><title>NCC Camp Messing Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:20px}h1,h2,h3{text-align:center}.meta{text-align:center;margin-bottom:15px;color:#444}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #555;padding:6px}th{background:#eee;text-align:left}.num{text-align:right}</style></head><body><h1>NCC CAMP MESSING</h1><h2>'+esc((activeCamp?.camp_code||'')+' - '+(activeCamp?.camp_name||''))+'</h2><div class="meta">'+esc(messingReportType==='DAY'?'Day-wise Purchase / Issue Summary':messingReportType==='ITEM'?'Item-wise Purchase / Balance Report':'Statement of Item Received / Issued')+'</div>'+el.innerHTML+'\n</body></html>');
   w.document.close();setTimeout(()=>{w.focus();w.print()},300);
 }
 function renderReports(){
@@ -1892,7 +1813,6 @@ function renderReports(){
   setMessingReport(messingReportType||'DAY');
   generateMessingReport();
 }
-
 
 /* ===== FINAL BUGFIX OVERRIDES ===== */
 async function nextCRVNo(){
@@ -2062,7 +1982,6 @@ function exportPOLReportCSV(){
   const rows=[...(window.carDiaryEntries||[])].filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to));downloadCSV([['Date','Vehicle','Nature','Purpose','From','To','Opening KM','KM Run','Closing KM','KPL','POL Consumed'],...rows.map(x=>[x.entry_date,x.vehicle_no,x.nature_of_duty,x.purpose_of_duty,x.from_location,x.to_location,x.opening_km,x.km_run,x.closing_km,x.kpl,x.pol_consumed])],'POL_Car_Diary_Report.csv');
 }
 function printPOLReport(){renderPOLReport();window.print()}
-
 
 /* ===== V2 FINAL STABILITY / ERROR FIXES ===== */
 async function nextCRVNo(){
@@ -2305,7 +2224,6 @@ function renderAccountsReports(){
 
 /* Ensure the day-close controls are correct immediately after role UI refresh. */
 setTimeout(()=>{try{renderDayClose()}catch(_){ }},50);
-
 
 /* ===== V3 FIXES: CASHBOOK HEAD ALLOCATIONS + POL CAR DIARY + VEHICLE FORM ===== */
 const HEAD_CANONICAL = {
@@ -2671,78 +2589,7 @@ function printTableReport(title,headers,rows){
   const tr=rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("");
   w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center;font-size:20px;margin:0 0 4px}h2{text-align:center;font-size:13px;margin:0 0 18px;color:#555}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}footer{margin-top:25px;text-align:center;font-size:10px;color:#555}</style>
 </head><body><h1>${esc(title)}</h1><h2>${esc(activeCamp?.camp_name||"NCC CAMP MESSING IMS")}</h2><table><tr>${th}</tr>${tr}</table><footer>Developed by Vinayak Shanmukhanavar</footer>
-<script>
-/* ===== V42 ACCOUNTS PAYMENT SOURCE FIX =====
-   The Accounts role gets payment-source bills through a SECURITY DEFINER RPC.
-   This avoids an RLS mismatch on stock_in_items that otherwise leaves MESSING
-   source list empty even though the invoice is visible elsewhere in the app.
-*/
-(function(){
-  const _v42Cache = {MESSING_RV:[], INCIDENTAL_RV:[], POL_DRAWN:[]};
-  function v42Money(n){try{return typeof money8x==='function'?money8x(n):typeof money==='function'?money(n):'₹'+Number(n||0).toFixed(2)}catch(_){return '₹'+Number(n||0).toFixed(2)}}
-  function v42Esc(s){try{return typeof escx==='function'?escx(s):String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}catch(_){return String(s??'')}}
-  function v42Head(){return String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase()}
-  function v42Type(){const h=v42Head();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''}
-  function v42ItemRows(raw){
-    if(Array.isArray(raw))return raw;
-    if(typeof raw==='string'){try{const x=JSON.parse(raw);return Array.isArray(x)?x:[]}catch(_){}}
-    return [];
-  }
-  async function v42Fetch(type){
-    if(!activeCamp?.id || !sb || !type)return [];
-    const {data,error}=await sb.rpc('get_accounts_payment_sources_v42',{p_camp_id:activeCamp.id,p_source_type:type});
-    if(error){console.warn('V42 payment source RPC:',error);return []}
-    const rows=Array.isArray(data)?data:[];
-    const result=rows.map(x=>{
-      const rawItems=v42ItemRows(x.items);
-      const its=rawItems.map(r=>{
-        const it=(items||[]).find(i=>String(i.id)===String(r.item_id));
-        const qty=Number(r.quantity)||0,rate=Number(r.rate)||0,amount=Number(r.amount)||(qty*rate);
-        return {name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty,rate,amount};
-      });
-      const amount=Number(x.amount)||0;
-      return {id:x.id,label:`${x.reference_no||''} | ${x.entry_date||''} | ${x.party||''} | Balance ${v42Money(amount)}`,ref:x.reference_no||'',party:x.party||'',amount,date:x.entry_date||'',onAccount:x.on_account||'',items:its};
-    });
-    _v42Cache[type]=result;
-    return result;
-  }
-  async function v42LoadSources(){
-    if(typeof cashType!=='undefined' && cashType!=='PAYMENT')return;
-    const head=v42Head(),linked=['MESSING','INC','POL'].includes(head);
-    const tw=document.getElementById('cashSourceTypeWrap'),sw=document.getElementById('cashSourceWrap'),sel=document.getElementById('cashSource'),st=document.getElementById('cashSourceType');
-    if(!tw||!sw)return;
-    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
-    tw.classList.remove('hidden');sw.classList.remove('hidden');
-    const type=v42Type(); if(st)st.value=type;
-    if(sel)sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
-    const list=await v42Fetch(type);
-    if(sel){sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${v42Esc(x.id)}">${v42Esc(x.label)}</option>`).join('');}
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
-  }
-  function v42FillSource(){
-    const type=document.getElementById('cashSourceType')?.value||v42Type(),id=document.getElementById('cashSource')?.value||'';
-    const x=(_v42Cache[type]||[]).find(a=>String(a.id)===String(id));
-    if(!x){
-      ['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(k=>{const e=document.getElementById(k);if(e)e.value=''});
-      document.getElementById('cashSourceDetails')?.classList.add('hidden');
-      if(typeof updateBalanceV38==='function')updateBalanceV38();
-      return;
-    }
-    const set=(k,v)=>{const e=document.getElementById(k);if(e)e.value=v??''};
-    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',Number(x.amount||0).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',Number(x.amount||0).toFixed(2));
-    const body=document.getElementById('cashSourceItemsBody');if(body)body.innerHTML=(x.items||[]).map(i=>`<tr><td>${v42Esc(i.name)}</td><td>${v42Esc(i.unit||'')}</td><td>${i.qty??''}</td><td>${v42Money(i.rate)}</td><td>${v42Money(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
-    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
-  }
-  // Keep synchronous callers working with the last fetched source list.
-  window.paymentSourcesV42=()=>_v42Cache[v42Type()]||[];
-  window.loadCashSources=v42LoadSources;
-  window.paymentHeadChanged=v42LoadSources;
-  window.fillCashSource=v42FillSource;
-  window.addEventListener('load',()=>setTimeout(()=>v42LoadSources(),250));
-  setTimeout(()=>v42LoadSources(),400);
-})();
-</script>
+
 </body></html>`);
   w.document.close();
   setTimeout(()=>{w.focus();w.print()},300);
@@ -2768,78 +2615,7 @@ function printPOLReport(){renderPOLReport();setTimeout(()=>{const box=document.g
 @media(max-width:1100px){.rviv-item-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
 @media(max-width:650px){.rviv-item-grid{grid-template-columns:1fr 1fr!important}}
 </style></head><body><h2 style="text-align:center">NCC CAMP MESSING IMS - POL REPORT</h2>${box?.innerHTML||''}
-<script>
-/* ===== V42 ACCOUNTS PAYMENT SOURCE FIX =====
-   The Accounts role gets payment-source bills through a SECURITY DEFINER RPC.
-   This avoids an RLS mismatch on stock_in_items that otherwise leaves MESSING
-   source list empty even though the invoice is visible elsewhere in the app.
-*/
-(function(){
-  const _v42Cache = {MESSING_RV:[], INCIDENTAL_RV:[], POL_DRAWN:[]};
-  function v42Money(n){try{return typeof money8x==='function'?money8x(n):typeof money==='function'?money(n):'₹'+Number(n||0).toFixed(2)}catch(_){return '₹'+Number(n||0).toFixed(2)}}
-  function v42Esc(s){try{return typeof escx==='function'?escx(s):String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}catch(_){return String(s??'')}}
-  function v42Head(){return String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase()}
-  function v42Type(){const h=v42Head();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''}
-  function v42ItemRows(raw){
-    if(Array.isArray(raw))return raw;
-    if(typeof raw==='string'){try{const x=JSON.parse(raw);return Array.isArray(x)?x:[]}catch(_){}}
-    return [];
-  }
-  async function v42Fetch(type){
-    if(!activeCamp?.id || !sb || !type)return [];
-    const {data,error}=await sb.rpc('get_accounts_payment_sources_v42',{p_camp_id:activeCamp.id,p_source_type:type});
-    if(error){console.warn('V42 payment source RPC:',error);return []}
-    const rows=Array.isArray(data)?data:[];
-    const result=rows.map(x=>{
-      const rawItems=v42ItemRows(x.items);
-      const its=rawItems.map(r=>{
-        const it=(items||[]).find(i=>String(i.id)===String(r.item_id));
-        const qty=Number(r.quantity)||0,rate=Number(r.rate)||0,amount=Number(r.amount)||(qty*rate);
-        return {name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty,rate,amount};
-      });
-      const amount=Number(x.amount)||0;
-      return {id:x.id,label:`${x.reference_no||''} | ${x.entry_date||''} | ${x.party||''} | Balance ${v42Money(amount)}`,ref:x.reference_no||'',party:x.party||'',amount,date:x.entry_date||'',onAccount:x.on_account||'',items:its};
-    });
-    _v42Cache[type]=result;
-    return result;
-  }
-  async function v42LoadSources(){
-    if(typeof cashType!=='undefined' && cashType!=='PAYMENT')return;
-    const head=v42Head(),linked=['MESSING','INC','POL'].includes(head);
-    const tw=document.getElementById('cashSourceTypeWrap'),sw=document.getElementById('cashSourceWrap'),sel=document.getElementById('cashSource'),st=document.getElementById('cashSourceType');
-    if(!tw||!sw)return;
-    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
-    tw.classList.remove('hidden');sw.classList.remove('hidden');
-    const type=v42Type(); if(st)st.value=type;
-    if(sel)sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
-    const list=await v42Fetch(type);
-    if(sel){sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${v42Esc(x.id)}">${v42Esc(x.label)}</option>`).join('');}
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
-  }
-  function v42FillSource(){
-    const type=document.getElementById('cashSourceType')?.value||v42Type(),id=document.getElementById('cashSource')?.value||'';
-    const x=(_v42Cache[type]||[]).find(a=>String(a.id)===String(id));
-    if(!x){
-      ['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(k=>{const e=document.getElementById(k);if(e)e.value=''});
-      document.getElementById('cashSourceDetails')?.classList.add('hidden');
-      if(typeof updateBalanceV38==='function')updateBalanceV38();
-      return;
-    }
-    const set=(k,v)=>{const e=document.getElementById(k);if(e)e.value=v??''};
-    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',Number(x.amount||0).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',Number(x.amount||0).toFixed(2));
-    const body=document.getElementById('cashSourceItemsBody');if(body)body.innerHTML=(x.items||[]).map(i=>`<tr><td>${v42Esc(i.name)}</td><td>${v42Esc(i.unit||'')}</td><td>${i.qty??''}</td><td>${v42Money(i.rate)}</td><td>${v42Money(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
-    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
-  }
-  // Keep synchronous callers working with the last fetched source list.
-  window.paymentSourcesV42=()=>_v42Cache[v42Type()]||[];
-  window.loadCashSources=v42LoadSources;
-  window.paymentHeadChanged=v42LoadSources;
-  window.fillCashSource=v42FillSource;
-  window.addEventListener('load',()=>setTimeout(()=>v42LoadSources(),250));
-  setTimeout(()=>v42LoadSources(),400);
-})();
-</script>
+
 </body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},300)},100)}
 
 function populateAllPOLVehicleSelectors(){
@@ -3058,7 +2834,6 @@ window.updateCashDrawnPreview=updateCashDrawnPreview;
 window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview()}catch(e){}},250);
 
 </script>
-
 
 <script id="ims-v7-stable-data-repair">
 /* NCC IMS V7 - stable data loading + compatibility repair */
@@ -4145,78 +3920,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     const w=window.open('','_blank'); if(!w){alert('Please allow pop-ups for the report.');return;}
     const campName=activeCamp?.camp_name||''; const campCode=activeCamp?.camp_code||''; const station=activeCamp?.station||'';
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Incidental Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:18px}h1,h2{text-align:center;margin:4px 0}p{margin:4px 0;text-align:center;font-size:12px}.section{margin-top:18px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}.num{text-align:right}@media print{body{padding:8mm}}</style></head><body><h1>INCIDENTAL PURCHASE, BALANCE &amp; EXPENDITURE REPORT</h1><p>${escR(campCode)} | ${escR(campName)} | ${escR(station)}</p><p>From: ${escR(document.getElementById('incRepFrom')?.value||'All')} &nbsp; To: ${escR(document.getElementById('incRepTo')?.value||'All')}</p><div class="section"><h2>Item-wise Purchase &amp; Balance</h2><table><tr><th>SL</th><th>Item</th><th>A/u</th><th>Exp / N-Exp</th><th>Purchased Qty</th><th>Purchase Value</th><th>Issued Qty</th><th>Expenditure</th><th>Balance Qty</th><th>Balance Value</th></tr>${items.map((o,i)=>`<tr><td>${i+1}</td><td>${escR(o.name)}</td><td>${escR(o.unit)}</td><td>${escR(o.type)}</td><td>${o.purchaseQty.toFixed(2)}</td><td class="num">${moneyR(o.purchaseValue)}</td><td>${o.issueQty.toFixed(2)}</td><td class="num">${moneyR(o.issueValue)}</td><td>${o.balanceQty.toFixed(2)}</td><td class="num">${moneyR(o.balanceValue)}</td></tr>`).join('')}</table></div><div class="section"><h2>Expenditure / Issue Details</h2><table><tr><th>SL</th><th>IV No.</th><th>Date</th><th>Receiving Unit</th><th>Item</th><th>A/u</th><th>Qty</th><th>Rate</th><th>Expenditure</th><th>Source RV</th><th>Page No.</th></tr>${ivRows.map((r,i)=>`<tr><td>${i+1}</td><td>${escR(r.iv.voucher_no)}</td><td>${escR(r.iv.voucher_date)}</td><td>${escR(r.iv.unit||r.iv.party)}</td><td>${escR(r.name)}</td><td>${escR(r.unit)}</td><td>${r.qty.toFixed(2)}</td><td class="num">${moneyR(r.rate)}</td><td class="num">${moneyR(r.amount)}</td><td>${escR(r.sourceRvNo)}</td><td>${escR(r.page)}</td></tr>`).join('')}</table></div>
-<script>
-/* ===== V42 ACCOUNTS PAYMENT SOURCE FIX =====
-   The Accounts role gets payment-source bills through a SECURITY DEFINER RPC.
-   This avoids an RLS mismatch on stock_in_items that otherwise leaves MESSING
-   source list empty even though the invoice is visible elsewhere in the app.
-*/
-(function(){
-  const _v42Cache = {MESSING_RV:[], INCIDENTAL_RV:[], POL_DRAWN:[]};
-  function v42Money(n){try{return typeof money8x==='function'?money8x(n):typeof money==='function'?money(n):'₹'+Number(n||0).toFixed(2)}catch(_){return '₹'+Number(n||0).toFixed(2)}}
-  function v42Esc(s){try{return typeof escx==='function'?escx(s):String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}catch(_){return String(s??'')}}
-  function v42Head(){return String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase()}
-  function v42Type(){const h=v42Head();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''}
-  function v42ItemRows(raw){
-    if(Array.isArray(raw))return raw;
-    if(typeof raw==='string'){try{const x=JSON.parse(raw);return Array.isArray(x)?x:[]}catch(_){}}
-    return [];
-  }
-  async function v42Fetch(type){
-    if(!activeCamp?.id || !sb || !type)return [];
-    const {data,error}=await sb.rpc('get_accounts_payment_sources_v42',{p_camp_id:activeCamp.id,p_source_type:type});
-    if(error){console.warn('V42 payment source RPC:',error);return []}
-    const rows=Array.isArray(data)?data:[];
-    const result=rows.map(x=>{
-      const rawItems=v42ItemRows(x.items);
-      const its=rawItems.map(r=>{
-        const it=(items||[]).find(i=>String(i.id)===String(r.item_id));
-        const qty=Number(r.quantity)||0,rate=Number(r.rate)||0,amount=Number(r.amount)||(qty*rate);
-        return {name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty,rate,amount};
-      });
-      const amount=Number(x.amount)||0;
-      return {id:x.id,label:`${x.reference_no||''} | ${x.entry_date||''} | ${x.party||''} | Balance ${v42Money(amount)}`,ref:x.reference_no||'',party:x.party||'',amount,date:x.entry_date||'',onAccount:x.on_account||'',items:its};
-    });
-    _v42Cache[type]=result;
-    return result;
-  }
-  async function v42LoadSources(){
-    if(typeof cashType!=='undefined' && cashType!=='PAYMENT')return;
-    const head=v42Head(),linked=['MESSING','INC','POL'].includes(head);
-    const tw=document.getElementById('cashSourceTypeWrap'),sw=document.getElementById('cashSourceWrap'),sel=document.getElementById('cashSource'),st=document.getElementById('cashSourceType');
-    if(!tw||!sw)return;
-    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
-    tw.classList.remove('hidden');sw.classList.remove('hidden');
-    const type=v42Type(); if(st)st.value=type;
-    if(sel)sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
-    const list=await v42Fetch(type);
-    if(sel){sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${v42Esc(x.id)}">${v42Esc(x.label)}</option>`).join('');}
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
-  }
-  function v42FillSource(){
-    const type=document.getElementById('cashSourceType')?.value||v42Type(),id=document.getElementById('cashSource')?.value||'';
-    const x=(_v42Cache[type]||[]).find(a=>String(a.id)===String(id));
-    if(!x){
-      ['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(k=>{const e=document.getElementById(k);if(e)e.value=''});
-      document.getElementById('cashSourceDetails')?.classList.add('hidden');
-      if(typeof updateBalanceV38==='function')updateBalanceV38();
-      return;
-    }
-    const set=(k,v)=>{const e=document.getElementById(k);if(e)e.value=v??''};
-    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',Number(x.amount||0).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',Number(x.amount||0).toFixed(2));
-    const body=document.getElementById('cashSourceItemsBody');if(body)body.innerHTML=(x.items||[]).map(i=>`<tr><td>${v42Esc(i.name)}</td><td>${v42Esc(i.unit||'')}</td><td>${i.qty??''}</td><td>${v42Money(i.rate)}</td><td>${v42Money(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
-    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
-  }
-  // Keep synchronous callers working with the last fetched source list.
-  window.paymentSourcesV42=()=>_v42Cache[v42Type()]||[];
-  window.loadCashSources=v42LoadSources;
-  window.paymentHeadChanged=v42LoadSources;
-  window.fillCashSource=v42FillSource;
-  window.addEventListener('load',()=>setTimeout(()=>v42LoadSources(),250));
-  setTimeout(()=>v42LoadSources(),400);
-})();
-</script>
+
 </body></html>`);
     w.document.close();w.focus();setTimeout(()=>w.print(),250);
   }
@@ -4495,78 +4199,7 @@ window.addEventListener('DOMContentLoaded',()=>{
 </style>
 
 </head><body><h2>NCC CAMP MESSING IMS - ALL REPORTS</h2>${html}
-<script>
-/* ===== V42 ACCOUNTS PAYMENT SOURCE FIX =====
-   The Accounts role gets payment-source bills through a SECURITY DEFINER RPC.
-   This avoids an RLS mismatch on stock_in_items that otherwise leaves MESSING
-   source list empty even though the invoice is visible elsewhere in the app.
-*/
-(function(){
-  const _v42Cache = {MESSING_RV:[], INCIDENTAL_RV:[], POL_DRAWN:[]};
-  function v42Money(n){try{return typeof money8x==='function'?money8x(n):typeof money==='function'?money(n):'₹'+Number(n||0).toFixed(2)}catch(_){return '₹'+Number(n||0).toFixed(2)}}
-  function v42Esc(s){try{return typeof escx==='function'?escx(s):String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}catch(_){return String(s??'')}}
-  function v42Head(){return String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase()}
-  function v42Type(){const h=v42Head();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''}
-  function v42ItemRows(raw){
-    if(Array.isArray(raw))return raw;
-    if(typeof raw==='string'){try{const x=JSON.parse(raw);return Array.isArray(x)?x:[]}catch(_){}}
-    return [];
-  }
-  async function v42Fetch(type){
-    if(!activeCamp?.id || !sb || !type)return [];
-    const {data,error}=await sb.rpc('get_accounts_payment_sources_v42',{p_camp_id:activeCamp.id,p_source_type:type});
-    if(error){console.warn('V42 payment source RPC:',error);return []}
-    const rows=Array.isArray(data)?data:[];
-    const result=rows.map(x=>{
-      const rawItems=v42ItemRows(x.items);
-      const its=rawItems.map(r=>{
-        const it=(items||[]).find(i=>String(i.id)===String(r.item_id));
-        const qty=Number(r.quantity)||0,rate=Number(r.rate)||0,amount=Number(r.amount)||(qty*rate);
-        return {name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty,rate,amount};
-      });
-      const amount=Number(x.amount)||0;
-      return {id:x.id,label:`${x.reference_no||''} | ${x.entry_date||''} | ${x.party||''} | Balance ${v42Money(amount)}`,ref:x.reference_no||'',party:x.party||'',amount,date:x.entry_date||'',onAccount:x.on_account||'',items:its};
-    });
-    _v42Cache[type]=result;
-    return result;
-  }
-  async function v42LoadSources(){
-    if(typeof cashType!=='undefined' && cashType!=='PAYMENT')return;
-    const head=v42Head(),linked=['MESSING','INC','POL'].includes(head);
-    const tw=document.getElementById('cashSourceTypeWrap'),sw=document.getElementById('cashSourceWrap'),sel=document.getElementById('cashSource'),st=document.getElementById('cashSourceType');
-    if(!tw||!sw)return;
-    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
-    tw.classList.remove('hidden');sw.classList.remove('hidden');
-    const type=v42Type(); if(st)st.value=type;
-    if(sel)sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
-    const list=await v42Fetch(type);
-    if(sel){sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${v42Esc(x.id)}">${v42Esc(x.label)}</option>`).join('');}
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
-  }
-  function v42FillSource(){
-    const type=document.getElementById('cashSourceType')?.value||v42Type(),id=document.getElementById('cashSource')?.value||'';
-    const x=(_v42Cache[type]||[]).find(a=>String(a.id)===String(id));
-    if(!x){
-      ['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(k=>{const e=document.getElementById(k);if(e)e.value=''});
-      document.getElementById('cashSourceDetails')?.classList.add('hidden');
-      if(typeof updateBalanceV38==='function')updateBalanceV38();
-      return;
-    }
-    const set=(k,v)=>{const e=document.getElementById(k);if(e)e.value=v??''};
-    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',Number(x.amount||0).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',Number(x.amount||0).toFixed(2));
-    const body=document.getElementById('cashSourceItemsBody');if(body)body.innerHTML=(x.items||[]).map(i=>`<tr><td>${v42Esc(i.name)}</td><td>${v42Esc(i.unit||'')}</td><td>${i.qty??''}</td><td>${v42Money(i.rate)}</td><td>${v42Money(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
-    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
-  }
-  // Keep synchronous callers working with the last fetched source list.
-  window.paymentSourcesV42=()=>_v42Cache[v42Type()]||[];
-  window.loadCashSources=v42LoadSources;
-  window.paymentHeadChanged=v42LoadSources;
-  window.fillCashSource=v42FillSource;
-  window.addEventListener('load',()=>setTimeout(()=>v42LoadSources(),250));
-  setTimeout(()=>v42LoadSources(),400);
-})();
-</script>
+
 </body></html>`);
     w.document.close();setTimeout(()=>{w.focus();w.print()},300);
   }
@@ -4825,80 +4458,6 @@ window.addEventListener('DOMContentLoaded',()=>{
 
   document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{applyRoleDashboardV38();renderPendingApprovalsV38()},250)});
   setTimeout(()=>{try{applyRoleDashboardV38();renderPendingApprovalsV38()}catch(e){}},600);
-})();
-</script>
-
-
-<script>
-/* ===== V42 ACCOUNTS PAYMENT SOURCE FIX =====
-   The Accounts role gets payment-source bills through a SECURITY DEFINER RPC.
-   This avoids an RLS mismatch on stock_in_items that otherwise leaves MESSING
-   source list empty even though the invoice is visible elsewhere in the app.
-*/
-(function(){
-  const _v42Cache = {MESSING_RV:[], INCIDENTAL_RV:[], POL_DRAWN:[]};
-  function v42Money(n){try{return typeof money8x==='function'?money8x(n):typeof money==='function'?money(n):'₹'+Number(n||0).toFixed(2)}catch(_){return '₹'+Number(n||0).toFixed(2)}}
-  function v42Esc(s){try{return typeof escx==='function'?escx(s):String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}catch(_){return String(s??'')}}
-  function v42Head(){return String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase()}
-  function v42Type(){const h=v42Head();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''}
-  function v42ItemRows(raw){
-    if(Array.isArray(raw))return raw;
-    if(typeof raw==='string'){try{const x=JSON.parse(raw);return Array.isArray(x)?x:[]}catch(_){}}
-    return [];
-  }
-  async function v42Fetch(type){
-    if(!activeCamp?.id || !sb || !type)return [];
-    const {data,error}=await sb.rpc('get_accounts_payment_sources_v42',{p_camp_id:activeCamp.id,p_source_type:type});
-    if(error){console.warn('V42 payment source RPC:',error);return []}
-    const rows=Array.isArray(data)?data:[];
-    const result=rows.map(x=>{
-      const rawItems=v42ItemRows(x.items);
-      const its=rawItems.map(r=>{
-        const it=(items||[]).find(i=>String(i.id)===String(r.item_id));
-        const qty=Number(r.quantity)||0,rate=Number(r.rate)||0,amount=Number(r.amount)||(qty*rate);
-        return {name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty,rate,amount};
-      });
-      const amount=Number(x.amount)||0;
-      return {id:x.id,label:`${x.reference_no||''} | ${x.entry_date||''} | ${x.party||''} | Balance ${v42Money(amount)}`,ref:x.reference_no||'',party:x.party||'',amount,date:x.entry_date||'',onAccount:x.on_account||'',items:its};
-    });
-    _v42Cache[type]=result;
-    return result;
-  }
-  async function v42LoadSources(){
-    if(typeof cashType!=='undefined' && cashType!=='PAYMENT')return;
-    const head=v42Head(),linked=['MESSING','INC','POL'].includes(head);
-    const tw=document.getElementById('cashSourceTypeWrap'),sw=document.getElementById('cashSourceWrap'),sel=document.getElementById('cashSource'),st=document.getElementById('cashSourceType');
-    if(!tw||!sw)return;
-    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
-    tw.classList.remove('hidden');sw.classList.remove('hidden');
-    const type=v42Type(); if(st)st.value=type;
-    if(sel)sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
-    const list=await v42Fetch(type);
-    if(sel){sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${v42Esc(x.id)}">${v42Esc(x.label)}</option>`).join('');}
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
-  }
-  function v42FillSource(){
-    const type=document.getElementById('cashSourceType')?.value||v42Type(),id=document.getElementById('cashSource')?.value||'';
-    const x=(_v42Cache[type]||[]).find(a=>String(a.id)===String(id));
-    if(!x){
-      ['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(k=>{const e=document.getElementById(k);if(e)e.value=''});
-      document.getElementById('cashSourceDetails')?.classList.add('hidden');
-      if(typeof updateBalanceV38==='function')updateBalanceV38();
-      return;
-    }
-    const set=(k,v)=>{const e=document.getElementById(k);if(e)e.value=v??''};
-    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',Number(x.amount||0).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',Number(x.amount||0).toFixed(2));
-    const body=document.getElementById('cashSourceItemsBody');if(body)body.innerHTML=(x.items||[]).map(i=>`<tr><td>${v42Esc(i.name)}</td><td>${v42Esc(i.unit||'')}</td><td>${i.qty??''}</td><td>${v42Money(i.rate)}</td><td>${v42Money(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
-    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
-  }
-  // Keep synchronous callers working with the last fetched source list.
-  window.paymentSourcesV42=()=>_v42Cache[v42Type()]||[];
-  window.loadCashSources=v42LoadSources;
-  window.paymentHeadChanged=v42LoadSources;
-  window.fillCashSource=v42FillSource;
-  window.addEventListener('load',()=>setTimeout(()=>v42LoadSources(),250));
-  setTimeout(()=>v42LoadSources(),400);
 })();
 </script>
 
