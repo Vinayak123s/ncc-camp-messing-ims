@@ -149,17 +149,6 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 @media(max-width:1050px){.card-grid-3{grid-template-columns:1fr 1fr}.diary-grid,.report-filter{grid-template-columns:1fr 1fr}}
 @media(max-width:650px){.card-grid-3,.diary-grid,.report-filter{grid-template-columns:1fr}}
 
-
-/* ===== INCIDENTAL REPORT V28 ===== */
-.inc-report-summary{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:14px}
-.inc-report-summary .inc-kpi{background:linear-gradient(145deg,#112231,#0c151f);border:1px solid #263949;border-radius:10px;padding:13px}
-.inc-report-summary .inc-kpi span{display:block;color:#91a8ba;font-size:11px;font-weight:800}.inc-report-summary .inc-kpi b{display:block;font-size:20px;margin-top:6px}
-.inc-report-note{margin:10px 0 0;color:#8ea2b6;font-size:11px}
-.inc-report-table table{min-width:1250px}
-@media(max-width:1200px){.inc-report-summary{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:700px){.inc-report-summary{grid-template-columns:1fr 1fr}}
-@media print{#incidentalReports .no-print{display:none!important}.inc-report-summary{grid-template-columns:repeat(3,1fr)}#incPurchaseBalanceTable,#incExpenditureTable{overflow:visible}}
-
 </style>
 <style id="cashbook-final-css">
 .source-details{margin-top:12px;padding:12px;border:1px solid #334155;border-radius:8px;background:#0f1925}.source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.source-items{margin-top:12px;overflow:auto}.source-items table{width:100%;border-collapse:collapse;font-size:12px}.source-items th,.source-items td{border:1px solid #334155;padding:7px;text-align:left;white-space:nowrap}.source-items th{background:#1a2939;color:#e8f0f8}.balance-preview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}.balance-card{padding:10px;border:1px solid #334155;border-radius:8px;background:#0b1420}.balance-card span{display:block;font-size:11px;color:#8fa4b8}.balance-card b{display:block;margin-top:4px;font-size:14px}.balance-good{color:#64d68f}.balance-bad{color:#ff7b86}.head-balance-wrap{margin-top:15px;overflow:auto}.head-balance-wrap table{width:100%;border-collapse:collapse;font-size:12px}.head-balance-wrap th,.head-balance-wrap td{border:1px solid #334155;padding:7px;white-space:nowrap}.head-balance-wrap th{background:#163042;color:#fff}@media(max-width:900px){.source-grid,.balance-preview{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.source-grid,.balance-preview{grid-template-columns:1fr}}</style>
@@ -272,7 +261,6 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
     <div id="incidentSubnav" class="subnav">
       <button class="nav incident-nav" data-page="incidentalRV" onclick="showPage('incidentalRV',this)"><span class="ni">↘</span><span class="nl">Incidental RV</span></button>
       <button class="nav incident-nav" data-page="incidentalIV" onclick="showPage('incidentalIV',this)"><span class="ni">↗</span><span class="nl">Incidental IV</span></button>
-      <button class="nav incident-nav" data-page="incidentalReports" onclick="showPage('incidentalReports',this);renderIncidentalReport()"><span class="ni">▤</span><span class="nl">Incidental Reports</span></button>
     </div>
   </div>
 
@@ -591,48 +579,6 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
     <div id="ivMsgInc" class="msg"></div>
   </div>
   <div class="panel"><div class="toolbar"><input id="ivSearch" placeholder="Search IV / unit..." oninput="renderIncidentalIV()"><button class="btn green" onclick="exportIncidentalCSV('IV')">EXPORT CSV</button></div><div id="incidentalIVTable" style="margin-top:10px"></div></div>
-</section>
-
-
-<section id="incidentalReports" class="page">
-  <div class="module-banner"><div>
-    <div class="crumb">INCIDENTAL • REPORTS</div>
-    <h2>Incidental Purchase, Balance &amp; Expenditure Report</h2>
-    <div class="muted">Item-wise purchases from Incidental RV, issues/expenditure through Incidental IV and remaining balance for the active camp.</div>
-  </div><div class="side-pill">Active Camp Report</div></div>
-
-  <div class="panel no-print">
-    <div class="report-filter">
-      <div class="field"><label>From Date</label><input id="incRepFrom" type="date"></div>
-      <div class="field"><label>To Date</label><input id="incRepTo" type="date"></div>
-      <div class="field"><label>Item</label><select id="incRepItem"><option value="">All Items</option></select></div>
-      <div class="field"><label>Vendor</label><select id="incRepVendor"><option value="">All Vendors</option></select></div>
-    </div>
-    <div class="actions" style="margin-top:12px">
-      <button class="btn" onclick="renderIncidentalReport()">GENERATE REPORT</button>
-      <button class="btn green" onclick="exportIncidentalReportCSV()">EXPORT CSV</button>
-      <button class="btn dark" onclick="printIncidentalReport()">PRINT / PDF</button>
-      <button class="btn ghost" onclick="clearIncidentalReportFilter()">CLEAR</button>
-    </div>
-  </div>
-
-  <div id="incRepSummary" class="inc-report-summary"></div>
-
-  <div class="panel">
-    <div class="subhead"><div>
-      <h3 style="margin:0">Item-wise Purchase &amp; Balance</h3>
-      <div class="kpi-note">Purchased Qty/Value less issued Qty/Expenditure gives the balance available.</div>
-    </div></div>
-    <div class="tablewrap" id="incPurchaseBalanceTable" style="margin-top:10px"></div>
-  </div>
-
-  <div class="panel">
-    <div class="subhead"><div>
-      <h3 style="margin:0">Expenditure / Issue Details</h3>
-      <div class="kpi-note">Incidental IV issues with voucher, receiving unit and expenditure value.</div>
-    </div></div>
-    <div class="tablewrap" id="incExpenditureTable" style="margin-top:10px"></div>
-  </div>
 </section>
 
 <section id="cashbook" class="page">
@@ -1012,15 +958,65 @@ async function renderCamps(){
 async function deleteCamp(id){
   if(!roleIs('ADMIN')){alert('Only ADMIN can delete a camp.');return}
   const c=camps.find(x=>x.id===id);if(!c)return;
+  if(activeCamp?.id===id){alert('Select another camp before deleting the currently active camp.');return}
   if(!confirm(`Delete camp ${c.camp_code} - ${c.camp_name}? This will delete all camp records.`))return;
   if(!confirm('Final confirmation: permanently delete this camp and its inventory, messing, POL, incidental and cash-book records?'))return;
-  const ops=[['cashbook_entries','camp_id'],['cashbook_day_closures','camp_id'],['incidental_vouchers','camp_id'],['pol_drawn_entries','camp_id'],['pol_vehicles','camp_id'],['stock_out_items','camp_id'],['stock_out_vouchers','camp_id'],['stock_in_items','camp_id'],['stock_in_invoices','camp_id'],['inventory_items','camp_id']];
-  for(const [table,col] of ops){const {error}=await sb.from(table).delete().eq(col,id);if(error){alert(`Cannot delete ${c.camp_code}: ${error.message}`);return}}
-  await sb.from('profiles').update({current_camp_id:null}).eq('current_camp_id',id);
-  const {error}=await sb.from('camps').delete().eq('id',id);
-  if(error){alert(error.message);return}
-  camps=camps.filter(x=>x.id!==id);if(activeCamp?.id===id)activeCamp=null;profile.current_camp_id=null;populateCampTop();await refreshAll();
-  showPage(canCampManage()?'camp':'dashboard',document.querySelector(`[data-page="${canCampManage()?'camp':'dashboard'}"]`));
+
+  try{
+    // Child/detail rows do not all carry camp_id. Delete them through their parent IDs.
+    const {data:outHeads,error:outHeadErr}=await sb
+      .from('stock_out_vouchers').select('id').eq('camp_id',id);
+    if(outHeadErr) throw outHeadErr;
+    const outIds=(outHeads||[]).map(x=>x.id).filter(Boolean);
+    if(outIds.length){
+      const {error}=await sb.from('stock_out_items').delete().in('voucher_id',outIds);
+      if(error) throw error;
+    }
+    {const {error}=await sb.from('stock_out_vouchers').delete().eq('camp_id',id); if(error) throw error;}
+
+    const {data:inHeads,error:inHeadErr}=await sb
+      .from('stock_in_invoices').select('id').eq('camp_id',id);
+    if(inHeadErr) throw inHeadErr;
+    const inIds=(inHeads||[]).map(x=>x.id).filter(Boolean);
+    if(inIds.length){
+      const {error}=await sb.from('stock_in_items').delete().in('invoice_id',inIds);
+      if(error) throw error;
+    }
+    {const {error}=await sb.from('stock_in_invoices').delete().eq('camp_id',id); if(error) throw error;}
+
+    // Camp-scoped child tables.
+    const campTables=[
+      'cashbook_entries',
+      'cashbook_day_closures',
+      'incidental_vouchers',
+      'pol_vehicle_detachments',
+      'pol_car_diary',
+      'pol_drawn_entries',
+      'pol_vehicles',
+      'inventory_items'
+    ];
+    for(const table of campTables){
+      const {error}=await sb.from(table).delete().eq('camp_id',id);
+      if(error) throw new Error(`${table}: ${error.message}`);
+    }
+
+    // Remove users' current-camp pointer before deleting the camp.
+    {const {error}=await sb.from('profiles').update({current_camp_id:null}).eq('current_camp_id',id); if(error) throw error;}
+
+    const {error:campError}=await sb.from('camps').delete().eq('id',id);
+    if(campError) throw campError;
+
+    camps=camps.filter(x=>x.id!==id);
+    populateCampTop();
+    await ensureCampContext();
+    await refreshAll();
+    renderCamps();
+    showPage(canCampManage()?'camp':'dashboard',document.querySelector(`[data-page="${canCampManage()?'camp':'dashboard'}"]`));
+    alert(`Camp ${c.camp_code} deleted successfully.`);
+  }catch(e){
+    console.error('deleteCamp failed',e);
+    alert(`Cannot delete ${c.camp_code}: ${e.message||e}`);
+  }
 }
 function renderCashSources(){const st=document.getElementById('cashSourceType');if(!st)return;const current=st.value||'MESSING';st.innerHTML=cashSourceTypes().map(x=>`<option value="${x}" ${x===current?'selected':''}>${x.replaceAll('_',' ')}</option>`).join('');loadCashSources()}
 function renderInventory(){
