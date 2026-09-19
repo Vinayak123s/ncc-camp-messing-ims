@@ -323,7 +323,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
   </div>
 
   <div class="dash-v32-grid">
-    <div class="dash-v32-card span-2">
+    <div id="dashFinanceCard" class="dash-v32-card span-2">
       <div class="dash-v32-card-head">
         <div><h3>Dashboard / Finance Position</h3><p>Cash in hand, bank and code-head balances</p></div>
         <span class="dash-v32-icon">₹</span>
@@ -338,7 +338,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="dash-v32-foot"><span id="dashFinanceNote">Current active-camp position</span><button class="dash-more" onclick="dashGo('cashbook')">VIEW MORE →</button></div>
     </div>
 
-    <div class="dash-v32-card">
+    <div id="dashMessingCard" class="dash-v32-card">
       <div class="dash-v32-card-head">
         <div><h3>Messing</h3><p>Purchase and issue monitor</p></div>
         <span class="dash-v32-icon">🍚</span>
@@ -353,7 +353,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="dash-v32-foot"><span id="dashMessingStatus">No transactions</span><button class="dash-more" onclick="dashGo('reports')">VIEW MORE →</button></div>
     </div>
 
-    <div class="dash-v32-card">
+    <div id="dashIncRVCard" class="dash-v32-card">
       <div class="dash-v32-card-head">
         <div><h3>Incidental RV (Receipt)</h3><p>Recent items received for the camp</p></div>
         <span class="dash-v32-icon">↘</span>
@@ -363,7 +363,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="dash-v32-foot"><span id="dashRVStatus">No RV entries</span><button class="dash-more" onclick="dashGo('incidentalRV')">VIEW MORE →</button></div>
     </div>
 
-    <div class="dash-v32-card">
+    <div id="dashIncIVCard" class="dash-v32-card">
       <div class="dash-v32-card-head">
         <div><h3>Incidental IV (Issue)</h3><p>Recent issue transactions and balance</p></div>
         <span class="dash-v32-icon">↗</span>
@@ -373,7 +373,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="dash-v32-foot"><span id="dashIVStatus">No IV entries</span><button class="dash-more" onclick="dashGo('incidentalIV')">VIEW MORE →</button></div>
     </div>
 
-    <div class="dash-v32-card span-2">
+    <div id="dashPOLCard" class="dash-v32-card span-2">
       <div class="dash-v32-card-head">
         <div><h3>POL Management</h3><p>Vehicle, POL drawn and car diary monitor</p></div>
         <span class="dash-v32-icon">⛽</span>
@@ -387,7 +387,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="dash-v32-foot"><span id="dashPolStatus">No POL entries</span><button class="dash-more" onclick="dashGo('pol','vehicle')">VIEW MORE →</button></div>
     </div>
 
-    <div class="dash-v32-card">
+    <div id="dashCashBookCard" class="dash-v32-card">
       <div class="dash-v32-card-head">
         <div><h3>Cash Book</h3><p>Receipts, payments and cash drawn</p></div>
         <span class="dash-v32-icon">₹</span>
@@ -397,7 +397,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="dash-v32-foot"><span id="dashCashStatus">No entries</span><button class="dash-more" onclick="dashGo('cashbook','PAYMENT')">VIEW MORE →</button></div>
     </div>
 
-    <div class="dash-v32-card">
+    <div id="dashDayCloseCard" class="dash-v32-card">
       <div class="dash-v32-card-head">
         <div><h3>Day Cash Book / Close</h3><p>Daily B/F, movement and C/F</p></div>
         <span class="dash-v32-icon">◫</span>
@@ -412,7 +412,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="dash-v32-foot"><span>Next day B/F follows previous C/F</span><button class="dash-more" onclick="dashGo('cashbook','DAY')">VIEW MORE →</button></div>
     </div>
 
-    <div class="dash-v32-card span-2">
+    <div id="dashInventoryCard" class="dash-v32-card span-2">
       <div class="dash-v32-card-head">
         <div><h3>Inventory Snapshot</h3><p>Current balance and low-stock monitor</p></div>
         <span class="dash-v32-icon">▦</span>
@@ -426,7 +426,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="dash-v32-foot"><span id="dashInvStatus">No inventory items</span><button class="dash-more" onclick="dashGo('inventory')">VIEW MORE →</button></div>
     </div>
 
-    <div class="dash-v32-card span-3">
+    <div id="dashReportsCard" class="dash-v32-card span-3">
       <div class="dash-v32-card-head">
         <div><h3>Reports</h3><p>Open the detailed report for the selected module</p></div>
         <span class="dash-v32-icon">▤</span>
@@ -3800,6 +3800,37 @@ window.addEventListener('DOMContentLoaded',()=>{
     window.showPage=wrapped;
   }
   window.addEventListener('load',()=>setTimeout(()=>{prepareIncidentalReportFilters();},300));
+})();
+</script>
+<style id="role-dashboard-v35-css">.role-dash-hidden{display:none!important}</style>
+<script id="role-dashboard-v35-js">
+(function(){
+  function setVisible(id,show){const el=document.getElementById(id);if(el)el.classList.toggle('role-dash-hidden',!show);}
+  function applyRoleDashboardV35(){
+    const role=String(window.profile?.role||'').toUpperCase();
+    const finance=['ADMIN','MANAGER','ACCOUNTS'].includes(role);
+    const ops=['ADMIN','MANAGER','Q_SEC'].includes(role);
+    const cash=['ADMIN','MANAGER','ACCOUNTS'].includes(role);
+    const incidental=['ADMIN','MANAGER','Q_SEC'].includes(role);
+    const pol=['ADMIN','MANAGER','Q_SEC'].includes(role);
+    setVisible('dashFinanceCard',finance);
+    setVisible('dashMessingCard',ops);
+    setVisible('dashIncRVCard',incidental);
+    setVisible('dashIncIVCard',incidental);
+    setVisible('dashPOLCard',pol);
+    setVisible('dashCashBookCard',cash);
+    setVisible('dashDayCloseCard',cash);
+    setVisible('dashInventoryCard',role==='ADMIN'||role==='MANAGER');
+    setVisible('dashReportsCard',role==='ADMIN'||role==='MANAGER');
+    const controls=document.getElementById('dashboardAdminControls');
+    if(controls)controls.classList.toggle('role-dash-hidden',!['ADMIN','MANAGER'].includes(role));
+  }
+  window.applyRoleDashboardV35=applyRoleDashboardV35;
+  const oldApply=window.applyRoleUI;
+  window.applyRoleUI=function(){if(typeof oldApply==='function')oldApply();applyRoleDashboardV35();};
+  const oldShow=window.showPage;
+  window.showPage=function(id,btn){const r=typeof oldShow==='function'?oldShow(id,btn):undefined;if(id==='dashboard')setTimeout(applyRoleDashboardV35,0);return r;};
+  window.addEventListener('load',()=>setTimeout(applyRoleDashboardV35,100));
 })();
 </script>
 </body>
