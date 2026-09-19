@@ -609,7 +609,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
         <div class="field"><label>KPL</label><input id="detKpl" class="auto-field" readonly></div>
         <div class="field"><label>POL Consumed (Ltr)</label><input id="detPolConsumed" class="calculated" readonly></div>
         <div class="field"><label>POL Drawn Total (Ltr)</label><input id="detPolDrawn" class="calculated" readonly></div>
-        <div class="field"><label>Last Tank Balance (Ltr)</label><input id="detTankBalance" class="calculated" readonly></div>
+        <div class="field"><label>Tank Balance (Ltr)</label><input id="detTankBalance" class="calculated" readonly></div>
       </div>
       <div class="actions"><button class="btn green" onclick="saveVehicleDetachment()">SAVE DETACHMENT</button><button class="btn ghost" onclick="clearVehicleDetachment()">CLEAR</button></div><div id="detMsg" class="msg"></div>
     </div>
@@ -821,7 +821,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 
 <script>
 const SUPABASE_URL = "https://khavwclwwqxtphsxxrvi.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvoVCKD9Q_Ej1-MpZM";
+const SUPABASE_ANON_KEY = "sb_publishable_FRjaN9dt4hsQFqvQvCKD9Q_Ej1-MpZM";
 const sb = supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
 let currentUser=null, profile=null, items=[], inInvoices=[], outVouchers=[], profiles=[];
@@ -2975,6 +2975,71 @@ window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview(
   const oldSetPOL=window.setPOLTab;window.setPOLTab=function(tab){const r=oldSetPOL?oldSetPOL(tab):undefined;setTimeout(()=>{if(tab==='detach'){try{populatePOLSelectors10();loadVehicleDetachmentV11()}catch(_){} }},80);return r};
   function bind(){const c=document.getElementById('cashPaymentCodeHead');if(c)c.onchange=paymentHeadChangedV11;const s=document.getElementById('cashSource');if(s)s.onchange=fillPaymentSourceV11;const b=document.querySelector('#cashPaymentFormWrap #cashSaveBtn, #cashPaymentFormWrap button[onclick="saveCashbook()"]');if(b)b.onclick=savePaymentV11;const ds=document.getElementById('detVehSelect');if(ds)ds.onchange=loadVehicleDetachmentV11;const dt=document.getElementById('detAttachedTo');if(dt)dt.onchange=loadVehicleDetachmentV11;if(c&&c.value)paymentHeadChangedV11();}
   window.addEventListener('load',()=>setTimeout(bind,200));window.addEventListener('pageshow',()=>setTimeout(bind,200));setTimeout(bind,300);
+})();
+</script>
+
+<script id="ims-v13-pol-detachment-fix">
+(function(){
+  const n=v=>Number(v||0)||0;
+  const normNo=v=>String(v||'').trim().toUpperCase().replace(/\s+/g,'');
+  const setv=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v==null?'':v};
+  const msg=(id,t,ok=false)=>{try{setMsg(id,t,ok)}catch(_){const e=document.getElementById(id);if(e){e.textContent=t;e.style.display='block'}}};
+  async function getVehicleHistoryV13(v,toDate){
+    if(!activeCamp||!sb||!v)return {draws:[],diaries:[]};
+    const from=String(v.attached_from||''),to=String(toDate||today()),vehicleNo=normNo(v.vehicle_no);
+    const [dr,di]=await Promise.all([
+      sb.from('pol_drawn_entries').select('*').eq('camp_id',activeCamp.id),
+      sb.from('pol_car_diary').select('*').eq('camp_id',activeCamp.id)
+    ]);
+    if(dr.error)console.warn('V13 POL history',dr.error);
+    if(di.error)console.warn('V13 diary history',di.error);
+    const same=x=>String(x.vehicle_id||'')===String(v.id)||normNo(x.vehicle_no)===vehicleNo;
+    const within=x=>{if(!same(x))return false;const d=String(x.entry_date||x.draw_date||'');return !d||((!from||d>=from)&&(!to||d<=to));};
+    const draws=(dr.data||[]).filter(within).sort((a,b)=>String(a.entry_date||'').localeCompare(String(b.entry_date||''))||String(a.created_at||'').localeCompare(String(b.created_at||'')));
+    const diaries=(di.data||[]).filter(within).sort((a,b)=>String(a.entry_date||'').localeCompare(String(b.entry_date||''))||String(a.created_at||'').localeCompare(String(b.created_at||'')));
+    return {draws,diaries};
+  }
+  function attachmentBaselineTankV13(v,draws,diaries){
+    const raw=v?.initial_tank_balance;
+    if(raw!==null&&raw!==undefined&&raw!=='')return n(raw);
+    const stored=n(v?.pol_balance);
+    if(!draws.length)return stored+diaries.reduce((s,x)=>s+n(x.pol_consumed),0);
+    const first=draws[0];
+    const firstPrev=(first.previous_fuel!==undefined&&first.previous_fuel!==null&&first.previous_fuel!=='')?n(first.previous_fuel):null;
+    if(firstPrev!==null){
+      const firstDate=String(first.entry_date||first.draw_date||'');
+      const consumedBefore=diaries.filter(x=>String(x.entry_date||'')<firstDate).reduce((s,x)=>s+n(x.pol_consumed),0);
+      return Math.max(0,firstPrev+consumedBefore);
+    }
+    const drawn=draws.reduce((s,x)=>s+n(x.litres),0),consumed=diaries.reduce((s,x)=>s+n(x.pol_consumed),0);
+    return Math.max(0,stored+drawn-consumed);
+  }
+  async function detStateV13(v,toDate){
+    const {draws,diaries}=await getVehicleHistoryV13(v,toDate);
+    const drawn=draws.reduce((s,x)=>s+n(x.litres),0),consumed=diaries.reduce((s,x)=>s+n(x.pol_consumed),0),kmRun=diaries.reduce((s,x)=>s+n(x.km_run),0);
+    const opening=n(v.initial_km_reading??v.km_reading),kpl=n(v.kpl),closing=diaries.length?n(diaries[diaries.length-1].closing_km):opening+kmRun;
+    const baseTank=attachmentBaselineTankV13(v,draws,diaries),tank=Math.max(0,baseTank+drawn-consumed);
+    return {opening,closing,kpl,kmRun,consumed,drawn,baseTank,tank};
+  }
+  async function loadVehicleDetachmentV13(){
+    const id=document.getElementById('detVehSelect')?.value||'',v=(window.polVehicles||[]).find(x=>String(x.id)===String(id));
+    if(!v){['detVehType','detUnit','detAttachedFrom','detOpeningKm','detKmRun','detClosingKm','detKpl','detPolConsumed','detPolDrawn','detTankBalance'].forEach(k=>setv(k,''));return;}
+    try{
+      const s=await detStateV13(v,document.getElementById('detAttachedTo')?.value||today());
+      setv('detVehType',v.vehicle_type||'');setv('detUnit',v.unit||'');setv('detAttachedFrom',v.attached_from||'');setv('detOpeningKm',s.opening.toFixed(1));setv('detKmRun',s.kmRun.toFixed(1));setv('detClosingKm',s.closing.toFixed(1));setv('detKpl',s.kpl.toFixed(2));setv('detPolConsumed',s.consumed.toFixed(2));setv('detPolDrawn',s.drawn.toFixed(2));setv('detTankBalance',s.tank.toFixed(2));
+    }catch(e){console.error(e);msg('detMsg','Unable to fetch POL/Car Diary history.');}
+  }
+  async function saveVehicleDetachmentV13(){
+    if(!canQsecEntry())return msg('detMsg','No entry permission for this role.');if(!activeCamp)return msg('detMsg','Select an active camp first.');
+    const id=document.getElementById('detVehSelect')?.value||'',to=document.getElementById('detAttachedTo')?.value||'',v=(window.polVehicles||[]).find(x=>String(x.id)===String(id));
+    if(!v||!to)return msg('detMsg','Select vehicle and Attached To date.');
+    const s=await detStateV13(v,to),payload={camp_id:activeCamp.id,vehicle_id:v.id,vehicle_type:v.vehicle_type||'',vehicle_no:v.vehicle_no||'',unit:v.unit||'',attached_from:v.attached_from||null,attached_to:to,opening_km:s.opening,km_run_camp:s.kmRun,closing_km:s.closing,kpl:s.kpl,pol_consumed:s.consumed,pol_drawn_total:s.drawn,tank_balance:s.tank,created_by:currentUser.id};
+    const r=await sb.from('pol_vehicle_detachments').insert(payload);if(r.error)return msg('detMsg',r.error.message);msg('detMsg','Vehicle detachment saved successfully.',true);if(typeof loadPOLDetachments==='function')await loadPOLDetachments();
+  }
+  window.loadVehicleDetachment=loadVehicleDetachmentV13;window.saveVehicleDetachment=saveVehicleDetachmentV13;
+  const oldSetPOL=window.setPOLTab;window.setPOLTab=function(tab){const r=oldSetPOL?oldSetPOL(tab):undefined;setTimeout(()=>{if(tab==='detach')loadVehicleDetachmentV13()},150);return r};
+  document.addEventListener('change',e=>{if(e.target?.id==='detVehSelect'||e.target?.id==='detAttachedTo')loadVehicleDetachmentV13()});
+  window.addEventListener('load',()=>setTimeout(loadVehicleDetachmentV13,500));setTimeout(loadVehicleDetachmentV13,800);
 })();
 </script>
 
