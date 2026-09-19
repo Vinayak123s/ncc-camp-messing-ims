@@ -958,65 +958,15 @@ async function renderCamps(){
 async function deleteCamp(id){
   if(!roleIs('ADMIN')){alert('Only ADMIN can delete a camp.');return}
   const c=camps.find(x=>x.id===id);if(!c)return;
-  if(activeCamp?.id===id){alert('Select another camp before deleting the currently active camp.');return}
   if(!confirm(`Delete camp ${c.camp_code} - ${c.camp_name}? This will delete all camp records.`))return;
   if(!confirm('Final confirmation: permanently delete this camp and its inventory, messing, POL, incidental and cash-book records?'))return;
-
-  try{
-    // Child/detail rows do not all carry camp_id. Delete them through their parent IDs.
-    const {data:outHeads,error:outHeadErr}=await sb
-      .from('stock_out_vouchers').select('id').eq('camp_id',id);
-    if(outHeadErr) throw outHeadErr;
-    const outIds=(outHeads||[]).map(x=>x.id).filter(Boolean);
-    if(outIds.length){
-      const {error}=await sb.from('stock_out_items').delete().in('voucher_id',outIds);
-      if(error) throw error;
-    }
-    {const {error}=await sb.from('stock_out_vouchers').delete().eq('camp_id',id); if(error) throw error;}
-
-    const {data:inHeads,error:inHeadErr}=await sb
-      .from('stock_in_invoices').select('id').eq('camp_id',id);
-    if(inHeadErr) throw inHeadErr;
-    const inIds=(inHeads||[]).map(x=>x.id).filter(Boolean);
-    if(inIds.length){
-      const {error}=await sb.from('stock_in_items').delete().in('invoice_id',inIds);
-      if(error) throw error;
-    }
-    {const {error}=await sb.from('stock_in_invoices').delete().eq('camp_id',id); if(error) throw error;}
-
-    // Camp-scoped child tables.
-    const campTables=[
-      'cashbook_entries',
-      'cashbook_day_closures',
-      'incidental_vouchers',
-      'pol_vehicle_detachments',
-      'pol_car_diary',
-      'pol_drawn_entries',
-      'pol_vehicles',
-      'inventory_items'
-    ];
-    for(const table of campTables){
-      const {error}=await sb.from(table).delete().eq('camp_id',id);
-      if(error) throw new Error(`${table}: ${error.message}`);
-    }
-
-    // Remove users' current-camp pointer before deleting the camp.
-    {const {error}=await sb.from('profiles').update({current_camp_id:null}).eq('current_camp_id',id); if(error) throw error;}
-
-    const {error:campError}=await sb.from('camps').delete().eq('id',id);
-    if(campError) throw campError;
-
-    camps=camps.filter(x=>x.id!==id);
-    populateCampTop();
-    await ensureCampContext();
-    await refreshAll();
-    renderCamps();
-    showPage(canCampManage()?'camp':'dashboard',document.querySelector(`[data-page="${canCampManage()?'camp':'dashboard'}"]`));
-    alert(`Camp ${c.camp_code} deleted successfully.`);
-  }catch(e){
-    console.error('deleteCamp failed',e);
-    alert(`Cannot delete ${c.camp_code}: ${e.message||e}`);
-  }
+  const ops=[['cashbook_entries','camp_id'],['cashbook_day_closures','camp_id'],['incidental_vouchers','camp_id'],['pol_drawn_entries','camp_id'],['pol_vehicles','camp_id'],['stock_out_items','camp_id'],['stock_out_vouchers','camp_id'],['stock_in_items','camp_id'],['stock_in_invoices','camp_id'],['inventory_items','camp_id']];
+  for(const [table,col] of ops){const {error}=await sb.from(table).delete().eq(col,id);if(error){alert(`Cannot delete ${c.camp_code}: ${error.message}`);return}}
+  await sb.from('profiles').update({current_camp_id:null}).eq('current_camp_id',id);
+  const {error}=await sb.from('camps').delete().eq('id',id);
+  if(error){alert(error.message);return}
+  camps=camps.filter(x=>x.id!==id);if(activeCamp?.id===id)activeCamp=null;profile.current_camp_id=null;populateCampTop();await refreshAll();
+  showPage(canCampManage()?'camp':'dashboard',document.querySelector(`[data-page="${canCampManage()?'camp':'dashboard'}"]`));
 }
 function renderCashSources(){const st=document.getElementById('cashSourceType');if(!st)return;const current=st.value||'MESSING';st.innerHTML=cashSourceTypes().map(x=>`<option value="${x}" ${x===current?'selected':''}>${x.replaceAll('_',' ')}</option>`).join('');loadCashSources()}
 function renderInventory(){
@@ -3351,5 +3301,174 @@ window.addEventListener('DOMContentLoaded',()=>{
 })();
 </script>
 
+<script id="incidental-report-fix-v29">
+(function(){
+  const num = v => Number(v)||0;
+  const arr = v => Array.isArray(v) ? v : [];
+  const clean = v => String(v??'').trim();
+  const escR = v => typeof esc==='function' ? esc(v) : clean(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const moneyR = v => typeof money==='function' ? money(v) : '₹'+num(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+  function getItemName(i){ return clean(i?.name || i?.desc || i?.item || i?.nomenclature); }
+  function getItemUnit(i){ return clean(i?.unit || i?.a_u || i?.au || i?.aU); }
+  function getItemType(i){ return clean(i?.type || i?.exp_nexp || i?.exp || ''); }
+  function getItemQty(i){ return num(i?.qty ?? i?.quantity ?? i?.issueQty); }
+  function getItemRate(i){ return num(i?.rate); }
+  function getItemAmount(i){ const a=num(i?.amount); return a || getItemQty(i)*getItemRate(i); }
+  function getItemPage(i){ return clean(i?.page || i?.page_no || i?.pageNo); }
+
+  function filteredIncidentalRows(){
+    const from=clean(document.getElementById('incRepFrom')?.value);
+    const to=clean(document.getElementById('incRepTo')?.value);
+    const item=clean(document.getElementById('incRepItem')?.value);
+    const vendor=clean(document.getElementById('incRepVendor')?.value);
+    const rv=arr(incidentals).filter(x=>x.voucher_type==='RV');
+    const iv=arr(incidentals).filter(x=>x.voucher_type==='IV');
+    const rvRows=[], ivRows=[];
+    rv.forEach(r=>{
+      if(from && clean(r.voucher_date)<from) return;
+      if(to && clean(r.voucher_date)>to) return;
+      if(vendor && clean(r.party)!==vendor) return;
+      arr(r.items).forEach((it,idx)=>{
+        const name=getItemName(it); if(item && name!==item) return;
+        rvRows.push({rv:r,item:it,index:idx,name,unit:getItemUnit(it),type:getItemType(it),qty:getItemQty(it),rate:getItemRate(it),amount:getItemAmount(it),page:getItemPage(it)});
+      });
+    });
+    iv.forEach(r=>{
+      if(from && clean(r.voucher_date)<from) return;
+      if(to && clean(r.voucher_date)>to) return;
+      arr(r.items).forEach((it,idx)=>{
+        const name=getItemName(it); if(item && name!==item) return;
+        ivRows.push({iv:r,item:it,index:idx,name,unit:getItemUnit(it),type:getItemType(it),qty:getItemQty(it),rate:getItemRate(it),amount:getItemAmount(it),page:getItemPage(it),sourceRvNo:clean(it.source_rv_no || it.rvNo || it.source_rv || '')});
+      });
+    });
+    return {rvRows,ivRows};
+  }
+
+  function prepareIncidentalReportFilters(){
+    const itemEl=document.getElementById('incRepItem');
+    const vendEl=document.getElementById('incRepVendor');
+    if(!itemEl || !vendEl) return;
+    const itemsSet=new Set(), vendorsSet=new Set();
+    arr(incidentals).filter(x=>x.voucher_type==='RV').forEach(r=>{
+      if(clean(r.party)) vendorsSet.add(clean(r.party));
+      arr(r.items).forEach(it=>{if(getItemName(it)) itemsSet.add(getItemName(it));});
+    });
+    const curItem=itemEl.value, curVend=vendEl.value;
+    itemEl.innerHTML='<option value="">All Items</option>'+[...itemsSet].sort((a,b)=>a.localeCompare(b)).map(x=>`<option value="${escR(x)}">${escR(x)}</option>`).join('');
+    vendEl.innerHTML='<option value="">All Vendors</option>'+[...vendorsSet].sort((a,b)=>a.localeCompare(b)).map(x=>`<option value="${escR(x)}">${escR(x)}</option>`).join('');
+    itemEl.value=curItem; vendEl.value=curVend;
+  }
+
+  function renderIncidentalReport(){
+    prepareIncidentalReportFilters();
+    const {rvRows,ivRows}=filteredIncidentalRows();
+    const byItem=new Map();
+    rvRows.forEach(r=>{
+      const key=r.name.toUpperCase();
+      if(!byItem.has(key)) byItem.set(key,{name:r.name,unit:r.unit,type:r.type,purchaseQty:0,purchaseValue:0,issueQty:0,issueValue:0,rvNos:new Set()});
+      const o=byItem.get(key); o.purchaseQty+=r.qty; o.purchaseValue+=r.amount; o.rvNos.add(clean(r.rv.voucher_no));
+    });
+    ivRows.forEach(r=>{
+      const key=r.name.toUpperCase();
+      if(!byItem.has(key)) byItem.set(key,{name:r.name,unit:r.unit,type:r.type,purchaseQty:0,purchaseValue:0,issueQty:0,issueValue:0,rvNos:new Set()});
+      const o=byItem.get(key); o.issueQty+=r.qty; o.issueValue+=r.amount;
+    });
+
+    let totalPurchaseQty=0,totalPurchaseValue=0,totalIssueQty=0,totalIssueValue=0,totalBalanceQty=0,totalBalanceValue=0;
+    const rows=[...byItem.values()].sort((a,b)=>a.name.localeCompare(b.name));
+    rows.forEach(o=>{
+      const balQty=o.purchaseQty-o.issueQty;
+      const avg=o.purchaseQty ? o.purchaseValue/o.purchaseQty : 0;
+      const balValue=Math.max(0,balQty*avg);
+      o.balanceQty=balQty; o.balanceValue=balValue; o.avgRate=avg;
+      totalPurchaseQty+=o.purchaseQty; totalPurchaseValue+=o.purchaseValue; totalIssueQty+=o.issueQty; totalIssueValue+=o.issueValue; totalBalanceQty+=balQty; totalBalanceValue+=balValue;
+    });
+
+    const sum=document.getElementById('incRepSummary');
+    if(sum) sum.innerHTML=[
+      ['Purchased Qty',totalPurchaseQty],['Purchase Value',moneyR(totalPurchaseValue)],['Issued Qty',totalIssueQty],['Expenditure',moneyR(totalIssueValue)],['Balance Qty',totalBalanceQty],['Balance Value',moneyR(totalBalanceValue)]
+    ].map(x=>`<div class="inc-kpi"><span>${x[0]}</span><b>${typeof x[1]==='number'?x[1].toFixed(2):x[1]}</b></div>`).join('');
+
+    const pb=document.getElementById('incPurchaseBalanceTable');
+    if(pb){
+      pb.innerHTML=rows.length ? `<table><thead><tr><th>SL</th><th>Item</th><th>A/u</th><th>Exp / N-Exp</th><th>RV No(s)</th><th>Purchased Qty</th><th>Purchase Value</th><th>Issued Qty</th><th>Expenditure</th><th>Balance Qty</th><th>Balance Value</th></tr></thead><tbody>${rows.map((o,i)=>`<tr><td>${i+1}</td><td><b>${escR(o.name)}</b></td><td>${escR(o.unit)}</td><td>${escR(o.type)}</td><td>${escR([...o.rvNos].join(', '))}</td><td>${o.purchaseQty.toFixed(2)}</td><td>${moneyR(o.purchaseValue)}</td><td>${o.issueQty.toFixed(2)}</td><td>${moneyR(o.issueValue)}</td><td>${o.balanceQty.toFixed(2)}</td><td>${moneyR(o.balanceValue)}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">No incidental purchase or balance records found for the selected filters.</div>';
+    }
+
+    const eb=document.getElementById('incExpenditureTable');
+    if(eb){
+      eb.innerHTML=ivRows.length ? `<table><thead><tr><th>SL</th><th>IV No.</th><th>Date</th><th>Receiving Unit</th><th>Item</th><th>A/u</th><th>Qty</th><th>Rate</th><th>Expenditure</th><th>Source RV</th><th>Page No.</th><th>Remarks</th></tr></thead><tbody>${ivRows.map((r,i)=>`<tr><td>${i+1}</td><td><b>${escR(r.iv.voucher_no)}</b></td><td>${escR(r.iv.voucher_date)}</td><td>${escR(r.iv.unit||r.iv.party)}</td><td>${escR(r.name)}</td><td>${escR(r.unit)}</td><td>${r.qty.toFixed(2)}</td><td>${moneyR(r.rate)}</td><td>${moneyR(r.amount)}</td><td>${escR(r.sourceRvNo)}</td><td>${escR(r.page)}</td><td>${escR(r.item?.remarks||r.item?.remark||'')}</td></tr>`).join('')}</tbody></table>` : '<div class="empty">No incidental expenditure / issue records found for the selected filters.</div>';
+    }
+    return {rows,rvRows,ivRows};
+  }
+
+  function reportRowsFlat(){
+    const {rvRows,ivRows}=filteredIncidentalRows();
+    const byItem=new Map();
+    rvRows.forEach(r=>{
+      const key=r.name.toUpperCase();
+      if(!byItem.has(key)) byItem.set(key,{name:r.name,unit:r.unit,type:r.type,purchaseQty:0,purchaseValue:0,issueQty:0,issueValue:0,balanceQty:0,balanceValue:0});
+      const o=byItem.get(key);o.purchaseQty+=r.qty;o.purchaseValue+=r.amount;
+    });
+    ivRows.forEach(r=>{
+      const key=r.name.toUpperCase();
+      if(!byItem.has(key)) byItem.set(key,{name:r.name,unit:r.unit,type:r.type,purchaseQty:0,purchaseValue:0,issueQty:0,issueValue:0,balanceQty:0,balanceValue:0});
+      const o=byItem.get(key);o.issueQty+=r.qty;o.issueValue+=r.amount;
+    });
+    return [...byItem.values()].map(o=>{const avg=o.purchaseQty?o.purchaseValue/o.purchaseQty:0;o.balanceQty=o.purchaseQty-o.issueQty;o.balanceValue=Math.max(0,o.balanceQty*avg);return o}).sort((a,b)=>a.name.localeCompare(b.name));
+  }
+
+  function exportIncidentalReportCSV(){
+    const {rvRows,ivRows}=filteredIncidentalRows();
+    const items=reportRowsFlat();
+    const rows=[
+      ['INCIDENTAL ITEM-WISE PURCHASE & BALANCE REPORT'],
+      ['Item','A/u','Exp / N-Exp','Purchased Qty','Purchase Value','Issued Qty','Expenditure','Balance Qty','Balance Value'],
+      ...items.map(o=>[o.name,o.unit,o.type,o.purchaseQty.toFixed(2),o.purchaseValue.toFixed(2),o.issueQty.toFixed(2),o.issueValue.toFixed(2),o.balanceQty.toFixed(2),o.balanceValue.toFixed(2)]),
+      [],
+      ['INCIDENTAL EXPENDITURE / ISSUE DETAILS'],
+      ['IV No.','Date','Receiving Unit','Item','A/u','Qty','Rate','Expenditure','Source RV','Page No.','Remarks'],
+      ...ivRows.map(r=>[r.iv.voucher_no,r.iv.voucher_date,r.iv.unit||r.iv.party,r.name,r.unit,r.qty.toFixed(2),r.rate.toFixed(2),r.amount.toFixed(2),r.sourceRvNo,r.page,r.item?.remarks||r.item?.remark||''])
+    ];
+    if(typeof downloadCSV==='function') downloadCSV(rows,'Incidental_Purchase_Balance_Expenditure_Report.csv');
+    else{
+      const csv=rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Incidental_Purchase_Balance_Expenditure_Report.csv';a.click();URL.revokeObjectURL(a.href);
+    }
+  }
+
+  function printIncidentalReport(){
+    const {rvRows,ivRows}=filteredIncidentalRows();
+    const items=reportRowsFlat();
+    const w=window.open('','_blank'); if(!w){alert('Please allow pop-ups for the report.');return;}
+    const campName=activeCamp?.camp_name||''; const campCode=activeCamp?.camp_code||''; const station=activeCamp?.station||'';
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Incidental Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:18px}h1,h2{text-align:center;margin:4px 0}p{margin:4px 0;text-align:center;font-size:12px}.section{margin-top:18px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}.num{text-align:right}@media print{body{padding:8mm}}</style></head><body><h1>INCIDENTAL PURCHASE, BALANCE &amp; EXPENDITURE REPORT</h1><p>${escR(campCode)} | ${escR(campName)} | ${escR(station)}</p><p>From: ${escR(document.getElementById('incRepFrom')?.value||'All')} &nbsp; To: ${escR(document.getElementById('incRepTo')?.value||'All')}</p><div class="section"><h2>Item-wise Purchase &amp; Balance</h2><table><tr><th>SL</th><th>Item</th><th>A/u</th><th>Exp / N-Exp</th><th>Purchased Qty</th><th>Purchase Value</th><th>Issued Qty</th><th>Expenditure</th><th>Balance Qty</th><th>Balance Value</th></tr>${items.map((o,i)=>`<tr><td>${i+1}</td><td>${escR(o.name)}</td><td>${escR(o.unit)}</td><td>${escR(o.type)}</td><td>${o.purchaseQty.toFixed(2)}</td><td class="num">${moneyR(o.purchaseValue)}</td><td>${o.issueQty.toFixed(2)}</td><td class="num">${moneyR(o.issueValue)}</td><td>${o.balanceQty.toFixed(2)}</td><td class="num">${moneyR(o.balanceValue)}</td></tr>`).join('')}</table></div><div class="section"><h2>Expenditure / Issue Details</h2><table><tr><th>SL</th><th>IV No.</th><th>Date</th><th>Receiving Unit</th><th>Item</th><th>A/u</th><th>Qty</th><th>Rate</th><th>Expenditure</th><th>Source RV</th><th>Page No.</th></tr>${ivRows.map((r,i)=>`<tr><td>${i+1}</td><td>${escR(r.iv.voucher_no)}</td><td>${escR(r.iv.voucher_date)}</td><td>${escR(r.iv.unit||r.iv.party)}</td><td>${escR(r.name)}</td><td>${escR(r.unit)}</td><td>${r.qty.toFixed(2)}</td><td class="num">${moneyR(r.rate)}</td><td class="num">${moneyR(r.amount)}</td><td>${escR(r.sourceRvNo)}</td><td>${escR(r.page)}</td></tr>`).join('')}</table></div></body></html>`);
+    w.document.close();w.focus();setTimeout(()=>w.print(),250);
+  }
+
+  function clearIncidentalReportFilter(){
+    ['incRepFrom','incRepTo'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    const i=document.getElementById('incRepItem');if(i)i.value=''; const v=document.getElementById('incRepVendor');if(v)v.value='';
+    renderIncidentalReport();
+  }
+
+  window.renderIncidentalReport=renderIncidentalReport;
+  window.exportIncidentalReportCSV=exportIncidentalReportCSV;
+  window.printIncidentalReport=printIncidentalReport;
+  window.clearIncidentalReportFilter=clearIncidentalReportFilter;
+  window.prepareIncidentalReportFilters=prepareIncidentalReportFilters;
+
+  const oldShowPage=window.showPage;
+  if(typeof oldShowPage==='function' && !oldShowPage.__incReportFixV29){
+    const wrapped=function(id,btn){
+      oldShowPage(id,btn);
+      if(id==='incidentalReports') setTimeout(()=>{prepareIncidentalReportFilters();renderIncidentalReport()},60);
+    };
+    wrapped.__incReportFixV29=true;
+    window.showPage=wrapped;
+  }
+  window.addEventListener('load',()=>setTimeout(()=>{prepareIncidentalReportFilters();},300));
+})();
+</script>
 </body>
 </html>
