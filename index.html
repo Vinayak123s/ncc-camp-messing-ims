@@ -500,7 +500,7 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
         <div class="field"><label>KPL</label><input id="detKpl" class="auto-field" readonly></div>
         <div class="field"><label>POL Consumed (Ltr)</label><input id="detPolConsumed" class="calculated" readonly></div>
         <div class="field"><label>POL Drawn Total (Ltr)</label><input id="detPolDrawn" class="calculated" readonly></div>
-        <div class="field"><label>Last Tank Balance (Ltr)</label><input id="detTankBalance" class="calculated" readonly></div>
+        <div class="field"><label>Tank Balance (Ltr)</label><input id="detTankBalance" class="calculated" readonly></div>
       </div>
       <div class="actions"><button class="btn green" onclick="saveVehicleDetachment()">SAVE DETACHMENT</button><button class="btn ghost" onclick="clearVehicleDetachment()">CLEAR</button></div><div id="detMsg" class="msg"></div>
     </div>
@@ -1973,10 +1973,111 @@ function loadVehicleDetachment(){
   document.getElementById('detVehType').value=v.vehicle_type||'';document.getElementById('detUnit').value=v.unit||'';document.getElementById('detAttachedFrom').value=v.attached_from||'';document.getElementById('detOpeningKm').value=st.openingKm.toFixed(1);document.getElementById('detKmRun').value=st.kmRun.toFixed(1);document.getElementById('detClosingKm').value=st.currentKm.toFixed(1);document.getElementById('detKpl').value=Number(v.kpl||0).toFixed(2);document.getElementById('detPolConsumed').value=st.consumed.toFixed(2);document.getElementById('detPolDrawn').value=st.drawn.toFixed(2);document.getElementById('detTankBalance').value=st.tank.toFixed(2);
 }
 async function saveVehicleDetachment(){
-  if(!canQsecEntry())return setMsg('detMsg','No entry permission for this role.'); if(!activeCamp)return setMsg('detMsg','Select an active camp first.');
-  const id=document.getElementById('detVehSelect')?.value||'',v=polVehicles.find(x=>String(x.id)===String(id)),to=document.getElementById('detAttachedTo')?.value||'';if(!v||!to)return setMsg('detMsg','Select vehicle and Attached To date.');
-  const {openingKm,currentKm,kmRun,kpl,consumed,drawn,tank}=polCurrentState(v.id);
-  const {error}=await sb.rpc('save_pol_vehicle_detachment_v1',{p_vehicle_id:v.id,p_attached_to:to});if(error)return setMsg('detMsg',error.message);setMsg('detMsg','Vehicle detachment saved successfully.',true);clearVehicleDetachment();await loadPOLDetachments();
+
+  const msgEl = document.getElementById('detMsg');
+
+  function showMsg(text, ok){
+    if(msgEl){
+      msgEl.textContent = text;
+      msgEl.className = 'msg ' + (ok ? 'ok' : 'err');
+      msgEl.style.display = 'block';
+    }else{
+      alert(text);
+    }
+  }
+
+  // ADMIN, MANAGER and Q_SEC can enter Vehicle Detachment
+  if(!profile || !['ADMIN','MANAGER','Q_SEC'].includes(String(profile.role || '').toUpperCase())){
+    showMsg('Only ADMIN, MANAGER or Q SEC can save Vehicle Detachment.', false);
+    return;
+  }
+
+  if(!activeCamp){
+    showMsg('Select an active camp first.', false);
+    return;
+  }
+
+  if(!sb){
+    showMsg('Supabase connection is not available.', false);
+    return;
+  }
+
+  const id =
+    document.getElementById('detVehSelect')?.value || '';
+
+  const to =
+    document.getElementById('detAttachedTo')?.value || '';
+
+  const v =
+    (Array.isArray(window.polVehicles) ? window.polVehicles : polVehicles)
+      .find(x => String(x.id) === String(id));
+
+  if(!v){
+    showMsg('Select a vehicle.', false);
+    return;
+  }
+
+  if(!to){
+    showMsg('Enter Attached To date.', false);
+    return;
+  }
+
+  // Use the values already calculated on the screen
+  const num = function(id){
+    const e = document.getElementById(id);
+    if(!e) return 0;
+    return Number(String(e.value || '').replace(/₹|,/g/g,'')) || 0;
+  };
+
+  const openingKm   = num('detOpeningKm');
+  const kmRun       = num('detKmRun');
+  const closingKm   = num('detClosingKm');
+  const kpl          = num('detKpl');
+  const consumed     = num('detPolConsumed');
+  const drawn        = num('detPolDrawn');
+  const tank         = num('detTankBalance');
+
+  const payload = {
+    camp_id: activeCamp.id,
+    vehicle_id: v.id,
+    vehicle_type: v.vehicle_type || '',
+    vehicle_no: v.vehicle_no || '',
+    unit: v.unit || '',
+    attached_from: v.attached_from || null,
+    attached_to: to,
+    opening_km: openingKm,
+    km_run_camp: kmRun,
+    closing_km: closingKm,
+    kpl: kpl,
+    pol_consumed: consumed,
+    pol_drawn_total: drawn,
+    tank_balance: tank,
+    created_by: currentUser ? currentUser.id : null
+  };
+
+  console.log('Vehicle Detachment payload:', payload);
+
+  const { data, error } = await sb
+    .from('pol_vehicle_detachments')
+    .insert(payload)
+    .select('*')
+    .single();
+
+  if(error){
+    console.error('Vehicle Detachment save error:', error);
+    showMsg('Save failed: ' + error.message, false);
+    return;
+  }
+
+  console.log('Vehicle Detachment saved:', data);
+
+  showMsg('Vehicle detachment saved successfully.', true);
+
+  if(typeof loadPOLDetachments === 'function'){
+    await loadPOLDetachments();
+  }
+
+  // Do not clear immediately; let you verify the saved values.
 }
 function clearVehicleDetachment(){['detVehSelect','detVehType','detUnit','detAttachedFrom','detAttachedTo','detOpeningKm','detKmRun','detClosingKm','detKpl','detPolConsumed','detPolDrawn','detTankBalance'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});setMsg('detMsg','')}
 function renderDetachmentRegister(){const box=document.getElementById('detachmentTable');if(!box)return;const q=(document.getElementById('detSearch')?.value||'').toLowerCase();const rows=(window.polDetachmentEntries||[]).filter(x=>(!q||[x.vehicle_no,x.unit,x.vehicle_type].join(' ').toLowerCase().includes(q)));let h='<table><tr><th>SL</th><th>Vehicle</th><th>Type</th><th>Unit</th><th>Attached From</th><th>Attached To</th><th>Opening KM</th><th>KM Run</th><th>Closing KM</th><th>KPL</th><th>POL Consumed</th><th>POL Drawn</th><th>Tank Balance</th><th>Action</th></tr>';rows.forEach((x,i)=>h+=`<tr><td>${i+1}</td><td>${esc(x.vehicle_no)}</td><td>${esc(x.vehicle_type)}</td><td>${esc(x.unit)}</td><td>${esc(x.attached_from||'')}</td><td>${esc(x.attached_to||'')}</td><td>${(+x.opening_km||0).toFixed(1)}</td><td>${(+x.km_run_camp||0).toFixed(1)}</td><td>${(+x.closing_km||0).toFixed(1)}</td><td>${(+x.kpl||0).toFixed(2)}</td><td>${(+x.pol_consumed||0).toFixed(2)}</td><td>${(+x.pol_drawn_total||0).toFixed(2)}</td><td>${(+x.tank_balance||0).toFixed(2)}</td><td>${canDelete()?`<button class="btn red" onclick="deleteVehicleDetachment('${x.id}')">Delete</button>`:'View'}</td></tr>`);h+='</table>';box.innerHTML=rows.length?h:'<div class="empty">No vehicle detachment records.</div>'}
