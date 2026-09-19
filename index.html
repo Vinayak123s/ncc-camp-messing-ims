@@ -149,6 +149,13 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 @media(max-width:1050px){.card-grid-3{grid-template-columns:1fr 1fr}.diary-grid,.report-filter{grid-template-columns:1fr 1fr}}
 @media(max-width:650px){.card-grid-3,.diary-grid,.report-filter{grid-template-columns:1fr}}
 
+
+/* ===== MESSING REPORTS V33 ===== */
+#inventoryReports .toolbar .field{min-width:170px}
+#inventoryReports .toolbar .field input,#inventoryReports .toolbar .field select{width:100%;padding:10px;border-radius:7px;border:1px solid #304154;background:#0f1722;color:#eaf0f7}
+#reportsContent h3{margin-bottom:12px}
+#reportsContent .tablewrap{overflow:auto}
+@media print{#inventoryReports .no-print,#inventoryReports .actions{display:none!important}#reportsContent{border:0!important;box-shadow:none!important;background:#fff!important;color:#111!important}#reportsContent table{color:#111!important}#reportsContent th,#reportsContent td{color:#111!important}}
 </style>
 <style id="cashbook-final-css">
 .source-details{margin-top:12px;padding:12px;border:1px solid #334155;border-radius:8px;background:#0f1925}.source-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.source-items{margin-top:12px;overflow:auto}.source-items table{width:100%;border-collapse:collapse;font-size:12px}.source-items th,.source-items td{border:1px solid #334155;padding:7px;text-align:left;white-space:nowrap}.source-items th{background:#1a2939;color:#e8f0f8}.balance-preview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}.balance-card{padding:10px;border:1px solid #334155;border-radius:8px;background:#0b1420}.balance-card span{display:block;font-size:11px;color:#8fa4b8}.balance-card b{display:block;margin-top:4px;font-size:14px}.balance-good{color:#64d68f}.balance-bad{color:#ff7b86}.head-balance-wrap{margin-top:15px;overflow:auto}.head-balance-wrap table{width:100%;border-collapse:collapse;font-size:12px}.head-balance-wrap th,.head-balance-wrap td{border:1px solid #334155;padding:7px;white-space:nowrap}.head-balance-wrap th{background:#163042;color:#fff}@media(max-width:900px){.source-grid,.balance-preview{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:600px){.source-grid,.balance-preview{grid-template-columns:1fr}}</style>
@@ -517,8 +524,26 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
     <div class="panel" id="accountsReportContent" style="margin-top:16px"></div>
   </div>
   <div id="inventoryReports">
-    <div class="section-head"><div><h1>Reports</h1><p>Day-wise summary, stock transactions and current stock</p></div><div class="actions"><button class="btn dark" onclick="exportCSV()">EXPORT CSV</button><button class="btn ghost" onclick="printPage()">PRINT / PDF</button></div></div>
-    <div class="panel no-print"><div class="toolbar"><input id="fromDate" type="date"><input id="toDate" type="date"><button class="btn" onclick="renderReports()">FILTER</button><button class="btn dark" onclick="clearReportFilter()">CLEAR</button></div></div><div id="reportCards" class="grid" style="margin-top:16px"></div><div class="panel" id="reportsContent"></div>
+    <div class="section-head">
+      <div><h1>Messing Reports</h1><p>Purchase, issue and item-wise stock monitoring for the active camp</p></div>
+      <div class="actions"><button class="btn dark" onclick="exportMessingReportCSV()">EXPORT CSV</button><button class="btn ghost" onclick="printMessingReport()">PRINT / PDF</button></div>
+    </div>
+    <div class="panel no-print">
+      <div class="toolbar" style="margin-bottom:10px">
+        <button id="messRptDayBtn" class="btn" onclick="setMessingReport('DAY')">DAY-WISE REPORT</button>
+        <button id="messRptItemBtn" class="btn ghost" onclick="setMessingReport('ITEM')">ITEM-WISE REPORT</button>
+        <button id="messRptStmtBtn" class="btn ghost" onclick="setMessingReport('STATEMENT')">ITEM RECEIVED / ISSUED</button>
+      </div>
+      <div class="toolbar">
+        <div class="field"><label>From Date</label><input id="fromDate" type="date"></div>
+        <div class="field"><label>To Date</label><input id="toDate" type="date"></div>
+        <div class="field"><label>Item</label><select id="messReportItem"><option value="">All Items</option></select></div>
+        <button class="btn" onclick="generateMessingReport()">GENERATE REPORT</button>
+        <button class="btn dark" onclick="clearReportFilter()">CLEAR</button>
+      </div>
+    </div>
+    <div id="messingReportCards" class="grid" style="margin-top:16px"></div>
+    <div class="panel" id="reportsContent"><div class="empty">Select a report and click GENERATE REPORT.</div></div>
   </div>
 </section>
 
@@ -1027,7 +1052,11 @@ function calcInTotal(){let t=0;document.querySelectorAll("#inRows .item-row").fo
 function calcOutTotal(){let t=0;document.querySelectorAll("#outRows .item-row").forEach(r=>{const i=items.find(x=>x.id===r.querySelector(".out-item").value),q=+r.querySelector(".out-qty").value||0,a=q*(+(i?.avg_rate||0));r.querySelector(".out-amt").textContent=a.toFixed(2);t+=a});document.getElementById("outTotal").textContent=t.toFixed(2)}
 function cashSourceTypes(){return ['MESSING','INCIDENTAL_RV','INCIDENTAL_IV','POL_DRAWN','OTHER']}
 function clearCampForm(){['campCode','campName','campStation','campFrom','campTo','campRemarks'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});setMsg('campMsg','')}
-function clearReportFilter(){document.getElementById("fromDate").value="";document.getElementById("toDate").value="";renderReports()}
+function clearReportFilter(){
+  const f=document.getElementById("fromDate"),t=document.getElementById("toDate"),i=document.getElementById("messReportItem");
+  if(f)f.value=""; if(t)t.value=""; if(i)i.value="";
+  setMessingReport('DAY'); generateMessingReport();
+}
 function closeModal(){document.getElementById("modal").classList.add("hidden")}
 function dateOk(d,from,to){return (!from||d>=from)&&(!to||d<=to)}
 async function deleteCashbook(id){if(!canAccountsEntry())return;if(!confirm('Delete this cash book entry?'))return;const {error}=await sb.from('cashbook_entries').delete().eq('id',id).eq('camp_id',activeCamp.id);if(error)alert(error.message);else await refreshAll()}
@@ -1530,8 +1559,116 @@ function renderDashboard(){
   if(profile&&profile.role==='ACCOUNTS')document.getElementById('dashboardAdminControls')?.classList.add('hidden');else document.getElementById('dashboardAdminControls')?.classList.remove('hidden');
 }
 function renderAccountsReports(){if(profile?.role!=='ACCOUNTS')return;const d=document.getElementById('accReportDate')?.value||today(),s=calculateDay(d),set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money(v)};set('accRepCash',s.cfCash);set('accRepBank',s.cfBank);set('accRepReceipts',s.rc+s.rb);set('accRepPayments',s.pc+s.pb);const receipts=s.rows.filter(x=>x.entry_type==='RECEIPT'),payments=s.rows.filter(x=>x.entry_type==='PAYMENT');let h=`<div class="cash-report-head"><h2 style="margin:0">CAMP CASH BOOK</h2><p style="margin:4px 0">RECEIPTS AND PAYMENTS | DATE: ${esc(d)}</p></div>`;h+=`<table><tr><th colspan="7" class="receipt-head">RECEIPT</th><th colspan="9" class="payment-head">PAYMENTS</th></tr><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Distribution</th><th>Date</th><th>PV No.</th><th>Source Type</th><th>Invoice / Ref</th><th>To Whom Paid</th><th>On What Account</th><th>Particulars / Items</th><th>Mode</th><th>Amount</th></tr>`;const n=Math.max(receipts.length,payments.length,1);for(let i=0;i<n;i++){const r=receipts[i],p=payments[i],pd=sourceDetailObject(p);h+=`<tr><td>${r?esc(r.entry_date):''}</td><td>${r?esc(r.voucher_number):''}</td><td>${r?esc(r.party||''):''}</td><td>${r?esc(r.reference_no||''):''}</td><td class="num">${r&&r.mode==='CASH'?money(r.amount):''}</td><td class="num">${r&&r.mode==='BANK'?money(r.amount):''}</td><td>${r?esc(allocationSummary(r)):''}</td><td>${p?esc(p.entry_date):''}</td><td>${p?esc(p.voucher_number):''}</td><td>${p?esc(p.source_type||''):''}</td><td>${p?esc(p.reference_no||''):''}</td><td>${p?esc(pd.to_whom_paid||p.party||''):''}</td><td>${p?esc(pd.on_account||p.code_head||''):''}</td><td>${p?esc(itemSummary(p)):''}</td><td>${p?esc(p.mode||''):''}</td><td class="num">${p?money(p.amount):''}</td></tr>`}h+='</table><div class="report-total-grid"><div><b>Balance B/F - Cash</b><span>'+money(s.bfCash)+'</span></div><div><b>Balance B/F - Bank</b><span>'+money(s.bfBank)+'</span></div><div><b>Total Receipts</b><span>'+money(s.rc+s.rb)+'</span></div><div><b>Total Payments</b><span>'+money(s.pc+s.pb)+'</span></div><div><b>Cash Drawn</b><span>'+money(s.draw)+'</span></div><div><b>Balance C/F - Cash</b><span>'+money(s.cfCash)+'</span></div><div><b>Balance C/F - Bank</b><span>'+money(s.cfBank)+'</span></div></div><h3 style="margin-top:18px">Code Head Allotment / Balance</h3><table><tr><th>Code Head</th><th>B/F</th><th>Day Allotment</th><th>Day Payments</th><th>C/F</th></tr>';CASH_HEADS.forEach(head=>h+=`<tr><td>${esc(head)}</td><td>${money(s.bfHeads[head])}</td><td>${money(s.headReceipts[head])}</td><td>${money(s.headPayments[head])}</td><td><b>${money(s.cfHeads[head])}</b></td></tr>`);h+='</table><p style="margin-top:12px">Status: <b>'+(s.closed?'CLOSED':'OPEN')+'</b></p>';const el=document.getElementById('accountsReportContent');if(el)el.innerHTML=h;}
-function clearAccountsReport(){const e=document.getElementById('accReportDate');if(e)e.value=today();renderAccountsReports()}function printAccountsReport(){renderAccountsReports();window.print()}function renderReports(){if(profile?.role==='ACCOUNTS'){renderAccountsReports();return;}
+function clearAccountsReport(){const e=document.getElementById('accReportDate');if(e)e.value=today();renderAccountsReports()}
+function printAccountsReport(){renderAccountsReports();window.print()}
+
+let messingReportType='DAY';
+let lastMessingReportRows=[];
+let lastMessingReportHeaders=[];
+
+function populateMessingReportItems(){
+  const el=document.getElementById('messReportItem'); if(!el)return;
+  const current=el.value||'';
+  const names=[...new Map(items.map(i=>[String(i.id),i])).values()];
+  el.innerHTML='<option value="">All Items</option>'+names.map(i=>`<option value="${esc(i.id)}">${esc(i.name)} (${esc(i.unit||'')})</option>`).join('');
+  if(names.some(i=>String(i.id)===current)) el.value=current;
 }
+
+function setMessingReport(type){
+  messingReportType=type;
+  const map={DAY:'messRptDayBtn',ITEM:'messRptItemBtn',STATEMENT:'messRptStmtBtn'};
+  Object.entries(map).forEach(([k,id])=>{const b=document.getElementById(id);if(b)b.className=(k===type?'btn':'btn ghost')});
+}
+
+function messingDate(v){return String(v||'').slice(0,10)}
+function messingNum(v){return Number(v)||0}
+function messingMoney(v){return money(messingNum(v))}
+function messingInRows(){
+  const out=[];
+  (inInvoices||[]).forEach(h=>(h.stock_in_items||[]).forEach(r=>out.push({type:'RECEIVED',date:h.invoice_date,doc:h.invoice_number||'',party:h.supplier||'',itemId:r.item_id,item:r.item_name||((items.find(i=>i.id===r.item_id)||{}).name)||'',unit:r.unit||((items.find(i=>i.id===r.item_id)||{}).unit)||'',qty:messingNum(r.quantity),rate:messingNum(r.rate),amount:messingNum(r.amount)})));
+  return out;
+}
+function messingOutRows(){
+  const out=[];
+  (outVouchers||[]).forEach(h=>(h.stock_out_items||[]).forEach(r=>out.push({type:'ISSUED',date:h.voucher_date,doc:h.voucher_number||'',party:h.issued_to||'',itemId:r.item_id,item:r.item_name||((items.find(i=>i.id===r.item_id)||{}).name)||'',unit:r.unit||((items.find(i=>i.id===r.item_id)||{}).unit)||'',qty:messingNum(r.quantity),rate:messingNum(r.rate||((items.find(i=>i.id===r.item_id)||{}).avg_rate)),amount:messingNum(r.amount)})));
+  return out;
+}
+function messingFilteredRows(){
+  const from=document.getElementById('fromDate')?.value||'';
+  const to=document.getElementById('toDate')?.value||'';
+  const itemId=document.getElementById('messReportItem')?.value||'';
+  return [...messingInRows(),...messingOutRows()].filter(r=>dateOk(messingDate(r.date),from,to)&&(!itemId||String(r.itemId)===String(itemId))).sort((a,b)=>messingDate(a.date).localeCompare(messingDate(b.date))||a.type.localeCompare(b.type)||String(a.doc).localeCompare(String(b.doc)));
+}
+function generateMessingReport(){
+  if(!activeCamp){const el=document.getElementById('reportsContent');if(el)el.innerHTML='<div class="empty">Select an active camp first.</div>';return;}
+  populateMessingReportItems();
+  const rows=messingFilteredRows();
+  const card=document.getElementById('messingReportCards');
+  const content=document.getElementById('reportsContent');
+  if(!card||!content)return;
+  if(messingReportType==='DAY'){
+    const by={}; rows.forEach(r=>{const d=messingDate(r.date);if(!by[d])by[d]={inQty:0,outQty:0,inVal:0,outVal:0};if(r.type==='RECEIVED'){by[d].inQty+=r.qty;by[d].inVal+=r.amount}else{by[d].outQty+=r.qty;by[d].outVal+=r.amount}});
+    const days=Object.keys(by).sort();
+    const totalIn=days.reduce((s,d)=>s+by[d].inVal,0),totalOut=days.reduce((s,d)=>s+by[d].outVal,0),net=totalIn-totalOut,totalInQty=days.reduce((s,d)=>s+by[d].inQty,0),totalOutQty=days.reduce((s,d)=>s+by[d].outQty,0);
+    card.innerHTML=`<div class="metric m1"><span class="label">PURCHASE VALUE</span><b>${money(totalIn)}</b><small>Selected period</small></div><div class="metric m2"><span class="label">ISSUE VALUE</span><b>${money(totalOut)}</b><small>Selected period</small></div><div class="metric m3"><span class="label">RECEIVED QTY</span><b>${totalInQty.toFixed(2)}</b><small>Selected period</small></div><div class="metric m4"><span class="label">ISSUED QTY</span><b>${totalOutQty.toFixed(2)}</b><small>Selected period</small></div>`;
+    let h='<h3 style="margin-top:0">Day-wise Purchase / Issue Summary</h3><div class="tablewrap"><table><tr><th>Date</th><th>Received Qty</th><th>Purchase Value</th><th>Issued Qty</th><th>Issue Value</th><th>Net Value</th></tr>';
+    if(!days.length)h+='<tr><td colspan="6" class="empty">No records found for the selected filters.</td></tr>';
+    days.forEach(d=>{const x=by[d];h+=`<tr><td>${esc(d)}</td><td>${x.inQty.toFixed(2)}</td><td>${money(x.inVal)}</td><td>${x.outQty.toFixed(2)}</td><td>${money(x.outVal)}</td><td><b>${money(x.inVal-x.outVal)}</b></td></tr>`});
+    h+='</table></div>';
+    lastMessingReportHeaders=['Date','Received Qty','Purchase Value','Issued Qty','Issue Value','Net Value'];
+    lastMessingReportRows=days.map(d=>{const x=by[d];return [d,x.inQty.toFixed(2),x.inVal.toFixed(2),x.outQty.toFixed(2),x.outVal.toFixed(2),(x.inVal-x.outVal).toFixed(2)]});
+    content.innerHTML=h;
+  }else if(messingReportType==='ITEM'){
+    const by={}; rows.forEach(r=>{const k=String(r.itemId||r.item);if(!by[k])by[k]={item:r.item,unit:r.unit,receivedQty:0,issuedQty:0,receivedVal:0,issuedVal:0};if(r.type==='RECEIVED'){by[k].receivedQty+=r.qty;by[k].receivedVal+=r.amount}else{by[k].issuedQty+=r.qty;by[k].issuedVal+=r.amount}});
+    const arr=Object.values(by).sort((a,b)=>a.item.localeCompare(b.item));
+    const rq=arr.reduce((s,x)=>s+x.receivedQty,0),iq=arr.reduce((s,x)=>s+x.issuedQty,0),rv=arr.reduce((s,x)=>s+x.receivedVal,0),iv=arr.reduce((s,x)=>s+x.issuedVal,0);
+    card.innerHTML=`<div class="metric m1"><span class="label">ITEMS</span><b>${arr.length}</b><small>In selected period</small></div><div class="metric m2"><span class="label">RECEIVED</span><b>${rq.toFixed(2)}</b><small>Quantity</small></div><div class="metric m3"><span class="label">ISSUED</span><b>${iq.toFixed(2)}</b><small>Quantity</small></div><div class="metric m4"><span class="label">BALANCE VALUE</span><b>${money(rv-iv)}</b><small>Received less issued</small></div>`;
+    let h='<h3 style="margin-top:0">Item-wise Purchase / Balance Report</h3><div class="tablewrap"><table><tr><th>Item</th><th>A/u</th><th>Received Qty</th><th>Purchase Value</th><th>Issued Qty</th><th>Expenditure</th><th>Balance Qty</th><th>Balance Value</th></tr>';
+    if(!arr.length)h+='<tr><td colspan="8" class="empty">No records found for the selected filters.</td></tr>';
+    arr.forEach(x=>h+=`<tr><td><b>${esc(x.item)}</b></td><td>${esc(x.unit||'')}</td><td>${x.receivedQty.toFixed(2)}</td><td>${money(x.receivedVal)}</td><td>${x.issuedQty.toFixed(2)}</td><td>${money(x.issuedVal)}</td><td><b>${(x.receivedQty-x.issuedQty).toFixed(2)}</b></td><td><b>${money(x.receivedVal-x.issuedVal)}</b></td></tr>`);
+    h+='</table></div><p class="muted" style="margin-top:10px">Balance is calculated from the selected period: received less issued.</p>';
+    lastMessingReportHeaders=['Item','A/u','Received Qty','Purchase Value','Issued Qty','Expenditure','Balance Qty','Balance Value'];
+    lastMessingReportRows=arr.map(x=>[x.item,x.unit||'',x.receivedQty.toFixed(2),x.receivedVal.toFixed(2),x.issuedQty.toFixed(2),x.issuedVal.toFixed(2),(x.receivedQty-x.issuedQty).toFixed(2),(x.receivedVal-x.issuedVal).toFixed(2)]);
+    content.innerHTML=h;
+  }else{
+    const itemId=document.getElementById('messReportItem')?.value||'';
+    const itemName=itemId?((items.find(i=>String(i.id)===String(itemId))||{}).name||'Selected Item'):'All Items';
+    const selectedItem=items.find(i=>String(i.id)===String(itemId));
+    const events=rows.filter(r=>!itemId||String(r.itemId)===String(itemId));
+    const opening=itemId?messingNum(selectedItem?.opening_stock):0;
+    let balanceVal=opening, tableRows=[];
+    const unit=selectedItem?.unit||'';
+    let runningQty=opening;
+    events.forEach(r=>{if(r.type==='RECEIVED')runningQty+=r.qty;else runningQty-=r.qty;tableRows.push([r.date,r.type,r.doc,r.party,r.item,unit||r.unit,r.qty,r.rate,r.amount,runningQty])});
+    card.innerHTML=`<div class="metric m1"><span class="label">STATEMENT ITEM</span><b style="font-size:19px">${esc(itemName)}</b><small>Selected item</small></div><div class="metric m2"><span class="label">OPENING STOCK</span><b>${opening.toFixed(2)}</b><small>${esc(unit)}</small></div><div class="metric m3"><span class="label">RECEIVED</span><b>${events.filter(r=>r.type==='RECEIVED').reduce((s,r)=>s+r.qty,0).toFixed(2)}</b><small>${esc(unit)}</small></div><div class="metric m4"><span class="label">BALANCE</span><b>${runningQty.toFixed(2)}</b><small>${esc(unit)}</small></div>`;
+    let h='<h3 style="margin-top:0">Statement of Item Received / Issued</h3><div class="tablewrap"><table><tr><th>Date</th><th>Type</th><th>Invoice / Voucher</th><th>Party / Issued To</th><th>Item</th><th>A/u</th><th>Qty</th><th>Rate</th><th>Amount</th><th>Balance</th></tr>';
+    if(!tableRows.length)h+='<tr><td colspan="10" class="empty">No records found. Select an item for a detailed statement.</td></tr>';
+    tableRows.forEach(r=>h+=`<tr><td>${esc(r[0])}</td><td><span class="status ${r[1]==='RECEIVED'?'ok':'low'}">${esc(r[1])}</span></td><td>${esc(r[2])}</td><td>${esc(r[3])}</td><td>${esc(r[4])}</td><td>${esc(r[5])}</td><td>${Number(r[6]).toFixed(2)}</td><td>${money(r[7])}</td><td>${money(r[8])}</td><td><b>${Number(r[9]).toFixed(2)}</b></td></tr>`);
+    h+='</table></div><p class="muted" style="margin-top:10px">For a detailed statement, select a specific item from the Item filter.</p>';
+    lastMessingReportHeaders=['Date','Type','Invoice / Voucher','Party / Issued To','Item','A/u','Qty','Rate','Amount','Balance'];
+    lastMessingReportRows=tableRows;
+    content.innerHTML=h;
+  }
+}
+function exportMessingReportCSV(){
+  if(!lastMessingReportRows.length) generateMessingReport();
+  if(!lastMessingReportRows.length){alert('Generate a report first.');return;}
+  downloadCSV([lastMessingReportHeaders,...lastMessingReportRows],`Messing_${messingReportType}_Report.csv`);
+}
+function printMessingReport(){
+  generateMessingReport();
+  const el=document.getElementById('reportsContent'); if(!el)return;
+  const w=window.open('','_blank'); if(!w){alert('Please allow pop-ups for Print / PDF.');return;}
+  w.document.write('<!doctype html><html><head><title>NCC Camp Messing Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:20px}h1,h2,h3{text-align:center}.meta{text-align:center;margin-bottom:15px;color:#444}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #555;padding:6px}th{background:#eee;text-align:left}.num{text-align:right}</style></head><body><h1>NCC CAMP MESSING</h1><h2>'+esc((activeCamp?.camp_code||'')+' - '+(activeCamp?.camp_name||''))+'</h2><div class="meta">'+esc(messingReportType==='DAY'?'Day-wise Purchase / Issue Summary':messingReportType==='ITEM'?'Item-wise Purchase / Balance Report':'Statement of Item Received / Issued')+'</div>'+el.innerHTML+'</body></html>');
+  w.document.close();setTimeout(()=>{w.focus();w.print()},300);
+}
+function renderReports(){
+  if(profile?.role==='ACCOUNTS'){renderAccountsReports();return;}
+  populateMessingReportItems();
+  setMessingReport(messingReportType||'DAY');
+  generateMessingReport();
+}
+
 
 /* ===== FINAL BUGFIX OVERRIDES ===== */
 async function nextCRVNo(){
