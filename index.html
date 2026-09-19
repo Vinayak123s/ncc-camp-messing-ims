@@ -537,7 +537,8 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
       <div class="field"><label>Other Letter No.</label><input id="rvAuthorityLetter" disabled placeholder="Enter letter no."></div>
     </div>
     <div class="formbox" style="margin-top:14px"><div class="subhead"><div><h3>Receipt Items</h3><div class="kpi-note">Nomenclature, A/u, Exp/N-Exp, Qty, Rate, Page No., Authorised Units and Remarks.</div></div><button class="btn" type="button" onclick="addRVItem()">＋ ADD ITEM</button></div><div id="rvItems" class="rviv-items"></div></div>
-    <div class="form-grid" style="margin-top:14px"><div class="field"><label>GST Mode</label><select id="rvGstMode"><option value="inclusive">Inclusive GST</option><option value="exclusive">Exclusive GST</option></select></div><div class="field"><label>GST Rate (%)</label><input id="rvGstRate" type="number" min="0" step="any"></div><div class="field"><label>Subtotal</label><input id="rvSubtotal" class="calculated" readonly></div><div class="field"><label>GST Amount</label><input id="rvGstAmount" class="calculated" readonly></div><div class="field"><label>Total Amount</label><input id="rvAmount" class="calculated" readonly></div><div class="field" style="grid-column:span 3"><label>General Remarks</label><textarea id="rvDesc"></textarea></div></div>
+    <input type="hidden" id="rvGstMode" value="inclusive"><input type="hidden" id="rvGstRate" value="0"><input type="hidden" id="rvSubtotal" value="0"><input type="hidden" id="rvGstAmount" value="0"><input type="hidden" id="rvAmount" value="0"><input type="hidden" id="rvDesc" value="">
+    <div class="rv-grand-total"><span>GRAND TOTAL</span><strong id="rvGrandTotal">₹0.00</strong></div>
     <div class="actions"><button class="btn green" onclick="saveIncidentalRV()">SAVE / UPDATE RV</button><button class="btn green" onclick="generateCurrentRV()">GENERATE RV</button><button class="btn ghost" onclick="clearIncidentalRV()">CLEAR</button></div><div id="rvMsg" class="msg"></div>
   </div>
   <div class="panel"><div class="toolbar"><input id="rvSearch" placeholder="Search invoice / vendor..." oninput="renderIncidentalRV()"><button class="btn green" onclick="exportIncidentalCSV('RV')">EXPORT CSV</button></div><div id="incidentalRVTable" style="margin-top:10px"></div></div>
@@ -1120,14 +1121,15 @@ function incUnitOptions(v){return UNITS.map(u=>`<option ${v===u?'selected':''}>$
 function addIncItemGeneric(containerId, item={}){
   const box=document.getElementById(containerId); if(!box)return;
   const wrap=document.createElement('div');wrap.className='rviv-item';
+  const amount=(Number(item.qty)||0)*(Number(item.rate)||0);
   wrap.innerHTML=`<div class="rviv-item-grid">
     <div class="field"><label>Nomenclature *</label><input class="ix-desc" value="${esc(item.desc||'')}" required></div>
     <div class="field"><label>A/u</label><select class="ix-unit">${incUnitOptions(item.unit||'Nos')}</select></div>
     <div class="field"><label>Exp / N-Exp</label><select class="ix-type"><option ${item.type==='Expendable'||!item.type?'selected':''}>Expendable</option><option ${item.type==='Non-Expendable'?'selected':''}>Non-Expendable</option></select></div>
     <div class="field"><label>Qty *</label><input class="ix-qty" type="number" min="0.01" step="any" value="${item.qty??''}" required></div>
     <div class="field"><label>Rate *</label><input class="ix-rate" type="number" min="0" step="any" value="${item.rate??''}" required></div>
+    <div class="field"><label>Amount</label><input class="ix-amount calculated" readonly value="${money(amount)}"></div>
     <div class="field"><label>Page No.</label><input class="ix-page" value="${esc(item.page||'')}"></div>
-    <div class="field"><label>Authorised Units</label><input class="ix-authorised" value="${esc(item.authorised||'')}"></div>
     <div class="field"><label>Remarks</label><input class="ix-remarks" value="${esc(item.remarks||'')}"></div>
     <button type="button" class="btn red" onclick="this.closest('.rviv-item').remove();recalcIncidentalForms()">Remove</button>
   </div>`;
@@ -2116,7 +2118,12 @@ function renderPOLReport(){
   const t=document.getElementById('polRepType'); if(t&&t.value!=='detach'){ const oldType=t.value; const rows=oldType==='vehicle'?polVehicles.filter(x=>!vid||String(x.id)===String(vid)).map((x,i)=>{const st=polCurrentState(x.id);return [i+1,x.vehicle_no,x.vehicle_type,x.fuel_type||'',st.tank,x.kpl,x.driver_name,x.attached_from||'']}):oldType==='drawn'?polEntries.filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to)).map(x=>[x.entry_date,x.vehicle_no,x.fuel_type,x.invoice_number,x.petrol_bunk,x.previous_fuel,x.litres,x.present_fuel,x.rate,x.total_amount]):(window.carDiaryEntries||[]).filter(x=>(!vid||String(x.vehicle_id)===String(vid))&&(!from||x.entry_date>=from)&&(!to||x.entry_date<=to)).map(x=>[x.entry_date,x.vehicle_no,x.nature_of_duty,x.purpose_of_duty,x.from_location,x.to_location,x.opening_km,x.km_run,x.closing_km,x.kpl,x.pol_consumed]);const head=oldType==='vehicle'?['SL','Vehicle','Type','Fuel','Tank Balance','KPL','Driver','Attached From']:oldType==='drawn'?['Date','Vehicle','Fuel','Invoice','Bunk','Previous','Drawn','Present','Rate','Amount']:['Date','Vehicle','Nature','Purpose','From','To','Opening KM','KM Run','Closing KM','KPL','POL Consumed'];el.innerHTML='<table><tr>'+head.map(h=>`<th>${h}</th>`).join('')+'</tr>'+rows.map(r=>'<tr>'+r.map(c=>`<td>${esc(c)}</td>`).join('')+'</tr>').join('')+'</table>';}
 }
 function exportPOLReportCSV(){const type=document.getElementById('polRepType')?.value||'vehicle',vid=document.getElementById('polRepVehicle')?.value||'',from=document.getElementById('polRepFrom')?.value||'',to=document.getElementById('polRepTo')?.value||'';if(type==='detach')return exportPOLDetachmentCSV();if(type==='vehicle')return exportPOLVehicleCSV();if(type==='drawn')return exportPOLCSV();return exportCarDiaryCSV()}
-function printPOLReport(){renderPOLReport();setTimeout(()=>{const box=document.getElementById('polReportContent');const w=window.open('','_blank','width=1100,height=800');if(!w)return;w.document.write(`<!doctype html><html><head><title>POL Report</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px}th{background:#eee}</style></head><body><h2 style="text-align:center">NCC CAMP MESSING IMS - POL REPORT</h2>${box?.innerHTML||''}</body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},300)},100)}
+function printPOLReport(){renderPOLReport();setTimeout(()=>{const box=document.getElementById('polReportContent');const w=window.open('','_blank','width=1100,height=800');if(!w)return;w.document.write(`<!doctype html><html><head><title>POL Report</title><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px}th{background:#eee}
+/* ===== V25 INCIDENTAL RV FINAL UI ===== */
+.rv-grand-total{display:flex;justify-content:flex-end;align-items:center;gap:18px;margin-top:14px;padding:12px 16px;border:1px solid #2c4358;border-radius:8px;background:#0f1b27;font-weight:900}.rv-grand-total span{color:#9bb0c2}.rv-grand-total strong{font-size:22px;color:#fff}.rviv-item-grid{grid-template-columns:1.9fr .75fr 1fr .75fr .85fr .95fr .8fr 1.1fr auto!important}.rviv-item .ix-amount{font-weight:900;text-align:right}.rv-crv-admin-edit{border-color:#f0b90b!important;box-shadow:0 0 0 2px rgba(240,185,11,.12)}
+@media(max-width:1100px){.rviv-item-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important}}
+@media(max-width:650px){.rviv-item-grid{grid-template-columns:1fr 1fr!important}}
+</style></head><body><h2 style="text-align:center">NCC CAMP MESSING IMS - POL REPORT</h2>${box?.innerHTML||''}</body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},300)},100)}
 
 function populateAllPOLVehicleSelectors(){
   const selectors=[
@@ -2837,6 +2844,176 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
   window.addEventListener('load',init);
   setTimeout(init,500);
+})();
+</script>
+
+<script>
+/* ===== V25 INCIDENTAL RV FINAL FIX ===== */
+(function(){
+  function fyForDate(ds){
+    const d = ds ? new Date(ds+'T00:00:00') : new Date();
+    let y=d.getFullYear(), n=y+1;
+    if(d.getMonth()<3){ y=y-1; n=y+1; }
+    return String(y).slice(-2)+'-'+String(n).slice(-2);
+  }
+  function rvNumberFromExisting(){
+    let max=0;
+    (Array.isArray(window.incidentals)?window.incidentals:[]).filter(x=>x.voucher_type==='RV' && x.camp_id===activeCamp?.id).forEach(x=>{
+      const s=String(x.crv_no||x.voucher_no||'');
+      const m=s.match(/(\d+)$/); if(m) max=Math.max(max,Number(m[1]));
+    });
+    return max+1;
+  }
+  function setAuthority(){
+    const sel=document.getElementById('rvAuthoritySelect');
+    const name=document.getElementById('rvAuthorityName');
+    const letter=document.getElementById('rvAuthorityLetter');
+    if(!sel||!name||!letter)return;
+    const other=sel.value==='OTHER';
+    name.disabled=!other; letter.disabled=!other;
+    name.placeholder=other?'Enter main authority':''; letter.placeholder=other?'Enter letter no.':'';
+    if(!other){name.value='';letter.value='';}
+  }
+  window.toggleRVOtherAuthority=setAuthority;
+  window.rvAuthorityValue=function(){
+    const sel=document.getElementById('rvAuthoritySelect');
+    if(!sel || sel.value!=='OTHER')return 'Camp Commandant';
+    const n=(document.getElementById('rvAuthorityName')?.value||'').trim();
+    const l=(document.getElementById('rvAuthorityLetter')?.value||'').trim();
+    return l ? (n+' / '+l).trim() : n;
+  };
+
+  window.nextCRVNo=async function(){
+    const el=document.getElementById('rvCrv'); if(!el)return;
+    if(!activeCamp){el.value='';return;}
+    /* First try database sequence; fall back to the current camp's loaded records. */
+    try{
+      if(sb){
+        const r=await sb.rpc('next_incidental_crv_no_fixed');
+        if(!r.error && r.data){el.value=r.data;return;}
+      }
+    }catch(e){console.warn('CRV RPC fallback',e)}
+    const seq=rvNumberFromExisting();
+    el.value=`CRV/39KAR/${fyForDate(document.getElementById('rvDate')?.value)}/CAMP/${String(seq).padStart(3,'0')}`;
+  };
+
+  window.calcIncFor=function(prefix,containerId){
+    const rows=[...document.querySelectorAll(`#${containerId} .rviv-item`)];
+    let total=0;
+    rows.forEach(row=>{
+      const qty=Number(row.querySelector('.ix-qty')?.value)||0;
+      const rate=Number(row.querySelector('.ix-rate')?.value)||0;
+      const amount=qty*rate; total+=amount;
+      const ae=row.querySelector('.ix-amount'); if(ae)ae.value=money(amount);
+    });
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=money(v)};
+    set('rvSubtotal',total); set('rvGstAmount',0); set('rvAmount',total);
+    const g=document.getElementById('rvGrandTotal'); if(g)g.textContent=money(total);
+  };
+  window.recalcIncidentalForms=function(){window.calcIncFor('rv','rvItems');};
+
+  window.readIncItems=function(containerId){
+    return [...document.querySelectorAll(`#${containerId} .rviv-item`)].map(row=>({
+      desc:(row.querySelector('.ix-desc')?.value||'').trim(),
+      unit:row.querySelector('.ix-unit')?.value||'Nos',
+      type:row.querySelector('.ix-type')?.value||'Expendable',
+      qty:Number(row.querySelector('.ix-qty')?.value)||0,
+      rate:Number(row.querySelector('.ix-rate')?.value)||0,
+      page:(row.querySelector('.ix-page')?.value||'').trim(),
+      authorised:'',
+      remarks:(row.querySelector('.ix-remarks')?.value||'').trim()
+    })).filter(x=>x.desc&&x.qty>0);
+  };
+
+  const oldGeneric=window.addIncItemGeneric;
+  window.addIncItemGeneric=function(containerId,item={}){
+    const box=document.getElementById(containerId);if(!box)return;
+    const wrap=document.createElement('div');wrap.className='rviv-item';
+    const amount=(Number(item.qty)||0)*(Number(item.rate)||0);
+    wrap.innerHTML=`<div class="rviv-item-grid">
+      <div class="field"><label>Nomenclature *</label><input class="ix-desc" value="${esc(item.desc||'')}" required></div>
+      <div class="field"><label>A/u</label><select class="ix-unit">${incUnitOptions(item.unit||'Nos')}</select></div>
+      <div class="field"><label>Exp / N-Exp</label><select class="ix-type"><option ${item.type==='Expendable'||!item.type?'selected':''}>Expendable</option><option ${item.type==='Non-Expendable'?'selected':''}>Non-Expendable</option></select></div>
+      <div class="field"><label>Qty *</label><input class="ix-qty" type="number" min="0.01" step="any" value="${item.qty??''}" required></div>
+      <div class="field"><label>Rate *</label><input class="ix-rate" type="number" min="0" step="any" value="${item.rate??''}" required></div>
+      <div class="field"><label>Amount</label><input class="ix-amount calculated" readonly value="${money(amount)}"></div>
+      <div class="field"><label>Page No.</label><input class="ix-page" value="${esc(item.page||'')}"></div>
+      <div class="field"><label>Remarks</label><input class="ix-remarks" value="${esc(item.remarks||'')}"></div>
+      <button type="button" class="btn red" onclick="this.closest('.rviv-item').remove();recalcIncidentalForms()">Remove</button>
+    </div>`;
+    box.appendChild(wrap);wrap.querySelectorAll('input,select').forEach(e=>e.addEventListener('input',recalcIncidentalForms));recalcIncidentalForms();
+  };
+
+  window.addRVItem=function(item={}){window.addIncItemGeneric('rvItems',item);};
+  window.addIVItem=function(item={}){window.addIncItemGeneric('ivItemsInc',item);};
+
+  function applyRVFields(){
+    const rv=document.getElementById('rvItems');
+    if(rv){rv.querySelectorAll('.ix-authorised').forEach(e=>e.closest('.field')?.remove());}
+    ['rvGstMode','rvGstRate','rvSubtotal','rvGstAmount','rvDesc'].forEach(id=>{
+      const e=document.getElementById(id); if(e){e.value=id==='rvGstMode'?'inclusive':(id==='rvDesc'?'':'0'); if(!e.hidden)e.style.display='none'; const p=e.closest('.field'); if(p)p.style.display='none';}
+    });
+    const role=String(profile?.role||'').toUpperCase();
+    const crv=document.getElementById('rvCrv'); const note=document.getElementById('rvCrvAdminNote');
+    if(crv){crv.readOnly=role!=='ADMIN';crv.classList.toggle('rv-crv-admin-edit',role==='ADMIN');}
+    if(note){note.classList.toggle('hidden',role!=='ADMIN');}
+    setAuthority();
+    window.calcIncFor('rv','rvItems');
+  }
+  window.clearIncidentalRV=async function(){
+    rvEditingId=null;
+    ['rvInvoice','rvParty','rvAddress','rvStation','rvAuthorityName','rvAuthorityLetter'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    const date=document.getElementById('rvDate');if(date)date.value=today();
+    const auth=document.getElementById('rvAuthoritySelect');if(auth)auth.value='CAMP COMMANDANT';setAuthority();
+    const box=document.getElementById('rvItems');if(box){box.innerHTML='';window.addRVItem({});}
+    const h=document.getElementById('rvGrandTotal');if(h)h.textContent='₹0.00';
+    setMsg('rvMsg','');
+    await window.nextCRVNo();
+    applyRVFields();
+  };
+
+  window.saveIncidentalRV=async function(){
+    try{
+      if(!canQsecEntry())return setMsg('rvMsg','Only ADMIN, MANAGER or Q SEC can enter Incidental RV.');
+      if(!activeCamp)return setMsg('rvMsg','Select an active camp first.');
+      const items=readIncItems('rvItems');
+      if(!items.length)return setMsg('rvMsg','Add at least one receipt item.');
+      calcIncFor('rv','rvItems');
+      const invoice=(document.getElementById('rvInvoice')?.value||'').trim();
+      const party=(document.getElementById('rvParty')?.value||'').trim();
+      const address=(document.getElementById('rvAddress')?.value||'').trim();
+      const station=(document.getElementById('rvStation')?.value||'').trim();
+      const authority=rvAuthorityValue();
+      const crv=(document.getElementById('rvCrv')?.value||'').trim();
+      const total=items.reduce((s,x)=>s+x.qty*x.rate,0);
+      if(!invoice||!party||!address||!station||!crv||total<=0)return setMsg('rvMsg','Enter Invoice, Vendor, Vendor Address, Station, CRV and at least one valid item.');
+      if(document.getElementById('rvAuthoritySelect')?.value==='OTHER' && !document.getElementById('rvAuthorityName')?.value.trim())return setMsg('rvMsg','Enter the Other Authority name.');
+      const payload={p_id:rvEditingId||null,p_type:'RV',p_voucher_no:crv,p_voucher_date:document.getElementById('rvDate')?.value||today(),p_party:party,p_invoice_number:invoice,p_vendor_address:address,p_station:station,p_crv_no:crv,p_authority:authority,p_unit:null,p_items:items,p_subtotal:total,p_gst_mode:'inclusive',p_gst_rate:0,p_gst_amount:0,p_amount:total,p_description:''};
+      let data=null,error=null;
+      try{const r=await sb.rpc('save_incidental_voucher_fixed',payload);data=r.data;error=r.error;}catch(e){error=e;}
+      if(error){
+        const row={camp_id:activeCamp.id,voucher_type:'RV',voucher_no:crv,voucher_date:payload.p_voucher_date,party:party,invoice_number:invoice,vendor_address:address,station:station,crv_no:crv,authority:authority,unit:null,items:items,subtotal:total,gst_mode:'inclusive',gst_rate:0,gst_amount:0,amount:total,mode:'CASH',code_head:null,description:'',created_by:currentUser?.id||null};
+        if(rvEditingId){const u=await sb.from('incidental_vouchers').update(row).eq('id',rvEditingId).eq('camp_id',activeCamp.id).select('*').single();data=u.data;error=u.error;}else{const i=await sb.from('incidental_vouchers').insert(row).select('*').single();data=i.data;error=i.error;}
+      }
+      if(error){console.error('RV save failed',error);return setMsg('rvMsg','Save failed: '+error.message);}
+      rvEditingId=data?.id||data||rvEditingId;
+      setMsg('rvMsg','Incidental RV saved successfully.',true);
+      await refreshAll(); renderIncidentalRV(); applyRVFields();
+    }catch(e){console.error(e);setMsg('rvMsg','Save failed: '+e.message);}
+  };
+
+  function finalInit(){
+    applyRVFields();
+    if(activeCamp)window.nextCRVNo();
+    const d=document.getElementById('rvDate'); if(d&&!d.dataset.v25){d.addEventListener('change',()=>window.nextCRVNo());d.dataset.v25='1';}
+    const a=document.getElementById('rvAuthoritySelect'); if(a&&!a.dataset.v25){a.addEventListener('change',setAuthority);a.dataset.v25='1';}
+  }
+  window.addEventListener('load',()=>setTimeout(finalInit,200));
+  setTimeout(finalInit,300);
+  if(typeof window.showPage==='function'&&!window.showPage.__v25){
+    const oldShow=window.showPage;
+    const wrapped=function(id,btn){oldShow(id,btn);if(id==='incidentalRV')setTimeout(()=>{applyRVFields();window.nextCRVNo();},50);};wrapped.__v25=true;window.showPage=wrapped;
+  }
 })();
 </script>
 </body>
