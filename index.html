@@ -545,27 +545,26 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 </section>
 
 <section id="incidentalIV" class="page">
-  <div class="module-banner"><div><div class="crumb">INCIDENTAL • ISSUE</div><h2>Incidental Issue Voucher (IV)</h2><div class="muted">Items are fetched from the active camp's Incidental RV register and issued against available balance.</div></div><div class="side-pill">CIV / 39KAR / FY / EXP or N-EXP / Auto</div></div>
+  <div class="module-banner"><div><div class="crumb">INCIDENTAL • ISSUE</div><h2>Incidental Issue Voucher (IV)</h2><div class="muted">Issue items received through the active camp's Incidental RV register against the available balance.</div></div><div class="side-pill">CIV / 39KAR / FY / EXP or N-EXP / Auto</div></div>
   <div class="panel">
     <div class="form-grid">
       <div class="field"><label>IV No. (Auto)</label><input id="ivNoAuto" class="auto-field" readonly></div>
       <div class="field"><label>Date *</label><input id="ivDateInc" type="date"></div>
-      <div class="field"><label>Unit / Receiving Unit *</label><input id="ivUnitInc"></div>
-      <div class="field"><label>Station</label><input id="ivStationInc"></div>
-      <div class="field"><label>Authority *</label><div class="badge" style="display:flex;align-items:center;height:40px">CAMP COMMANDANT</div></div>
-      <div class="field"><label>Item from Incidental RV *</label><select id="ivSourceItem" onchange="loadIVSourceItem()"><option value="">Select item</option></select></div>
-      <div class="field"><label>A/u</label><input id="ivAutoUnit" class="auto-field" readonly></div>
-      <div class="field"><label>Balance</label><input id="ivAutoBalance" class="calculated" readonly></div>
-      <div class="field"><label>Page No.</label><input id="ivAutoPage" class="auto-field" readonly></div>
-      <div class="field"><label>Qty Issue *</label><input id="ivIssueQty" type="number" min="0.01" step="any"></div>
-      <div class="field"><label>Remarks</label><input id="ivIssueRemarks" placeholder="Optional"></div>
+      <div class="field"><label>Unit / Receiving Unit *</label><input id="ivUnitInc" placeholder="Receiving Unit"></div>
+      <div class="field"><label>Station</label><input id="ivStationInc" placeholder="Station"></div>
+      <div class="field"><label>Authority</label><div class="badge" style="display:flex;align-items:center;height:40px">CAMP COMMANDANT</div></div>
     </div>
-    <div class="formbox" style="margin-top:14px"><div class="subhead"><h3>Issue Items</h3><button class="btn" type="button" onclick="addSelectedIVItem()">＋ ADD ITEM</button></div><div id="ivItemsInc" class="rviv-items"></div></div>
-    <div class="actions"><button class="btn green" onclick="saveIncidentalIV()">SAVE / UPDATE IV</button><button class="btn green" onclick="generateCurrentIV()">GENERATE IV</button><button class="btn ghost" onclick="clearIncidentalIV()">CLEAR</button></div><div id="ivMsgInc" class="msg"></div>
+
+    <div class="formbox iv-items-box" style="margin-top:14px">
+      <div class="subhead"><div><h3 style="margin:0">Issue Items</h3><div class="kpi-note">Click ADD ITEM. Items are fetched from saved Incidental RV entries; A/u, balance and page number are automatic.</div></div><button class="btn" type="button" onclick="addSelectedIVItem()">＋ ADD ITEM</button></div>
+      <div id="ivItemsInc" class="rviv-items"></div>
+    </div>
+
+    <div class="actions" style="margin-top:12px"><button class="btn green" onclick="saveIncidentalIV()">SAVE / UPDATE IV</button><button class="btn green" onclick="generateCurrentIV()">GENERATE IV</button><button class="btn ghost" onclick="clearIncidentalIV()">CLEAR</button></div>
+    <div id="ivMsgInc" class="msg"></div>
   </div>
   <div class="panel"><div class="toolbar"><input id="ivSearch" placeholder="Search IV / unit..." oninput="renderIncidentalIV()"><button class="btn green" onclick="exportIncidentalCSV('IV')">EXPORT CSV</button></div><div id="incidentalIVTable" style="margin-top:10px"></div></div>
 </section>
-
 
 <section id="cashbook" class="page">
   <div class="section-head"><div><h1>Cash Book</h1><p>Accounts entry. Payment source details auto-fetch from Messing RV / Incidental RV / POL Drawn. RV & PV numbers are entered manually.</p></div></div>
@@ -2099,7 +2098,19 @@ function printTableReport(title,headers,rows){
   if(!w){alert("Please allow pop-ups to print the report.");return}
   const th=headers.map(h=>`<th>${esc(h)}</th>`).join("");
   const tr=rows.map(r=>`<tr>${r.map(c=>`<td>${esc(c)}</td>`).join("")}</tr>`).join("");
-  w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center;font-size:20px;margin:0 0 4px}h2{text-align:center;font-size:13px;margin:0 0 18px;color:#555}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}footer{margin-top:25px;text-align:center;font-size:10px;color:#555}</style></head><body><h1>${esc(title)}</h1><h2>${esc(activeCamp?.camp_name||"NCC CAMP MESSING IMS")}</h2><table><tr>${th}</tr>${tr}</table><footer>Developed by Vinayak Shanmukhanavar</footer></body></html>`);
+  w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center;font-size:20px;margin:0 0 4px}h2{text-align:center;font-size:13px;margin:0 0 18px;color:#555}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}footer{margin-top:25px;text-align:center;font-size:10px;color:#555}</style>
+<style id="incidental-iv-v26-css">
+.iv-items-box{background:#101a25;border:1px solid #263546;border-radius:9px;padding:14px}
+.iv-issue-row{background:#0c141e;border:1px solid #2b3a4c;border-radius:8px;padding:10px;margin-top:8px}
+.iv-issue-grid{display:grid;grid-template-columns:2.0fr .85fr .9fr .85fr .85fr 1.5fr auto;gap:8px;align-items:end}
+.iv-issue-row input,.iv-issue-row select{width:100%;padding:9px;border:1px solid #304154;border-radius:6px;background:#0b131d;color:#fff}
+.iv-issue-row input[readonly]{background:#101a25;color:#bfe7ff}
+.iv-bal{font-weight:900;color:#6fe2a0}
+.iv-help{font-size:10px;color:#8195a9;margin-top:4px}
+@media(max-width:1050px){.iv-issue-grid{grid-template-columns:1.6fr .8fr .8fr .8fr .9fr 1.2fr auto}}
+@media(max-width:750px){.iv-issue-grid{grid-template-columns:1fr 1fr}.iv-issue-row .iv-item-field{grid-column:1/-1}}
+</style>
+</head><body><h1>${esc(title)}</h1><h2>${esc(activeCamp?.camp_name||"NCC CAMP MESSING IMS")}</h2><table><tr>${th}</tr>${tr}</table><footer>Developed by Vinayak Shanmukhanavar</footer></body></html>`);
   w.document.close();
   setTimeout(()=>{w.focus();w.print()},300);
 }
@@ -3016,5 +3027,272 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
 })();
 </script>
+
+<script id="incidental-iv-v26-final">
+(function(){
+  function ivEsc(v){return typeof esc==='function'?esc(v??''):String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}
+  function ivNum(v){return Number(v)||0}
+  function ivFy(d){
+    const dt=new Date((d||today())+'T00:00:00');
+    const y=dt.getFullYear(), m=dt.getMonth()+1;
+    return m>=4 ? `${String(y).slice(-2)}-${String(y+1).slice(-2)}` : `${String(y-1).slice(-2)}-${String(y).slice(-2)}`;
+  }
+
+  window.getIncidentalRVItemCatalog=function(){
+    const rows=[];
+    (incidentals||[]).filter(v=>v.voucher_type==='RV').forEach(rv=>{
+      (Array.isArray(rv.items)?rv.items:[]).forEach((it,index)=>{
+        const qty=ivNum(it.qty);
+        const desc=String(it.desc||it.nomenclature||'').trim();
+        if(!desc || qty<=0)return;
+        rows.push({
+          key:`${rv.id}|${index}`,
+          rvId:rv.id,
+          rvNo:rv.voucher_no||'',
+          invoice:rv.invoice_number||'',
+          index,
+          desc,
+          unit:it.unit||'Nos',
+          type:it.type||'Expendable',
+          qty,
+          rate:ivNum(it.rate),
+          page:it.page||'',
+          vendor:rv.party||''
+        });
+      });
+    });
+    return rows;
+  };
+
+  function ivSameSource(saved,src){
+    if(saved.source_rv_id && String(saved.source_rv_id)===String(src.rvId)){
+      if(saved.source_item_index!==undefined && Number(saved.source_item_index)===Number(src.index)) return true;
+    }
+    if(saved.source_rv_no && String(saved.source_rv_no)===String(src.rvNo) && Number(saved.source_item_index)===Number(src.index)) return true;
+    return !saved.source_rv_id && !saved.source_rv_no &&
+      String(saved.desc||'').trim().toUpperCase()===String(src.desc).trim().toUpperCase() &&
+      String(saved.unit||'')===String(src.unit||'') &&
+      String(saved.type||'')===String(src.type||'') &&
+      String(saved.page||'')===String(src.page||'');
+  }
+
+  window.getIncidentalIVIssued=function(src,excludeId){
+    let total=0;
+    (incidentals||[]).filter(v=>v.voucher_type==='IV' && String(v.id)!==String(excludeId||'')).forEach(iv=>{
+      (Array.isArray(iv.items)?iv.items:[]).forEach(it=>{
+        if(ivSameSource(it,src)) total += ivNum(it.qty);
+      });
+    });
+    return total;
+  };
+
+  window.getIncidentalIVBalance=function(src,excludeId){
+    return Math.max(0, ivNum(src.qty)-window.getIncidentalIVIssued(src,excludeId));
+  };
+
+  function catalogMap(){
+    const map={};
+    window.getIncidentalRVItemCatalog().forEach(x=>map[x.key]=x);
+    return map;
+  }
+
+  function rowSource(row){
+    const key=row?.querySelector('.iv-source')?.value||'';
+    return catalogMap()[key]||null;
+  }
+
+  function renderIVRow(row,item){
+    const select=row.querySelector('.iv-source');
+    const unit=row.querySelector('.iv-unit');
+    const bal=row.querySelector('.iv-balance');
+    const page=row.querySelector('.iv-page');
+    const qty=row.querySelector('.iv-qty');
+    if(!select)return;
+    const src=catalogMap()[select.value];
+    if(src){
+      const available=window.getIncidentalIVBalance(src,ivEditingId);
+      unit.value=src.unit||'';
+      bal.value=available.toFixed(2);
+      page.value=src.page||'';
+      qty.max=String(available);
+      qty.placeholder=`Max ${available.toFixed(2)}`;
+      if(item && item.qty!==undefined && item.source_rv_id && String(item.source_rv_id)===String(src.rvId)){
+        qty.value=item.qty;
+      }
+      if(String(src.type).toLowerCase().includes('non')) window.ensureIVNumberCategory('N-EXP');
+      else window.ensureIVNumberCategory('EXP');
+    }else{
+      unit.value='';bal.value='';page.value='';qty.removeAttribute('max');qty.placeholder='Quantity to issue';
+    }
+  }
+
+  function addIVIssueRow(item){
+    const box=document.getElementById('ivItemsInc'); if(!box)return;
+    const row=document.createElement('div'); row.className='iv-issue-row';
+    const options=window.getIncidentalRVItemCatalog().map(src=>{
+      const available=window.getIncidentalIVBalance(src,ivEditingId);
+      const selected=item && item.source_rv_id && String(item.source_rv_id)===String(src.rvId) && Number(item.source_item_index)===Number(src.index);
+      const label=`${src.desc} | ${src.unit} | Bal ${available.toFixed(2)} | RV ${src.rvNo}`;
+      return `<option value="${ivEsc(src.key)}" ${selected?'selected':''}>${ivEsc(label)}</option>`;
+    }).join('');
+    row.innerHTML=`<div class="iv-issue-grid">
+      <div class="field iv-item-field"><label>Item from Incidental RV *</label><select class="iv-source"><option value="">Select RV item</option>${options}</select><div class="iv-help">Fetched from saved Incidental RV</div></div>
+      <div class="field"><label>A/u</label><input class="iv-unit" readonly></div>
+      <div class="field"><label>Balance</label><input class="iv-balance iv-bal" readonly></div>
+      <div class="field"><label>Page No.</label><input class="iv-page" readonly></div>
+      <div class="field"><label>Issue Qty *</label><input class="iv-qty" type="number" min="0.01" step="any" placeholder="Quantity to issue"></div>
+      <div class="field"><label>Remarks</label><input class="iv-remarks" placeholder="Optional"></div>
+      <button type="button" class="btn red" onclick="this.closest('.iv-issue-row').remove()">Remove</button>
+    </div>`;
+    box.appendChild(row);
+    const sel=row.querySelector('.iv-source');
+    sel.addEventListener('change',()=>renderIVRow(row));
+    row.querySelector('.iv-qty').addEventListener('input',function(){
+      const src=rowSource(row);
+      const bal=src?window.getIncidentalIVBalance(src,ivEditingId):0;
+      if(Number(this.value)>bal)this.value=bal>0?String(bal):'';
+    });
+    renderIVRow(row,item||{});
+  }
+
+  window.addSelectedIVItem=function(){
+    if(!window.getIncidentalRVItemCatalog().length){
+      setMsg('ivMsgInc','No saved Incidental RV items are available for issue. Save an Incidental RV first.');
+      return;
+    }
+    addIVIssueRow({});
+  };
+
+  window.addIVItem=function(item={}){addIVIssueRow(item)};
+
+  window.readIncidentalIVItems=function(){
+    return [...document.querySelectorAll('#ivItemsInc .iv-issue-row')].map(row=>{
+      const src=rowSource(row);
+      return {
+        desc:src?.desc||'',
+        unit:src?.unit||'',
+        type:src?.type||'Expendable',
+        qty:ivNum(row.querySelector('.iv-qty')?.value),
+        rate:ivNum(src?.rate),
+        page:src?.page||'',
+        authorised:'',
+        remarks:(row.querySelector('.iv-remarks')?.value||'').trim(),
+        source_rv_id:src?.rvId||null,
+        source_rv_no:src?.rvNo||null,
+        source_item_index:src?.index ?? null
+      };
+    });
+  };
+
+  window.ensureIVNumberCategory=async function(category){
+    const el=document.getElementById('ivNoAuto');
+    if(!el || ivEditingId)return;
+    const desired=category||'EXP';
+    const current=String(el.value||'');
+    const matches=new RegExp(`/(${desired==='N-EXP'?'N-EXP':'EXP'})/\\d+$`).test(current);
+    if(matches)return;
+    try{
+      if(typeof sb!=='undefined' && sb && activeCamp){
+        const {data,error}=await sb.rpc('next_incidental_civ_no_fixed',{p_category:desired});
+        if(!error && data){el.value=data;el.dataset.v26Category=desired;return;}
+      }
+    }catch(e){console.warn('IV number generation fallback',e)}
+    const fy=ivFy(document.getElementById('ivDateInc')?.value);
+    let max=0;
+    (incidentals||[]).filter(v=>v.voucher_type==='IV').forEach(v=>{
+      const n=String(v.voucher_no||'');
+      const m=n.match(new RegExp(`/${desired}/(\\d+)$`));
+      if(m)max=Math.max(max,Number(m[1]));
+    });
+    el.value=`CIV/39KAR/${fy}/${desired}/${String(max+1).padStart(3,'0')}`;
+    el.dataset.v26Category=desired;
+  };
+
+  window.renderIncidentalIVItems=function(){
+    const box=document.getElementById('ivItemsInc'); if(!box)return;
+    const catalog=window.getIncidentalRVItemCatalog();
+    if(!catalog.length){
+      box.innerHTML='<div class="empty">No saved Incidental RV items available.</div>';
+    }
+  };
+
+  window.clearIncidentalIV=async function(){
+    ivEditingId=null;
+    ['ivUnitInc','ivStationInc'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    const d=document.getElementById('ivDateInc');if(d)d.value=today();
+    const no=document.getElementById('ivNoAuto');if(no){no.readOnly=true;no.value='';no.dataset.v26Category='';}
+    const box=document.getElementById('ivItemsInc');if(box)box.innerHTML='';
+    setMsg('ivMsgInc','');
+    await window.ensureIVNumberCategory('EXP');
+  };
+
+  window.loadIncidentalIVScreen=function(){
+    window.renderIncidentalIVItems();
+    if(!ivEditingId && !(document.getElementById('ivNoAuto')?.value||'').trim()) window.ensureIVNumberCategory('EXP');
+  };
+
+  window.saveIncidentalIV=async function(){
+    if(!canQsecEntry())return setMsg('ivMsgInc','Only ADMIN, MANAGER or Q SEC can enter Incidental IV.');
+    if(!activeCamp)return setMsg('ivMsgInc','Select an active camp first.');
+    const rows=window.readIncidentalIVItems();
+    if(!rows.length)return setMsg('ivMsgInc','Click ADD ITEM and select an item from the Incidental RV.');
+    if(rows.some(x=>!x.desc||x.qty<=0))return setMsg('ivMsgInc','Enter a valid Issue Qty for every selected item.');
+    const kinds=new Set(rows.map(x=>String(x.type).toLowerCase().includes('non')?'N-EXP':'EXP'));
+    if(kinds.size>1)return setMsg('ivMsgInc','EXP and N-EXP items must be issued on separate IVs.');
+    const category=[...kinds][0]||'EXP';
+    await window.ensureIVNumberCategory(category);
+    const no=(document.getElementById('ivNoAuto')?.value||'').trim();
+    const unit=(document.getElementById('ivUnitInc')?.value||'').trim();
+    const station=(document.getElementById('ivStationInc')?.value||'').trim();
+    if(!no)return setMsg('ivMsgInc','IV number is not available.');
+    if(!unit)return setMsg('ivMsgInc','Receiving Unit is required.');
+    for(const x of rows){
+      const src={rvId:x.source_rv_id,rvNo:x.source_rv_no,index:x.source_item_index,desc:x.desc,unit:x.unit,type:x.type,page:x.page,qty:0};
+      const catalog=window.getIncidentalRVItemCatalog().find(s=>String(s.rvId)===String(x.source_rv_id)&&Number(s.index)===Number(x.source_item_index));
+      if(catalog)src.qty=catalog.qty;
+      const bal=window.getIncidentalIVBalance(src,ivEditingId);
+      if(x.qty>bal+0.000001)return setMsg('ivMsgInc',`Insufficient balance for ${x.desc}. Available: ${bal.toFixed(2)} ${x.unit||''}.`);
+    }
+    const total=rows.reduce((s,x)=>s+x.qty*x.rate,0);
+    const payload={p_id:ivEditingId||null,p_type:'IV',p_voucher_no:no,p_voucher_date:document.getElementById('ivDateInc')?.value||today(),p_party:unit,p_invoice_number:null,p_vendor_address:null,p_station:station||null,p_crv_no:null,p_authority:'Camp Commandant',p_unit:unit,p_items:rows,p_subtotal:total,p_gst_mode:'inclusive',p_gst_rate:0,p_gst_amount:0,p_amount:total,p_description:''};
+    let data=null,error=null;
+    try{const r=await sb.rpc('save_incidental_voucher_fixed',payload);data=r.data;error=r.error;}catch(e){error=e;}
+    if(error){
+      const row={camp_id:activeCamp.id,voucher_type:'IV',voucher_no:no,voucher_date:payload.p_voucher_date,party:unit,invoice_number:null,vendor_address:null,station:station||null,crv_no:null,authority:'Camp Commandant',unit:unit,items:rows,subtotal:total,gst_mode:'inclusive',gst_rate:0,gst_amount:0,amount:total,mode:'CASH',code_head:null,description:'',created_by:currentUser?.id||null};
+      if(ivEditingId){const u=await sb.from('incidental_vouchers').update(row).eq('id',ivEditingId).eq('camp_id',activeCamp.id).select('*').single();data=u.data;error=u.error;}
+      else{const i=await sb.from('incidental_vouchers').insert(row).select('*').single();data=i.data;error=i.error;}
+    }
+    if(error){console.error('IV save failed',error);return setMsg('ivMsgInc','Save failed: '+error.message);}
+    ivEditingId=data?.id||data||ivEditingId;
+    setMsg('ivMsgInc','Incidental IV saved successfully. The issued quantity is now reduced from the next available balance.',true);
+    await refreshAll();
+    renderIncidentalIV();
+    window.loadIncidentalIVScreen();
+  };
+
+  window.editIncidentalIV=function(id){
+    const x=incidentals.find(a=>String(a.id)===String(id)&&a.voucher_type==='IV');
+    if(!x)return;
+    ivEditingId=id;
+    const set=(k,v)=>{const e=document.getElementById(k);if(e)e.value=v??''};
+    set('ivNoAuto',x.voucher_no);set('ivDateInc',x.voucher_date);set('ivUnitInc',x.unit||x.party);set('ivStationInc',x.station||'');
+    const box=document.getElementById('ivItemsInc');if(box){box.innerHTML='';(x.items||[]).forEach(item=>addIVIssueRow(item));}
+    setMsg('ivMsgInc','');
+    showPage('incidentalIV',document.querySelector('[data-page="incidentalIV"]'));
+  };
+
+  window.addEventListener('load',()=>setTimeout(window.loadIncidentalIVScreen,250));
+  const oldShow=window.showPage;
+  if(typeof oldShow==='function' && !oldShow.__ivV26){
+    const wrapped=function(id,btn){
+      oldShow(id,btn);
+      if(id==='incidentalIV')setTimeout(window.loadIncidentalIVScreen,80);
+    };
+    wrapped.__ivV26=true;
+    window.showPage=wrapped;
+  }
+})();
+</script>
+
 </body>
 </html>
