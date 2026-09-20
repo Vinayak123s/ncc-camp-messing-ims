@@ -4531,550 +4531,276 @@ window.addEventListener('DOMContentLoaded',()=>{
 </script>
 
 
-<script id="ims-v47-accounts-payment-final">
-/* V47 FINAL PAYMENT FIX
-   - Accounts/Manager/Admin use SECURITY DEFINER RPCs for source bills and head balance.
-   - Pending Manager payments never consume a source bill or head balance.
-   - No dependency on Accounts RLS visibility of stock_in_items.
-   - Final handlers are installed last so earlier Cash Book overrides cannot replace them.
-*/
+
+
+
+
+
+<script id="ims-v49-final-accounts-manager-payment">
 (function(){
-  const cache47 = {MESSING_RV:[], INCIDENTAL_RV:[], POL_DRAWN:[]};
-  const n = v => Number(v) || 0;
-  const money47 = v => '₹' + n(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const esc47 = s => String(s ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const approved47 = e => String(e?.approval_status || 'APPROVED').trim().toUpperCase() === 'APPROVED';
-  const head47 = () => String(document.getElementById('cashPaymentCodeHead')?.value || '').trim().toUpperCase();
-  const type47 = () => {
-    const h = head47();
-    return h === 'MESSING' ? 'MESSING_RV' : h === 'INC' ? 'INCIDENTAL_RV' : h === 'POL' ? 'POL_DRAWN' : '';
+  /*
+    V49 FINAL ARCHITECTURE
+    Accounts does not read camp/source tables directly. One SECURITY DEFINER
+    RPC returns the active camp, cashbook and linked source vouchers.
+    Manager can continue using the normal data path.
+  */
+  const N=v=>Number(v)||0;
+  const U=v=>String(v??'').trim().toUpperCase();
+  const approved=e=>U(e?.approval_status||'APPROVED')==='APPROVED';
+  const rejected=e=>U(e?.approval_status||'APPROVED')==='REJECTED';
+  const canonical49=h=>{
+    const k=U(h);
+    return ({
+      'MESSING':'Messing','INC':'INC','POL':'POL',
+      'RANK PAY':'Rank Pay','TA CADETS':'TA Cadets',
+      'TA/DA CIV':'TA/DA Civ Staff','TA/DA CIV STAFF':'TA/DA Civ Staff',
+      'TA DA CIV STAFF':'TA/DA Civ Staff','RENT':'Rent',
+      'OTHER':'Others','OTHERS':'Others'
+    })[k] || String(h||'').trim();
   };
-
-  function normalizeSource47(rows,type){
-    return (Array.isArray(rows)?rows:[]).map(x=>{
-      let its = [];
-      try { its = Array.isArray(x.items) ? x.items : (typeof x.items === 'string' ? JSON.parse(x.items) : []); }
-      catch(_) { its = []; }
-
-      its = its.map(i=>({
-        name:i.item_name || i.name || i.nomenclature || 'Item',
-        unit:i.unit || i.au || '',
-        qty:n(i.quantity ?? i.qty),
-        rate:n(i.rate),
-        amount:i.amount != null ? n(i.amount) : n(i.quantity ?? i.qty) * n(i.rate)
-      }));
-
-      const amount = n(x.amount);
-      const ref = x.reference_no || x.invoice_number || x.voucher_no || '';
-      const date = x.entry_date || x.invoice_date || x.voucher_date || '';
-      const party = x.party || x.supplier || x.petrol_bunk || '';
-
-      return {
-        id:x.id,
-        ref,
-        party,
-        date,
-        amount,
-        onAccount:x.on_account || (type==='MESSING_RV'?'MESSING':type==='INCIDENTAL_RV'?'INC':'POL'),
-        items:its,
-        label:`${ref} | ${date} | ${party} | Balance ${money47(amount)}`
-      };
-    }).filter(x=>x.amount > 0.005);
-  }
-
-  async function rpcSources47(type){
-    if(!activeCamp?.id || !sb) return [];
-    const r = await sb.rpc('get_accounts_payment_sources_v47',{
-      p_camp_id:activeCamp.id,
-      p_source_type:type
-    });
-    if(r.error) throw r.error;
-    return normalizeSource47(r.data,type);
-  }
-
-  function localSources47(type){
-    /* Fallback only. The V47 RPC is the authoritative source for Accounts. */
-    if(type==='MESSING_RV'){
-      return (inInvoices||[]).map(x=>{
-        const rows = x.stock_in_items || [];
-        const its = rows.map(r=>{
-          const it = (items||[]).find(i=>String(i.id)===String(r.item_id));
-          const q=n(r.quantity), rate=n(r.rate);
-          return {
-            name:it?.name || r.item_name || 'Item',
-            unit:it?.unit || r.unit || '',
-            qty:q, rate, amount:r.amount!=null?n(r.amount):q*rate
-          };
-        });
-        const total=its.reduce((s,i)=>s+i.amount,0);
-        return {
-          id:x.id, ref:x.invoice_number||'', party:x.supplier||'', date:x.invoice_date||'',
-          amount:total, onAccount:'MESSING', items:its,
-          label:`${x.invoice_number||''} | ${x.invoice_date||''} | ${x.supplier||''} | Balance ${money47(total)}`
-        };
-      }).filter(x=>x.amount>0.005);
-    }
-    if(type==='INCIDENTAL_RV'){
-      return (incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()==='RV').map(x=>{
-        const its=(x.items||[]).map(r=>{
-          const q=n(r.qty??r.quantity), rate=n(r.rate);
-          return {name:r.name||r.desc||r.item||'Item',unit:r.unit||'',qty:q,rate,amount:r.amount!=null?n(r.amount):q*rate};
-        });
-        const total=n(x.amount)||its.reduce((s,i)=>s+i.amount,0);
-        return {id:x.id,ref:x.invoice_number||x.voucher_no||'',party:x.party||'',date:x.voucher_date||'',amount:total,onAccount:'INC',items:its,
-          label:`${x.voucher_no||''} | ${x.invoice_number||'-'} | ${x.party||''} | Balance ${money47(total)}`};
-      }).filter(x=>x.amount>0.005);
-    }
-    if(type==='POL_DRAWN'){
-      return (polEntries||[]).map(x=>{
-        const total=n(x.total_amount)||n(x.litres)*n(x.rate);
-        return {id:x.id,ref:x.invoice_number||'',party:x.petrol_bunk||'',date:x.entry_date||'',amount:total,onAccount:'POL',
-          items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:n(x.litres),rate:n(x.rate),amount:total}],
-          label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${money47(total)}`};
-      }).filter(x=>x.amount>0.005);
-    }
-    return [];
-  }
-
-  async function load47(){
-    if(typeof cashType !== 'undefined' && cashType !== 'PAYMENT') return;
-
-    const h=head47();
-    const linked=['MESSING','INC','POL'].includes(h);
-    const tw=document.getElementById('cashSourceTypeWrap');
-    const sw=document.getElementById('cashSourceWrap');
-    const sel=document.getElementById('cashSource');
-    const st=document.getElementById('cashSourceType');
-
-    if(!tw || !sw || !sel) return;
-
-    if(!linked){
-      tw.classList.add('hidden');
-      sw.classList.add('hidden');
-      updateBalance47();
-      return;
-    }
-
-    tw.classList.remove('hidden');
-    sw.classList.remove('hidden');
-
-    const type=type47();
-    if(st) st.value=type;
-
-    sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
-
-    let list=[];
-    let rpcError=null;
-
-    try{
-      list=await rpcSources47(type);
-    }catch(e){
-      rpcError=e;
-      console.error('V47 payment source RPC:',e);
-    }
-
-    /* Never let an empty RLS-filtered local list overwrite a successful RPC result. */
-    if(!list.length){
-      const fallback=localSources47(type);
-      if(fallback.length) list=fallback;
-    }
-
-    cache47[type]=list;
-
-    if(!list.length){
-      const msg=rpcError
-        ? 'No source found — run V47 Supabase SQL'
-        : 'No unpaid source voucher found';
-      sel.innerHTML=`<option value="">${msg}</option>`;
-      updateBalance47();
-      return;
-    }
-
-    sel.innerHTML =
-      '<option value="">Select source invoice / voucher</option>' +
-      list.map(x=>`<option value="${esc47(x.id)}">${esc47(x.label)}</option>`).join('');
-
-    updateBalance47();
-  }
-
-  function fill47(){
-    const type=document.getElementById('cashSourceType')?.value || type47();
-    const id=document.getElementById('cashSource')?.value || '';
-    const x=(cache47[type]||[]).find(a=>String(a.id)===String(id));
-
-    if(!x){
-      updateBalance47();
-      return;
-    }
-
-    const set=(id,v)=>{
-      const e=document.getElementById(id);
-      if(e) e.value=v ?? '';
+  const parse49=v=>{
+    if(!v)return {};
+    if(typeof v==='object')return v;
+    try{return JSON.parse(v)}catch(_){return {}}
+  };
+  const alloc49=e=>{
+    const raw=parse49(e?.head_allocations), o={
+      Messing:0,INC:0,POL:0,'Rank Pay':0,'TA Cadets':0,
+      'TA/DA Civ Staff':0,Rent:0,Others:0
     };
+    Object.entries(raw||{}).forEach(([k,v])=>{
+      const c=canonical49(k);
+      if(Object.prototype.hasOwnProperty.call(o,c))o[c]+=N(v);
+    });
+    return o;
+  };
+  const money49=v=>typeof money==='function'?money(v):'₹'+N(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const esc49=v=>typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const role49=()=>U(window.profile?.role||'');
+  const isAcct49=()=>role49()==='ACCOUNTS';
 
-    set('cashInvoice',x.ref);
-    set('cashPaymentParty',x.party);
-    set('cashPaymentAccount',x.onAccount);
-    set('cashPaymentAmount',n(x.amount).toFixed(2));
-    set('cashSourceDate',x.date);
-    set('cashSourceParty',x.party);
-    set('cashSourceTotal',n(x.amount).toFixed(2));
+  function setV49(id,v){const e=document.getElementById(id);if(e)e.value=v??''}
+  function textV49(id,v){const e=document.getElementById(id);if(e)e.textContent=money49(v)}
 
-    const b=document.getElementById('cashSourceItemsBody');
-    if(b){
-      b.innerHTML=(x.items||[]).map(i=>
-        `<tr><td>${esc47(i.name)}</td><td>${esc47(i.unit)}</td><td>${i.qty}</td><td>${money47(i.rate)}</td><td>${money47(i.amount)}</td></tr>`
-      ).join('') || '<tr><td colspan="5">No item details</td></tr>';
-    }
-
-    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
-    updateBalance47();
+  function computeCashBank49(date){
+    let cash=0,bank=0;
+    (window.cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date||today())).forEach(e=>{
+      const a=N(e.amount);
+      if(e.entry_type==='RECEIPT'){
+        if(U(e.mode)==='BANK')bank+=a;else cash+=a;
+      }else if(e.entry_type==='PAYMENT' && approved(e)){
+        if(U(e.mode)==='BANK')bank-=a;else cash-=a;
+      }else if(e.entry_type==='CASH_DRAWN'){
+        cash+=a;bank-=a;
+      }
+    });
+    return {cash,bank};
   }
 
-  async function headBalanceRPC47(head,date){
-    if(!activeCamp?.id || !sb || !head) return 0;
-    try{
-      const r=await sb.rpc('get_accounts_head_balance_v47',{
-        p_camp_id:activeCamp.id,
-        p_head:head,
-        p_as_of_date:date || today()
-      });
-      if(r.error) throw r.error;
-      return n(Array.isArray(r.data) ? r.data[0]?.balance : r.data?.balance);
-    }catch(e){
-      console.error('V47 head balance RPC:',e);
-      return null;
-    }
-  }
-
-  function localHeadBalance47(head,date){
-    const h=String(head||'').trim().toUpperCase();
+  function computeHead49(head,date){
+    const h=canonical49(head);
     let total=0;
-
-    const c=activeCamp||{};
-    if(h==='MESSING') total+=n(c.messing_budget);
-    if(h==='INC') total+=n(c.incidental_budget);
-    if(h==='POL') total+=n(c.pol_budget);
-
-    (cashbookEntries||[])
-      .filter(e=>String(e.entry_date||'')<=String(date||today()))
-      .forEach(e=>{
-        if(e.entry_type==='RECEIPT'){
-          let a=e.head_allocations;
-          if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}}
-          Object.entries(a||{}).forEach(([k,v])=>{
-            const u=String(k||'').trim().toUpperCase();
-            const canon=u==='MESSING'?'MESSING':
-              u==='INC'?'INC':
-              u==='POL'?'POL':
-              u==='RANK PAY'?'RANK PAY':
-              u==='TA CADETS'?'TA CADETS':
-              (u==='TA/DA CIV' || u==='TA DA CIV STAFF')?'TA/DA CIV STAFF':
-              u==='RENT'?'RENT':
-              (u==='OTHER'||u==='OTHERS')?'OTHERS':u;
-            if(canon===h) total+=n(v);
-          });
-        }else if(e.entry_type==='PAYMENT' &&
-                 String(e.code_head||'').trim().toUpperCase()===h &&
-                 approved47(e)){
-          total-=n(e.amount);
-        }
-      });
-
+    (window.cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date||today())).forEach(e=>{
+      if(e.entry_type==='RECEIPT')total+=N(alloc49(e)[h]);
+      else if(e.entry_type==='PAYMENT' && approved(e) && canonical49(e.code_head)===h)total-=N(e.amount);
+    });
     return total;
   }
 
-  async function updateBalance47(){
-    const date=document.getElementById('payDate')?.value || today();
-    const mode=document.getElementById('cashPaymentMode')?.value || 'CASH';
-    const head=head47();
-    const amt=n(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''));
-
-    let cash=0,bank=0;
-    (cashbookEntries||[])
-      .filter(e=>String(e.entry_date||'')<=String(date))
-      .forEach(e=>{
-        const a=n(e.amount);
-        if(e.entry_type==='RECEIPT'){
-          if(String(e.mode||'').toUpperCase()==='BANK') bank+=a;
-          else cash+=a;
-        }else if(e.entry_type==='PAYMENT' && approved47(e)){
-          if(String(e.mode||'').toUpperCase()==='BANK') bank-=a;
-          else cash-=a;
-        }else if(e.entry_type==='CASH_DRAWN'){
-          bank-=a;
-          cash+=a;
-        }
-      });
-
-    let hb=null;
-    if(head) hb=await headBalanceRPC47(head,date);
-    if(hb===null) hb=localHeadBalance47(head,date);
-
-    const set=(id,v)=>{
-      const e=document.getElementById(id);
-      if(e)e.textContent=money47(v);
-    };
-
-    set('payCashCurrent',cash);
-    set('payBankCurrent',bank);
-    set('payHeadCurrent',hb);
-    set('payCashBankAfter',mode==='BANK'?bank-amt:cash-amt);
-    set('payBankAfter',bank-(mode==='BANK'?amt:0));
-    set('payHeadAfter',hb-amt);
-
-    const type=document.getElementById('cashSourceType')?.value||'';
-    const sid=document.getElementById('cashSource')?.value||'';
-    const src=(cache47[type]||[]).find(x=>String(x.id)===String(sid));
-
-    const note=document.getElementById('paymentBalanceNote');
-    if(note){
-      note.textContent =
-        `Cash in Hand: ${money47(cash)} | Bank Balance: ${money47(bank)} | ${head||'Head'} Balance: ${money47(hb)}` +
-        (src ? ` | Source Remaining: ${money47(src.amount)}` : '');
-    }
+  function sourceList49(type){
+    const rows=window.__V49_SOURCES__?.[type]||[];
+    return Array.isArray(rows)?rows:[];
   }
 
-  /* Install LAST — this is the authoritative Accounts/Payment handler. */
-  window.loadCashSources=load47;
-  window.paymentHeadChanged=load47;
-  window.fillCashSource=fill47;
-  window.updatePaymentBalancePreview=updateBalance47;
-  window.availablePaymentSources=type=>cache47[type]||localSources47(type);
+  function renderCampTop49(){
+    const el=document.getElementById('campSelectTop');
+    if(!el)return;
+    const list=Array.isArray(window.camps)?window.camps:[];
+    const cur=window.activeCamp?.id||'';
+    el.innerHTML='<option value="">Select Camp</option>'+
+      list.map(c=>`<option value="${esc49(c.id)}" ${String(c.id)===String(cur)?'selected':''}>${esc49(c.camp_code)} - ${esc49(c.camp_name)}</option>`).join('');
+    const lbl=document.getElementById('campActiveLabel');
+    if(lbl)lbl.textContent=window.activeCamp?`${window.activeCamp.camp_code} | ${window.activeCamp.camp_name}`:'No camp selected';
+  }
 
-  document.getElementById('cashPaymentCodeHead')?.addEventListener('change',()=>{
-    setTimeout(()=>{load47();updateBalance47();},50);
-  });
-  document.getElementById('cashSource')?.addEventListener('change',fill47);
-  document.getElementById('cashPaymentMode')?.addEventListener('change',updateBalance47);
-  document.getElementById('cashPaymentAmount')?.addEventListener('input',updateBalance47);
-  document.getElementById('payDate')?.addEventListener('change',updateBalance47);
+  function applyV49Context(x){
+    window.camps=Array.isArray(x.camps)?x.camps:[];
+    window.activeCamp=x.active_camp||null;
+    window.items=Array.isArray(x.inventory)?x.inventory:[];
+    window.inInvoices=Array.isArray(x.stock_in_invoices)?x.stock_in_invoices:[];
+    window.polEntries=Array.isArray(x.pol_entries)?x.pol_entries:[];
+    window.incidentals=Array.isArray(x.incidental_vouchers)?x.incidental_vouchers:[];
+    window.cashbookEntries=Array.isArray(x.cashbook_entries)?x.cashbook_entries:[];
+    window.cashbookClosures=Array.isArray(x.cashbook_closures)?x.cashbook_closures:[];
+    window.cashbookDayClosures=window.cashbookClosures;
+    window.__V49_SOURCES__=x.sources||{MESSING_RV:[],INCIDENTAL_RV:[],POL_DRAWN:[]};
+    renderCampTop49();
+  }
 
-  window.addEventListener('load',()=>{
-    setTimeout(()=>{
-      if(typeof cashType==='undefined' || cashType==='PAYMENT'){
-        load47();
-        updateBalance47();
-      }
-    },900);
-  });
-
-  setTimeout(()=>{
-    try{
-      if(typeof cashType==='undefined' || cashType==='PAYMENT'){
-        load47();
-        updateBalance47();
-      }
-    }catch(e){console.error('V47 init',e);}
-  },1200);
-})();
-</script>
-
-<script id="ims-v48-accounts-context-final">
-/*
- V48 FINAL ACCOUNTS CONTEXT FIX
- The Accounts role previously depended on direct SELECT access to public.camps.
- Manager could read it, Accounts could not, so activeCamp stayed null and the
- Accounts dashboard appeared blank. This final layer uses SECURITY DEFINER RPCs.
-*/
-(function(){
-  const isAccounts=()=>String(window.profile?.role||'').toUpperCase()==='ACCOUNTS';
-
-  async function loadAccountsContext48(preferredId){
-    if(!window.sb || !isAccounts()) return null;
-
-    const r=await sb.rpc('get_accounts_context_v48',{
-      p_camp_id: preferredId || null
-    });
-
+  async function fetchContext49(campId){
+    if(!window.sb)return false;
+    const r=await sb.rpc('get_accounts_payment_context_v49',{p_camp_id:campId||null});
     if(r.error){
-      console.error('V48 Accounts context:',r.error);
-      return null;
+      console.error('V49 context RPC',r.error);
+      const m=document.getElementById('paymentMsg');
+      if(m && isAcct49())m.textContent='Accounts data load error: '+r.error.message;
+      return false;
     }
-
-    const x=r.data || {};
-    if(Array.isArray(x.camps)) window.camps=x.camps;
-    else window.camps=[];
-
-    let chosen=x.active_camp || null;
-    if(preferredId && Array.isArray(window.camps)){
-      chosen=window.camps.find(c=>String(c.id)===String(preferredId)) || chosen;
-    }
-
-    window.activeCamp=chosen;
-
-    if(Array.isArray(x.cashbook)){
-      window.cashbookEntries=x.cashbook;
-    }
-    if(Array.isArray(x.closures)){
-      window.cashbookClosures=x.closures;
-      window.cashbookDayClosures=x.closures;
-    }
-
-    populateCampTop48();
+    applyV49Context(r.data||{});
     return !!window.activeCamp;
   }
 
-  function populateCampTop48(){
-    const el=document.getElementById('campSelectTop');
-    if(!el) return;
+  async function refreshV49(){
+    if(!isAcct49())return null;
+    const ok=await fetchContext49(window.activeCamp?.id||window.profile?.current_camp_id||null);
+    if(!ok)return false;
 
-    const list=Array.isArray(window.camps)?window.camps:[];
-    const current=window.activeCamp?.id||'';
+    try{renderDashboard()}catch(e){console.error(e)}
+    try{renderCashbook()}catch(e){console.error(e)}
+    try{renderReports()}catch(e){console.error(e)}
+    try{renderCamps()}catch(e){}
 
-    el.innerHTML='<option value="">Select Camp</option>'+
-      list.map(c=>
-        `<option value="${esc(c.id)}" ${String(c.id)===String(current)?'selected':''}>`+
-        `${esc(c.camp_code||'')} - ${esc(c.camp_name||'')}`+
-        `</option>`
-      ).join('');
-
-    const lbl=document.getElementById('campActiveLabel');
-    if(lbl){
-      lbl.textContent=window.activeCamp
-        ? `${window.activeCamp.camp_code||''} | ${window.activeCamp.camp_name||''}`
-        : 'No camp selected';
-    }
-
-    const dash=document.getElementById('dashCampName');
-    const station=document.getElementById('dashCampStation');
-    if(dash) dash.textContent=window.activeCamp?.camp_name||'Select Camp';
-    if(station) station.textContent=window.activeCamp?.station||'—';
-  }
-
-  async function ensureCampContext48(){
-    if(!isAccounts()){
-      return typeof ensureCampContext==='function'
-        ? ensureCampContext()
-        : false;
-    }
-
-    const ok=await loadAccountsContext48(
-      window.profile?.current_camp_id || null
-    );
-
-    if(ok) return true;
-
-    // No profile assignment: use newest camp returned by the secure RPC.
-    const list=Array.isArray(window.camps)?window.camps:[];
-    if(list.length){
-      window.activeCamp=list[0];
-      populateCampTop48();
-      return true;
-    }
-
-    console.warn('V48: Accounts cannot see any camp through RPC.');
-    window.activeCamp=null;
-    populateCampTop48();
-    return false;
-  }
-
-  async function refreshAccounts48(){
-    if(!isAccounts()) return null;
-
-    const ok=await loadAccountsContext48(
-      window.activeCamp?.id ||
-      window.profile?.current_camp_id ||
-      null
-    );
-
-    if(!ok){
-      renderDashboard?.();
-      renderCashbook?.();
-      renderReports?.();
-      return false;
-    }
-
-    // Load the Accounts-only dashboard data through the same secure context.
-    try{ renderDashboard?.(); }catch(e){console.error(e)}
-    try{ renderCashbook?.(); }catch(e){console.error(e)}
-    try{ renderReports?.(); }catch(e){console.error(e)}
-    try{ populateCampTop48(); }catch(e){}
-
-    // Payment source RPC is authoritative and independent of Accounts RLS.
-    try{
-      if(typeof cashType==='undefined' || cashType==='PAYMENT'){
-        if(typeof window.loadCashSources==='function'){
-          await window.loadCashSources();
-        }
-      }
-    }catch(e){console.error('V48 source load:',e)}
-
+    if(U(window.cashType)==='PAYMENT')await loadSources49();
+    updateBalance49();
     return true;
   }
 
-  async function switchCamp48(id){
-    if(!id) return;
-
-    const list=Array.isArray(window.camps)?window.camps:[];
-    const c=list.find(x=>String(x.id)===String(id));
-    if(!c) return;
-
-    window.activeCamp=c;
-
-    // The profile update is optional for Accounts. Session selection must work
-    // even when RLS prevents Accounts from updating profiles.
-    try{
-      const r=await sb.from('profiles')
-        .update({current_camp_id:id})
-        .eq('id',currentUser.id);
-
-      if(!r.error && window.profile){
-        window.profile.current_camp_id=id;
-      }
-    }catch(e){
-      console.warn('V48: profile camp persistence skipped:',e);
-    }
-
-    populateCampTop48();
-    await refreshAccounts48();
-
-    try{
-      showPage('dashboard',
-        document.querySelector('[data-page="dashboard"]'));
-    }catch(_){}
+  async function switchCamp49(id){
+    if(!id)return;
+    const ok=await fetchContext49(id);
+    if(!ok)return;
+    try{renderDashboard()}catch(_){}
+    try{renderCashbook()}catch(_){}
+    try{renderReports()}catch(_){}
+    try{showPage('dashboard',document.querySelector('[data-page="dashboard"]'))}catch(_){}
   }
 
-  // Replace the core functions only for Accounts.
-  const oldEnsure=window.ensureCampContext;
-  const oldRefresh=window.refreshAll;
-  const oldSwitch=window.switchCamp;
+  async function loadSources49(){
+    const head=U(document.getElementById('cashPaymentCodeHead')?.value||'');
+    const tw=document.getElementById('cashSourceTypeWrap');
+    const sw=document.getElementById('cashSourceWrap');
+    const st=document.getElementById('cashSourceType');
+    const sel=document.getElementById('cashSource');
 
-  window.ensureCampContext=async function(){
-    if(isAccounts()) return ensureCampContext48();
-    return oldEnsure ? oldEnsure() : false;
-  };
+    if(!tw||!sw||!sel)return;
 
+    if(!['MESSING','INC','POL'].includes(head)){
+      tw.classList.add('hidden');sw.classList.add('hidden');
+      updateBalance49();return;
+    }
+
+    tw.classList.remove('hidden');sw.classList.remove('hidden');
+    const type=head==='MESSING'?'MESSING_RV':head==='INC'?'INCIDENTAL_RV':'POL_DRAWN';
+    if(st)st.value=type;
+
+    const list=sourceList49(type);
+    sel.innerHTML='<option value="">Select source invoice / voucher</option>'+
+      list.map(x=>`<option value="${esc49(x.id)}">${esc49(x.label)}</option>`).join('');
+
+    if(!list.length){
+      sel.innerHTML='<option value="">No unpaid voucher available</option>';
+    }
+    updateBalance49();
+  }
+
+  function fillSource49(){
+    const type=document.getElementById('cashSourceType')?.value||'';
+    const id=document.getElementById('cashSource')?.value||'';
+    const x=sourceList49(type).find(a=>String(a.id)===String(id));
+
+    if(!x){
+      ['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount',
+       'cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(id=>setV49(id,''));
+      document.getElementById('cashSourceDetails')?.classList.add('hidden');
+      updateBalance49();return;
+    }
+
+    setV49('cashInvoice',x.ref);
+    setV49('cashPaymentParty',x.party);
+    setV49('cashPaymentAccount',x.onAccount);
+    setV49('cashPaymentAmount',N(x.amount).toFixed(2));
+    setV49('cashSourceDate',x.date);
+    setV49('cashSourceParty',x.party);
+    setV49('cashSourceTotal',N(x.amount).toFixed(2));
+
+    const body=document.getElementById('cashSourceItemsBody');
+    if(body){
+      body.innerHTML=(x.items||[]).map(i=>
+        `<tr><td>${esc49(i.name)}</td><td>${esc49(i.unit||'')}</td><td>${i.qty??''}</td><td>${money49(i.rate)}</td><td>${money49(i.amount)}</td></tr>`
+      ).join('')||'<tr><td colspan="5">No item details</td></tr>';
+    }
+    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
+    updateBalance49();
+  }
+
+  function updateBalance49(){
+    const date=document.getElementById('payDate')?.value||today();
+    const mode=U(document.getElementById('cashPaymentMode')?.value||'CASH');
+    const head=document.getElementById('cashPaymentCodeHead')?.value||'';
+    const amount=N(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''));
+    const b=computeCashBank49(date);
+    const hb=computeHead49(head,date);
+
+    textV49('payCashCurrent',b.cash);
+    textV49('payBankCurrent',b.bank);
+    textV49('payHeadCurrent',hb);
+    textV49('payCashBankAfter',mode==='BANK'?b.bank-amount:b.cash-amount);
+    textV49('payBankAfter',b.bank-(mode==='BANK'?amount:0));
+    textV49('payHeadAfter',hb-amount);
+
+    const type=document.getElementById('cashSourceType')?.value||'';
+    const sid=document.getElementById('cashSource')?.value||'';
+    const src=sourceList49(type).find(x=>String(x.id)===String(sid));
+    const note=document.getElementById('paymentBalanceNote');
+    if(note)note.textContent=`Cash in Hand: ${money49(b.cash)} | Bank Balance: ${money49(b.bank)} | ${head||'Head'} Balance: ${money49(hb)}${src?' | Source Remaining: '+money49(src.amount):''}`;
+  }
+
+  /* Keep existing save/approval functions, but make every payment-screen
+     source/balance function resolve to V49 data. */
+  window.availablePaymentSources=sourceList49;
+  window.paymentSources=sourceList49;
+  window.loadCashSources=loadSources49;
+  window.fillCashSource=fillSource49;
+  window.paymentHeadChanged=loadSources49;
+  window.updatePaymentBalancePreview=updateBalance49;
+
+  const oldLoadApp49=window.loadApp;
+  if(typeof oldLoadApp49==='function'){
+    window.loadApp=async function(){
+      await oldLoadApp49();
+      if(isAcct49()){
+        await refreshV49();
+        try{showPage('dashboard',document.querySelector('[data-page="dashboard"]'))}catch(_){}
+      }
+    };
+  }
+
+  const oldRefresh49=window.refreshAll;
   window.refreshAll=async function(){
-    if(isAccounts()) return refreshAccounts48();
-    return oldRefresh ? oldRefresh() : null;
+    if(isAcct49())return refreshV49();
+    return oldRefresh49?oldRefresh49():null;
   };
 
-  window.switchCamp=function(id){
-    if(isAccounts()) return switchCamp48(id);
-    return oldSwitch ? oldSwitch(id) : null;
-  };
+  window.switchCamp=switchCamp49;
 
-  // The Accounts dashboard can render using secure cashbook rows.
-  window.populateCampTop=populateCampTop48;
+  document.getElementById('cashPaymentCodeHead')?.addEventListener('change',()=>setTimeout(loadSources49,0));
+  document.getElementById('cashSource')?.addEventListener('change',fillSource49);
+  document.getElementById('cashPaymentAmount')?.addEventListener('input',updateBalance49);
+  document.getElementById('cashPaymentMode')?.addEventListener('change',updateBalance49);
+  document.getElementById('payDate')?.addEventListener('change',updateBalance49);
 
-  // Re-run once after loadApp has established profile.
   window.addEventListener('load',()=>{
     setTimeout(async()=>{
-      if(!isAccounts()) return;
-      try{
-        const ok=await ensureCampContext48();
-        if(ok){
-          await refreshAccounts48();
-          try{showPage('dashboard',
-            document.querySelector('[data-page="dashboard"]'));}catch(_){}
-        }
-      }catch(e){console.error('V48 Accounts startup:',e)}
-    },1100);
+      if(isAcct49()){
+        await refreshV49();
+      }else if(role49()==='MANAGER'){
+        /* Manager keeps existing data path, but the final source loader remains
+           available from the existing in-memory data. */
+        try{renderCashbook()}catch(_){}
+      }
+    },1000);
   });
-
 })();
 </script>
-
 </body>
 </html>
