@@ -4869,5 +4869,212 @@ window.addEventListener('DOMContentLoaded',()=>{
   },1200);
 })();
 </script>
+
+<script id="ims-v48-accounts-context-final">
+/*
+ V48 FINAL ACCOUNTS CONTEXT FIX
+ The Accounts role previously depended on direct SELECT access to public.camps.
+ Manager could read it, Accounts could not, so activeCamp stayed null and the
+ Accounts dashboard appeared blank. This final layer uses SECURITY DEFINER RPCs.
+*/
+(function(){
+  const isAccounts=()=>String(window.profile?.role||'').toUpperCase()==='ACCOUNTS';
+
+  async function loadAccountsContext48(preferredId){
+    if(!window.sb || !isAccounts()) return null;
+
+    const r=await sb.rpc('get_accounts_context_v48',{
+      p_camp_id: preferredId || null
+    });
+
+    if(r.error){
+      console.error('V48 Accounts context:',r.error);
+      return null;
+    }
+
+    const x=r.data || {};
+    if(Array.isArray(x.camps)) window.camps=x.camps;
+    else window.camps=[];
+
+    let chosen=x.active_camp || null;
+    if(preferredId && Array.isArray(window.camps)){
+      chosen=window.camps.find(c=>String(c.id)===String(preferredId)) || chosen;
+    }
+
+    window.activeCamp=chosen;
+
+    if(Array.isArray(x.cashbook)){
+      window.cashbookEntries=x.cashbook;
+    }
+    if(Array.isArray(x.closures)){
+      window.cashbookClosures=x.closures;
+      window.cashbookDayClosures=x.closures;
+    }
+
+    populateCampTop48();
+    return !!window.activeCamp;
+  }
+
+  function populateCampTop48(){
+    const el=document.getElementById('campSelectTop');
+    if(!el) return;
+
+    const list=Array.isArray(window.camps)?window.camps:[];
+    const current=window.activeCamp?.id||'';
+
+    el.innerHTML='<option value="">Select Camp</option>'+
+      list.map(c=>
+        `<option value="${esc(c.id)}" ${String(c.id)===String(current)?'selected':''}>`+
+        `${esc(c.camp_code||'')} - ${esc(c.camp_name||'')}`+
+        `</option>`
+      ).join('');
+
+    const lbl=document.getElementById('campActiveLabel');
+    if(lbl){
+      lbl.textContent=window.activeCamp
+        ? `${window.activeCamp.camp_code||''} | ${window.activeCamp.camp_name||''}`
+        : 'No camp selected';
+    }
+
+    const dash=document.getElementById('dashCampName');
+    const station=document.getElementById('dashCampStation');
+    if(dash) dash.textContent=window.activeCamp?.camp_name||'Select Camp';
+    if(station) station.textContent=window.activeCamp?.station||'—';
+  }
+
+  async function ensureCampContext48(){
+    if(!isAccounts()){
+      return typeof ensureCampContext==='function'
+        ? ensureCampContext()
+        : false;
+    }
+
+    const ok=await loadAccountsContext48(
+      window.profile?.current_camp_id || null
+    );
+
+    if(ok) return true;
+
+    // No profile assignment: use newest camp returned by the secure RPC.
+    const list=Array.isArray(window.camps)?window.camps:[];
+    if(list.length){
+      window.activeCamp=list[0];
+      populateCampTop48();
+      return true;
+    }
+
+    console.warn('V48: Accounts cannot see any camp through RPC.');
+    window.activeCamp=null;
+    populateCampTop48();
+    return false;
+  }
+
+  async function refreshAccounts48(){
+    if(!isAccounts()) return null;
+
+    const ok=await loadAccountsContext48(
+      window.activeCamp?.id ||
+      window.profile?.current_camp_id ||
+      null
+    );
+
+    if(!ok){
+      renderDashboard?.();
+      renderCashbook?.();
+      renderReports?.();
+      return false;
+    }
+
+    // Load the Accounts-only dashboard data through the same secure context.
+    try{ renderDashboard?.(); }catch(e){console.error(e)}
+    try{ renderCashbook?.(); }catch(e){console.error(e)}
+    try{ renderReports?.(); }catch(e){console.error(e)}
+    try{ populateCampTop48(); }catch(e){}
+
+    // Payment source RPC is authoritative and independent of Accounts RLS.
+    try{
+      if(typeof cashType==='undefined' || cashType==='PAYMENT'){
+        if(typeof window.loadCashSources==='function'){
+          await window.loadCashSources();
+        }
+      }
+    }catch(e){console.error('V48 source load:',e)}
+
+    return true;
+  }
+
+  async function switchCamp48(id){
+    if(!id) return;
+
+    const list=Array.isArray(window.camps)?window.camps:[];
+    const c=list.find(x=>String(x.id)===String(id));
+    if(!c) return;
+
+    window.activeCamp=c;
+
+    // The profile update is optional for Accounts. Session selection must work
+    // even when RLS prevents Accounts from updating profiles.
+    try{
+      const r=await sb.from('profiles')
+        .update({current_camp_id:id})
+        .eq('id',currentUser.id);
+
+      if(!r.error && window.profile){
+        window.profile.current_camp_id=id;
+      }
+    }catch(e){
+      console.warn('V48: profile camp persistence skipped:',e);
+    }
+
+    populateCampTop48();
+    await refreshAccounts48();
+
+    try{
+      showPage('dashboard',
+        document.querySelector('[data-page="dashboard"]'));
+    }catch(_){}
+  }
+
+  // Replace the core functions only for Accounts.
+  const oldEnsure=window.ensureCampContext;
+  const oldRefresh=window.refreshAll;
+  const oldSwitch=window.switchCamp;
+
+  window.ensureCampContext=async function(){
+    if(isAccounts()) return ensureCampContext48();
+    return oldEnsure ? oldEnsure() : false;
+  };
+
+  window.refreshAll=async function(){
+    if(isAccounts()) return refreshAccounts48();
+    return oldRefresh ? oldRefresh() : null;
+  };
+
+  window.switchCamp=function(id){
+    if(isAccounts()) return switchCamp48(id);
+    return oldSwitch ? oldSwitch(id) : null;
+  };
+
+  // The Accounts dashboard can render using secure cashbook rows.
+  window.populateCampTop=populateCampTop48;
+
+  // Re-run once after loadApp has established profile.
+  window.addEventListener('load',()=>{
+    setTimeout(async()=>{
+      if(!isAccounts()) return;
+      try{
+        const ok=await ensureCampContext48();
+        if(ok){
+          await refreshAccounts48();
+          try{showPage('dashboard',
+            document.querySelector('[data-page="dashboard"]'));}catch(_){}
+        }
+      }catch(e){console.error('V48 Accounts startup:',e)}
+    },1100);
+  });
+
+})();
+</script>
+
 </body>
 </html>
