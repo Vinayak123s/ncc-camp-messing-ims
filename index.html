@@ -932,6 +932,85 @@ tbody tr:hover td{background:#f7fbfc!important}
 }
 </style>
 
+
+<style id="ims-v68-pro-ui">
+/* V68 — unified ERP shell: light workspace, permanent desktop navigation, clean mobile navigation */
+:root{
+  --ims-bg:#f4f7fa;--ims-card:#ffffff;--ims-text:#172b3a;--ims-muted:#6b7c8c;--ims-line:#dfe7ed;
+  --ims-teal:#0f9f9a;--ims-teal-dark:#087f7a;--ims-blue:#2563eb;--ims-navy:#12304a;--ims-green:#16834d;
+  --ims-amber:#d88912;--ims-red:#c9362b;--ims-shadow:0 8px 24px rgba(31,55,72,.08);
+}
+html,body{background:var(--ims-bg)!important;color:var(--ims-text)!important;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif!important}
+body{overflow-x:hidden!important}
+/* App shell */
+.topbar{left:248px!important;height:64px!important;background:#fff!important;color:var(--ims-text)!important;border-bottom:1px solid var(--ims-line)!important;box-shadow:0 2px 10px rgba(31,55,72,.05)!important;padding:0 20px!important}
+.topbar .brand{color:var(--ims-navy)!important;font-size:16px!important}
+.top-right{color:var(--ims-muted)!important}
+.sidebar,.sidebar.expanded{width:248px!important;background:linear-gradient(180deg,#12304a 0%,#0d263c 100%)!important;border-right:0!important;padding:12px 10px!important;box-shadow:4px 0 18px rgba(15,39,59,.08)!important}
+.sidebar .hamb{display:none!important}
+.side-brand{height:68px!important;justify-content:flex-start!important;border-bottom:1px solid rgba(255,255,255,.12)!important;padding:0 10px!important;margin:0 0 12px!important}
+.side-brand .nc{width:40px!important;height:40px!important}
+.side-name,.sidebar.expanded .side-name{display:block!important;color:#fff!important;font-size:13px!important}
+.nav,.sidebar.expanded .nav{padding:11px 12px!important;color:#dce8f0!important;border-radius:9px!important;gap:11px!important;margin:3px 0!important}
+.nav:hover,.nav.active,.sidebar.expanded .nav:hover,.sidebar.expanded .nav.active{background:rgba(255,255,255,.12)!important;color:#fff!important}
+.nav.active{box-shadow:inset 3px 0 0 #38d0c5!important}
+.ni{width:26px!important}.nl,.sidebar.expanded .nl{display:inline!important}
+.side-footer{color:#bdd0dc!important}
+main, .sidebar.expanded~main{margin-left:248px!important;padding:82px 24px 34px!important;min-width:0!important;width:auto!important}
+.page{max-width:1500px!important;margin:0 auto!important}
+.section-head,.module-banner{background:#fff!important;border:1px solid var(--ims-line)!important;border-radius:14px!important;box-shadow:var(--ims-shadow)!important;color:var(--ims-text)!important}
+.section-head{padding:18px 20px!important;margin-bottom:14px!important;align-items:center!important}
+.section-head h1,.module-banner h2{color:var(--ims-navy)!important}
+.section-head p,.muted,.kpi-note{color:var(--ims-muted)!important}
+.module-banner{padding:16px 18px!important;margin-bottom:14px!important}
+.module-banner h2{font-size:20px!important;margin:2px 0 5px!important}
+.crumb{color:var(--ims-teal)!important;font-weight:900!important;letter-spacing:.06em!important}
+.panel,.formbox,.items-box,.rv-items-box,.iv-items-box{background:#fff!important;border:1px solid var(--ims-line)!important;border-radius:14px!important;box-shadow:var(--ims-shadow)!important;color:var(--ims-text)!important}
+.panel{padding:16px!important;margin-top:12px!important}
+.field label{color:#4e6272!important;font-weight:800!important;font-size:11px!important}
+input,select,textarea{background:#fff!important;color:#172b3a!important;border:1px solid #cfdbe4!important;border-radius:8px!important;min-height:39px!important}
+input:focus,select:focus,textarea:focus{border-color:#57bdb7!important;box-shadow:0 0 0 3px rgba(15,159,154,.10)!important;outline:0!important}
+.btn{background:var(--ims-teal)!important;color:#fff!important;border:0!important;border-radius:8px!important;box-shadow:none!important}
+.btn:hover{filter:brightness(.96)!important;transform:none!important}
+.btn.dark{background:var(--ims-navy)!important}.btn.green{background:var(--ims-green)!important}.btn.red{background:var(--ims-red)!important}.btn.gold{background:var(--ims-amber)!important}
+.btn.ghost{background:#fff!important;color:var(--ims-navy)!important;border:1px solid #cbd8e1!important}
+.actions{gap:8px!important}
+.tablewrap{border:1px solid var(--ims-line)!important;border-radius:12px!important;overflow:auto!important;background:#fff!important}
+table{min-width:760px!important;background:#fff!important}th{background:#f2f6f8!important;color:#405768!important;border-bottom:1px solid #d9e3e9!important;font-weight:900!important}td{color:#253b4b!important;border-bottom:1px solid #e9eef2!important}tr:hover td{background:#f8fbfc!important}
+.status.ok{background:#e9f7ef!important;color:#167544!important}.status.low{background:#fff0ed!important;color:#b42318!important}
+.badge,.side-pill{background:#edf8f7!important;color:#087f7a!important;border:1px solid #ccebe7!important}
+/* no inner dashboard sidebar — the application's global sidebar is the only navigation */
+#nccNewDashboard{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;background:transparent!important}
+#nccNewDashboard .v62-side{display:none!important}
+#nccNewDashboard .v62-layout{display:block!important;width:100%!important;min-height:0!important;background:transparent!important}
+#nccNewDashboard .v62-main{width:100%!important;max-width:none!important;padding:0!important}
+#nccNewDashboard .v62-top,#nccNewDashboard .v62-grid{display:block!important;width:100%!important;margin:0!important}
+#nccNewDashboard .v62-profile,#nccNewDashboard .v62-company,#nccNewDashboard .v62-card{display:none!important}
+.ims-dashboard{display:grid;gap:14px}
+.ims-dash-hero{background:#fff;border:1px solid var(--ims-line);border-radius:16px;box-shadow:var(--ims-shadow);padding:20px;display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
+.ims-dash-title{font-size:24px;font-weight:900;color:var(--ims-navy);margin:0}.ims-dash-meta{color:var(--ims-muted);font-size:12px;margin-top:6px}.ims-dash-badge{background:#eaf8f6;color:#087f7a;border:1px solid #cbe9e5;border-radius:999px;padding:7px 12px;font-size:11px;font-weight:900;white-space:nowrap}
+.ims-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.ims-kpi{background:#fff;border:1px solid var(--ims-line);border-radius:14px;padding:16px;box-shadow:var(--ims-shadow);position:relative;overflow:hidden}.ims-kpi:before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--ims-teal)}.ims-kpi.blue:before{background:var(--ims-blue)}.ims-kpi.amber:before{background:var(--ims-amber)}.ims-kpi.green:before{background:var(--ims-green)}.ims-kpi .label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#728393;font-weight:900}.ims-kpi b{display:block;font-size:22px;color:var(--ims-navy);margin-top:7px}.ims-kpi small{display:block;color:var(--ims-muted);margin-top:4px}
+.ims-grid-2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(340px,.75fr);gap:14px}.ims-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.ims-card{background:#fff;border:1px solid var(--ims-line);border-radius:14px;box-shadow:var(--ims-shadow);padding:16px;min-width:0}.ims-card h3{margin:0;color:var(--ims-navy);font-size:15px}.ims-card .sub{margin:4px 0 12px;color:var(--ims-muted);font-size:11px}.ims-module-card{min-height:190px}.ims-module-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.ims-module-tag{font-size:10px;font-weight:900;padding:5px 8px;border-radius:999px;background:#edf5ff;color:#2456a8}.ims-module-card.teal .ims-module-tag{background:#eaf8f6;color:#087f7a}.ims-module-card.amber .ims-module-tag{background:#fff6e5;color:#9a6407}.ims-module-card.blue .ims-module-tag{background:#edf3ff;color:#2559b0}.ims-module-value{font-size:23px;font-weight:900;color:var(--ims-navy);margin:12px 0 2px}.ims-list{display:grid;gap:7px}.ims-row{display:flex;justify-content:space-between;gap:12px;border-top:1px solid #edf1f4;padding-top:8px;font-size:11px}.ims-row span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ims-row b{white-space:nowrap;color:#1e4056}.ims-mini-table{width:100%!important;min-width:0!important;border-collapse:collapse}.ims-mini-table th,.ims-mini-table td{font-size:11px!important;padding:8px!important}.ims-mini-table th{white-space:nowrap}.ims-scroll{overflow:auto;border:1px solid var(--ims-line);border-radius:10px}
+.ims-data-strip{display:flex;gap:8px;flex-wrap:wrap}.ims-data-pill{padding:7px 9px;border:1px solid var(--ims-line);border-radius:9px;background:#f8fafb;font-size:10px;color:#536777}.ims-data-pill b{color:var(--ims-navy)}
+.ims-empty{padding:18px;text-align:center;border:1px dashed #cfdbe2;border-radius:10px;color:#7a8b98;background:#fafcfd;font-size:11px}.ims-error{background:#fff2f0;border:1px solid #f1c8c3;color:#a02b22;border-radius:10px;padding:10px;font-size:11px}
+/* operational register readability */
+#inventoryTable table,#inList table,#outList table,#polVehiclesTable table,#polEntriesTable table,#incidentalRVTable table,#incidentalIVTable table{min-width:0!important}
+#inventoryTable td,#inventoryTable th,#inList td,#inList th,#outList td,#outList th,#polVehiclesTable td,#polVehiclesTable th,#polEntriesTable td,#polEntriesTable th,#incidentalRVTable td,#incidentalRVTable th,#incidentalIVTable td,#incidentalIVTable th{padding:9px 10px!important;font-size:11px!important}
+/* Desktop side width remains stable until mobile breakpoint */
+@media(max-width:1050px) and (min-width:901px){
+  .sidebar,.sidebar.expanded{width:210px!important}.topbar{left:210px!important}main,.sidebar.expanded~main{margin-left:210px!important;padding-left:16px!important;padding-right:16px!important}.ims-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.ims-grid-2{grid-template-columns:1fr}.ims-grid-3{grid-template-columns:1fr 1fr}
+}
+@media(max-width:900px){
+  .topbar{left:0!important;height:58px!important;padding:0 11px!important}.topbar .brand{font-size:12px!important}.topbar .camp-top{display:none!important}
+  .sidebar,.sidebar.expanded{top:auto!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:70px!important;padding:5px!important;display:flex!important;align-items:center!important;overflow-x:auto!important;background:#fff!important;border-top:1px solid var(--ims-line)!important;box-shadow:0 -5px 18px rgba(31,55,72,.10)!important}
+  .side-brand,.side-footer{display:none!important}.nav,.sidebar.expanded .nav{flex:0 0 72px!important;width:72px!important;height:60px!important;min-height:0!important;margin:0 2px!important;padding:5px 3px!important;display:flex!important;flex-direction:column!important;justify-content:center!important;align-items:center!important;gap:2px!important;border-radius:10px!important;color:#5c6f7d!important;background:transparent!important}.nav.active{color:var(--ims-teal)!important;background:#eaf8f6!important;box-shadow:none!important}.nav .ni{width:auto!important;font-size:16px!important}.nav .nl{display:block!important;font-size:9px!important;max-width:68px!important;overflow:hidden!important;text-overflow:ellipsis!important}.nav.logout{display:none!important}
+  main,.sidebar.expanded~main{margin-left:0!important;padding:67px 10px 82px!important}.page{max-width:none!important}.section-head{padding:14px!important;align-items:flex-start!important}.section-head h1{font-size:19px!important}.actions{width:100%!important}.actions .btn{flex:1 1 120px!important;min-height:40px!important}
+  .ims-dash-hero{padding:15px;display:block}.ims-dash-title{font-size:20px}.ims-dash-badge{display:inline-block;margin-top:10px}.ims-kpis{grid-template-columns:1fr 1fr}.ims-grid-2,.ims-grid-3{grid-template-columns:1fr}.ims-card{padding:13px}.ims-mini-table{font-size:10px!important}.ims-mini-table th,.ims-mini-table td{padding:7px!important}
+  .form-grid,.grid-3,.grid3,.three-col,.form-row,.form-grid-2,.grid-2,.grid2,.two-col{grid-template-columns:1fr!important}.toolbar,.report-filter,.all-report-filters{grid-template-columns:1fr!important}
+  .tablewrap{overflow:visible!important;border:0!important;background:transparent!important}.tablewrap table{display:block!important;min-width:0!important}.tablewrap thead{display:none!important}.tablewrap tbody{display:grid!important;gap:9px!important}.tablewrap tbody tr{display:grid!important;grid-template-columns:1fr 1fr!important;background:#fff!important;border:1px solid var(--ims-line)!important;border-radius:12px!important;padding:8px!important;box-shadow:0 5px 14px rgba(31,55,72,.06)!important}.tablewrap tbody td{display:flex!important;justify-content:space-between!important;gap:7px!important;border:0!important;padding:6px 4px!important;white-space:normal!important}.tablewrap tbody td:before{content:attr(data-label)!important;color:#7a8b98!important;font-size:9px!important;font-weight:900!important;min-width:42%!important}.tablewrap tbody td:last-child{grid-column:1/-1!important;justify-content:flex-end!important}.tablewrap tbody td:last-child:before{display:none!important}
+}
+</style>
+
 </head>
 <body>
 
@@ -2327,7 +2406,107 @@ function printMessingReport(){
   generateMessingReport();
   const el=document.getElementById('reportsContent'); if(!el)return;
   const w=window.open('','_blank'); if(!w){alert('Please allow pop-ups for Print / PDF.');return;}
-  w.document.write('<!doctype html><html><head><title>NCC Camp Messing Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:20px}h1,h2,h3{text-align:center}.meta{text-align:center;margin-bottom:15px;color:#444}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #555;padding:6px}th{background:#eee;text-align:left}.num{text-align:right}</style></head><body><h1>NCC CAMP MESSING</h1><h2>'+esc((activeCamp?.camp_code||'')+' - '+(activeCamp?.camp_name||''))+'</h2><div class="meta">'+esc(messingReportType==='DAY'?'Day-wise Purchase / Issue Summary':messingReportType==='ITEM'?'Item-wise Purchase / Balance Report':'Statement of Item Received / Issued')+'</div>'+el.innerHTML+'\n</body></html>');
+  w.document.write('<!doctype html><html><head><title>NCC Camp Messing Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:20px}h1,h2,h3{text-align:center}.meta{text-align:center;margin-bottom:15px;color:#444}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #555;padding:6px}th{background:#eee;text-align:left}.num{text-align:right}</style></head><body><h1>NCC CAMP MESSING</h1><h2>'+esc((activeCamp?.camp_code||'')+' - '+(activeCamp?.camp_name||''))+'</h2><div class="meta">'+esc(messingReportType==='DAY'?'Day-wise Purchase / Issue Summary':messingReportType==='ITEM'?'Item-wise Purchase / Balance Report':'Statement of Item Received / Issued')+'</div>'+el.innerHTML+'\n
+<script id="ims-v68-data-ui-runtime">
+(function(){
+'use strict';
+const N=v=>Number(v)||0, U=v=>String(v??'').trim().toUpperCase();
+const E=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const M=v=>{try{return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(N(v))}catch(e){return '₹'+N(v).toFixed(2)}};
+const Q=v=>N(v).toFixed(2);
+function arr(name){try{return Array.isArray(window[name])?window[name]:[]}catch(e){return[]}}
+function camp(){try{return window.activeCamp||null}catch(e){return null}}
+function role(){try{return U(window.profile?.role)}catch(e){return ''}}
+function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
+function esc(v){return E(v)}
+function itemsFor(x){return Array.isArray(x?.stock_in_items)?x.stock_in_items:[]}
+function outItemsFor(x){return Array.isArray(x?.stock_out_items)?x.stock_out_items:[]}
+function itemName(id){const x=arr('items').find(i=>String(i.id)===String(id));return x?.name||'Item'}
+function itemUnit(id){const x=arr('items').find(i=>String(i.id)===String(id));return x?.unit||''}
+function itemLines(rows,kind){return rows.slice(0,4).map(r=>{const name=kind==='in'?itemName(r.item_id):(itemName(r.item_id)||r.item_name||'Item');const qty=N(r.quantity??r.qty);return `${E(name)} × ${Q(qty)} ${E(r.unit||itemUnit(r.item_id)||'')}`}).join(' • ')}
+function latest(a,dateKey){return a.slice().sort((x,y)=>String(y?.[dateKey]||'').localeCompare(String(x?.[dateKey]||''))).slice(0,5)}
+function balance(i){return N(i?.opening_stock)+N(i?.stock_in_qty)-N(i?.stock_out_qty)}
+function moduleEmpty(msg){return `<div class="ims-empty">${E(msg)}</div>`}
+function moduleCard(cls,title,tag,value,lines){return `<div class="ims-card ims-module-card ${cls}"><div class="ims-module-head"><h3>${E(title)}</h3><span class="ims-module-tag">${E(tag)}</span></div><div class="ims-module-value">${value}</div><div class="ims-list">${lines}</div></div>`}
+function line(label,value){return `<div class="ims-row"><span>${E(label)}</span><b>${E(value)}</b></div>`}
+function dash(){
+ const c=camp(), inv=arr('items'), ins=arr('inInvoices'), outs=arr('outVouchers'), rv=arr('incidentals').filter(x=>U(x.voucher_type)==='RV'), iv=arr('incidentals').filter(x=>U(x.voucher_type)==='IV'), veh=arr('polVehicles'), pe=arr('polEntries'), diary=arr('carDiaryEntries'), det=arr('polDetachmentEntries'), cb=arr('cashbookEntries');
+ const root=document.getElementById('nccNewDashboard'); if(!root)return;
+ if(!c){root.innerHTML=moduleEmpty('No active camp is selected. Select a camp from the top bar to load live details.');return}
+ const purchase=ins.reduce((s,x)=>s+itemsFor(x).reduce((a,r)=>a+N(r.amount||N(r.quantity)*N(r.rate)),0),0), issue=outs.reduce((s,x)=>s+outItemsFor(x).reduce((a,r)=>a+N(r.amount||N(r.quantity)*N(r.rate)),0),0);
+ const inQty=ins.reduce((s,x)=>s+itemsFor(x).reduce((a,r)=>a+N(r.quantity),0),0), outQty=outs.reduce((s,x)=>s+outItemsFor(x).reduce((a,r)=>a+N(r.quantity),0),0);
+ const rvAmt=rv.reduce((s,x)=>s+N(x.amount),0), ivAmt=iv.reduce((s,x)=>s+N(x.amount),0), polLit=pe.reduce((s,x)=>s+N(x.litres),0), consumed=diary.reduce((s,x)=>s+N(x.pol_consumed),0);
+ let cash=0,bank=0; try{if(typeof currentSourceBalance==='function'){cash=currentSourceBalance('CASH');bank=currentSourceBalance('BANK')}}catch(e){}
+ const low=inv.filter(i=>balance(i)<=N(i.reorder_level));
+ const totalBudget=N(c.total_budget)||N(c.messing_budget)+N(c.incidental_budget)+N(c.pol_budget);
+ const health=window.__imsLoadHealth||{}; const errors=Object.keys(health).filter(k=>health[k]);
+ const r=role();
+ const insLatest=latest(ins,'invoice_date'), rvLatest=latest(rv,'voucher_date'), peLatest=latest(pe,'entry_date'), vehLatest=veh.slice(0,6);
+ const invRows=inv.slice(0,8).map(i=>`<tr><td><b>${E(i.ledger_page_no||'')}</b></td><td>${E(i.name||'')}</td><td>${E(i.unit||'')}</td><td>${Q(balance(i))}</td><td>${N(i.reorder_level)<=balance(i)?'<span class="status ok">OK</span>':'<span class="status low">LOW</span>'}</td></tr>`).join('');
+ const polRows=vehLatest.map(v=>{let st={tank:N(v.pol_balance),currentKm:N(v.km_reading)};try{if(typeof polCurrentState==='function')st=polCurrentState(v.id)||st}catch(e){}return `<tr><td><b>${E(v.vehicle_no||'')}</b></td><td>${E(v.vehicle_type||'')}</td><td>${E(v.driver_name||'')}</td><td>${Q(st.currentKm)} km</td><td>${Q(st.tank)} L</td><td>${Q(v.kpl)} KPL</td></tr>`}).join('');
+ root.innerHTML=`<div class="ims-dashboard">
+  <div class="ims-dash-hero"><div><div class="ims-dash-title">${E(c.camp_name||'NCC Camp')}</div><div class="ims-dash-meta">${E(c.station||'')} • ${E(c.from_date||'—')} to ${E(c.to_date||'—')} • ${E(c.total_strength||0)} personnel • ${E(role()||'VIEWER')}</div></div><div class="ims-dash-badge">ACTIVE CAMP • ${E(c.camp_code||'')}</div></div>
+  <div class="ims-kpis">
+   <div class="ims-kpi"><span class="label">Camp Budget</span><b>${M(totalBudget)}</b><small>Messing ${M(c.messing_budget)} • Incidental ${M(c.incidental_budget)} • POL ${M(c.pol_budget)}</small></div>
+   <div class="ims-kpi blue"><span class="label">Messing Purchase</span><b>${M(purchase)}</b><small>${Q(inQty)} total purchased quantity • ${ins.length} invoices</small></div>
+   <div class="ims-kpi amber"><span class="label">Incidental</span><b>${M(rvAmt+ivAmt)}</b><small>${rv.length} RV • ${iv.length} IV</small></div>
+   <div class="ims-kpi green"><span class="label">POL</span><b>${Q(polLit)} L</b><small>${veh.length} vehicles • ${Q(consumed)} L car-diary consumption</small></div>
+  </div>
+  ${errors.length?`<div class="ims-error"><b>Data loading warning:</b> ${errors.map(k=>E(health[k])).join(' • ')}. The page remains usable, but the affected register may be incomplete.</div>`:''}
+  <div class="ims-grid-3">
+   ${moduleCard('teal','Messing / Purchase','STOCK IN',M(purchase),[line('Invoices',ins.length),line('Stock In Qty',Q(inQty)),line('Stock Out Qty',Q(outQty)),line('Issue Value',M(issue))])}
+   ${moduleCard('amber','Incidental','RV + IV',M(rvAmt+ivAmt),[line('Receipt Vouchers',rv.length),line('Receipt Value',M(rvAmt)),line('Issue Vouchers',iv.length),line('Issue Value',M(ivAmt))])}
+   ${moduleCard('blue','POL / Vehicles','VEHICLE REGISTER',veh.length+' vehicles',[line('POL Drawn',Q(polLit)+' L'),line('Car Diary',diary.length+' entries'),line('Vehicle Detachments',det.length),line('Current Cash',M(cash)+' • Bank '+M(bank))])}
+  </div>
+  <div class="ims-grid-2">
+   <div class="ims-card"><h3>Vehicle Details</h3><div class="sub">Attached vehicles, driver, KM and current tank position.</div><div class="ims-scroll"><table class="ims-mini-table"><thead><tr><th>Vehicle</th><th>Type</th><th>Driver</th><th>KM</th><th>Tank</th><th>KPL</th></tr></thead><tbody>${polRows||`<tr><td colspan="6">No vehicle attachment records.</td></tr>`}</tbody></table></div></div>
+   <div class="ims-card"><h3>Latest Purchase Details</h3><div class="sub">Recent Stock In invoices with supplier and line-item detail.</div><div class="ims-list">${insLatest.map(x=>line(`${x.invoice_number||'Invoice'} • ${x.supplier||'Supplier'}`,M(itemsFor(x).reduce((s,r)=>s+N(r.amount||N(r.quantity)*N(r.rate)),0))+' | '+itemLines(itemsFor(x),'in'))).join('')||moduleEmpty('No purchase invoices loaded.')}</div></div>
+  </div>
+  <div class="ims-grid-2">
+   <div class="ims-card"><h3>Incidental Receipt / Issue Details</h3><div class="sub">Latest RV and IV entries, vendor/unit and value.</div><div class="ims-list">${[...rvLatest.slice(0,3).map(x=>line('RV '+(x.voucher_no||'' )+' • '+(x.party||''),M(x.amount))),...latest(iv,'voucher_date').slice(0,3).map(x=>line('IV '+(x.voucher_no||'' )+' • '+(x.unit||''),M(x.amount)))].join('')||moduleEmpty('No incidental records loaded.')}</div></div>
+   <div class="ims-card"><h3>POL Drawn Details</h3><div class="sub">Latest fuel draws with bunk, invoice, previous and present balance.</div><div class="ims-list">${peLatest.map(x=>line(`${x.vehicle_no||'Vehicle'} • ${x.fuel_type||''}`,`${Q(x.litres)} L • ${x.petrol_bunk||''} • ${x.invoice_number||''} • Present ${Q(x.present_fuel)} L`)).join('')||moduleEmpty('No POL drawn records loaded.')}</div></div>
+  </div>
+  <div class="ims-grid-2">
+   <div class="ims-card"><h3>Inventory Balance</h3><div class="sub">Current stock position from Inventory Master, Stock In and Stock Out.</div><div class="ims-scroll"><table class="ims-mini-table"><thead><tr><th>Ledger</th><th>Item</th><th>Unit</th><th>Balance</th><th>Status</th></tr></thead><tbody>${invRows||`<tr><td colspan="5">No inventory records.</td></tr>`}</tbody></table></div></div>
+   <div class="ims-card"><h3>Camp Strength & Budget</h3><div class="sub">Camp Details values used by the dashboard.</div><div class="ims-data-strip"><div class="ims-data-pill">Officers <b>${N(c.officers)}</b></div><div class="ims-data-pill">PI Staff <b>${N(c.pi_staffs)}</b></div><div class="ims-data-pill">ANOs <b>${N(c.anos)}</b></div><div class="ims-data-pill">Cadets <b>${N(c.cadets)}</b></div><div class="ims-data-pill">Total <b>${N(c.total_strength)}</b></div><div class="ims-data-pill">Days <b>${(()=>{try{return typeof campDays==='function'?campDays(c.from_date,c.to_date):''}catch(e){return''}})()}</b></div></div><div class="ims-list" style="margin-top:12px">${line('Cash in Hand',M(cash))}${line('Cash at Bank',M(bank))}${line('Low Stock Items',String(low.length))}</div></div>
+  </div>
+ </div>`;
+}
+window.renderDashboard=dash;
+/* Ensure dashboard gets the two POL datasets that the old refresh cycle omitted. */
+const oldRefresh=window.refreshAll;
+if(typeof oldRefresh==='function'&&!window.__v68RefreshWrapped){
+ window.__v68RefreshWrapped=true;
+ window.refreshAll=async function(){
+   const result=await oldRefresh.apply(this,arguments);
+   try{if(typeof window.loadCarDiary==='function')await window.loadCarDiary()}catch(e){window.__imsLoadHealth={...(window.__imsLoadHealth||{}),carDiary:'Car Diary could not be loaded: '+(e?.message||e)}}
+   try{if(typeof window.loadPOLDetachments==='function')await window.loadPOLDetachments()}catch(e){window.__imsLoadHealth={...(window.__imsLoadHealth||{}),detachment:'Vehicle Detachment could not be loaded: '+(e?.message||e)}}
+   try{dash()}catch(e){console.error('V68 dashboard',e)}
+   return result;
+ };
+}
+/* Improve operational register rows without touching save/edit logic. */
+window.renderInventory=function(){
+ const box=document.getElementById('inventoryTable');if(!box)return;const q=(document.getElementById('invSearch')?.value||'').toLowerCase(),u=document.getElementById('unitFilter')?.value||'';const list=arr('items').filter(i=>(String(i.name||'')+' '+String(i.category||'')).toLowerCase().includes(q)&&(!u||i.unit===u));let h='<table><thead><tr><th>Ledger</th><th>Item</th><th>Category</th><th>Unit</th><th>Opening</th><th>Stock In</th><th>Stock Out</th><th>Balance</th><th>Reorder</th><th>Status</th><th>Action</th></tr></thead><tbody>';list.forEach(i=>{const b=balance(i),low=b<=N(i.reorder_level);const act=typeof canWriteInventory==='function'&&canWriteInventory()?`<button class="btn ghost" onclick="openItemModal('${i.id}')">Edit</button> ${typeof canDelete==='function'&&canDelete()?`<button class="btn red" onclick="deleteItem('${i.id}')">Delete</button>`:''}`:'View';h+=`<tr><td><b>${E(i.ledger_page_no||'')}</b></td><td><b>${E(i.name||'')}</b></td><td>${E(i.category||'')}</td><td>${E(i.unit||'')}</td><td>${Q(i.opening_stock)}</td><td>${Q(i.stock_in_qty)}</td><td>${Q(i.stock_out_qty)}</td><td><b>${Q(b)}</b></td><td>${Q(i.reorder_level)}</td><td><span class="status ${low?'low':'ok'}">${low?'LOW':'OK'}</span></td><td>${act}</td></tr>`});h+='</tbody></table>';box.innerHTML=list.length?h:moduleEmpty('No inventory items found for the selected filters.');}
+window.renderStockInList=function(){const box=document.getElementById('inList');if(!box)return;let h='<table><thead><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Items / Details</th><th>Qty</th><th>Total</th><th>Action</th></tr></thead><tbody>';arr('inInvoices').forEach(x=>{const rows=itemsFor(x),total=rows.reduce((s,r)=>s+N(r.amount||N(r.quantity)*N(r.rate)),0),qty=rows.reduce((s,r)=>s+N(r.quantity),0);let act=typeof canTxEdit==='function'&&canTxEdit()?`<button class="btn ghost" onclick="editStockIn('${x.id}')">Edit</button>`:'View';if(typeof canDelete==='function'&&canDelete())act+=` <button class="btn red" onclick="deleteStockIn('${x.id}')">Delete</button>`;h+=`<tr><td><b>${E(x.invoice_number||'')}</b></td><td>${E(x.invoice_date||'')}</td><td>${E(x.supplier||'')}</td><td>${E(itemLines(rows,'in')||'—')}</td><td>${Q(qty)}</td><td><b>${M(total)}</b></td><td>${act}</td></tr>`});h+='</tbody></table>';box.innerHTML=arr('inInvoices').length?h:moduleEmpty('No purchase invoices saved for this active camp.');}
+window.renderStockOutList=function(){const box=document.getElementById('outList');if(!box)return;let h='<table><thead><tr><th>Voucher</th><th>Date</th><th>Issued To</th><th>Items / Details</th><th>Qty</th><th>Total</th><th>Action</th></tr></thead><tbody>';arr('outVouchers').forEach(x=>{const rows=outItemsFor(x),total=rows.reduce((s,r)=>s+N(r.amount||N(r.quantity)*N(r.rate)),0),qty=rows.reduce((s,r)=>s+N(r.quantity),0);let act=typeof canTxEdit==='function'&&canTxEdit()?`<button class="btn ghost" onclick="editStockOut('${x.id}')">Edit</button>`:'View';if(typeof canDelete==='function'&&canDelete())act+=` <button class="btn red" onclick="deleteStockOut('${x.id}')">Delete</button>`;h+=`<tr><td><b>${E(x.voucher_number||'')}</b></td><td>${E(x.voucher_date||'')}</td><td>${E(x.issued_to||'')}</td><td>${E(itemLines(rows,'out')||'—')}</td><td>${Q(qty)}</td><td><b>${M(total)}</b></td><td>${act}</td></tr>`});h+='</tbody></table>';box.innerHTML=arr('outVouchers').length?h:moduleEmpty('No issue vouchers saved for this active camp.');}
+window.renderPOL=function(){
+ const vt=document.getElementById('polVehiclesTable'),et=document.getElementById('polEntriesTable');if(!vt||!et)return;const vs=arr('polVehicles'),es=arr('polEntries');
+ const vehHtml=vs.length?`<table><thead><tr><th>Vehicle No</th><th>Type</th><th>Unit</th><th>Driver</th><th>Authority</th><th>KM</th><th>KPL</th><th>Tank / POL</th><th>Action</th></tr></thead><tbody>${vs.map(v=>{let st={tank:N(v.pol_balance),currentKm:N(v.km_reading)};try{if(typeof polCurrentState==='function')st=polCurrentState(v.id)||st}catch(e){}return `<tr><td><b>${E(v.vehicle_no||'')}</b></td><td>${E(v.vehicle_type||'')}</td><td>${E(v.unit||'')}</td><td>${E(v.driver_name||'')}</td><td>${E(v.authority_no||'')}</td><td>${Q(st.currentKm)}</td><td>${Q(v.kpl)}</td><td>${Q(st.tank)} L</td><td>${typeof canQsecEntry==='function'&&canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button>`:'View'} ${typeof canDelete==='function'&&canDelete()?`<button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:''}</td></tr>`}).join('')}</tbody></table>`:moduleEmpty('No vehicle attachment records found for this active camp.');vt.innerHTML=vehHtml;
+ const entHtml=es.length?`<table><thead><tr><th>Date</th><th>Vehicle</th><th>Fuel</th><th>Invoice</th><th>Petrol Bunk</th><th>Previous</th><th>Drawn</th><th>Present</th><th>Rate</th><th>Total</th><th>Action</th></tr></thead><tbody>${es.map(x=>`<tr><td>${E(x.entry_date||'')}</td><td><b>${E(x.vehicle_no||'')}</b></td><td>${E(x.fuel_type||'')}</td><td>${E(x.invoice_number||'')}</td><td>${E(x.petrol_bunk||'')}</td><td>${Q(x.previous_fuel)} L</td><td>${Q(x.litres)} L</td><td>${Q(x.present_fuel)} L</td><td>${M(x.rate)}</td><td><b>${M(x.total_amount)}</b></td><td>${typeof canQsecEntry==='function'&&canQsecEntry()?`<button class="btn ghost" onclick="editPOLEntry('${x.id}')">Edit</button>`:'View'} ${typeof canDelete==='function'&&canDelete()?`<button class="btn red" onclick="deletePOLEntry('${x.id}')">Delete</button>`:''}</td></tr>`).join('')}</tbody></table>`:moduleEmpty('No POL drawn entries found for this active camp.');et.innerHTML=entHtml;
+ const a=document.getElementById('polKpiVehicles');if(a)a.textContent=vs.length;const d=document.getElementById('polKpiDiesel');if(d)d.textContent=vs.filter(v=>U(v.vehicle_type).includes('DIESEL')).length;const p=document.getElementById('polKpiPetrol');if(p)p.textContent=vs.filter(v=>U(v.vehicle_type).includes('PETROL')).length;
+ if(typeof loadPOLVehicleSelect==='function')loadPOLVehicleSelect();
+};
+function styleInc(type){const box=document.getElementById(type==='RV'?'incidentalRVTable':'incidentalIVTable');if(!box)return;const rows=arr('incidentals').filter(x=>U(x.voucher_type)===type);let h='<table><thead><tr><th>Voucher</th><th>Date</th><th>Party / Unit</th><th>Invoice / Ref</th><th>Items</th><th>Total</th><th>Mode</th><th>Action</th></tr></thead><tbody>';rows.forEach(x=>{const act=type==='RV'?`<button class="btn ghost" onclick="editIncidentalRV('${x.id}')">Edit</button>`:`<button class="btn ghost" onclick="editIncidentalIV('${x.id}')">Edit</button>`;h+=`<tr><td><b>${E(x.voucher_no||x.crv_no||'')}</b></td><td>${E(x.voucher_date||'')}</td><td>${E(x.party||x.unit||'')}</td><td>${E(x.invoice_number||x.reference_no||'')}</td><td>${E((x.items||[]).slice(0,4).map(i=>`${i.desc||'Item'} × ${N(i.qty)}`).join(' • ')||'—')}</td><td><b>${M(x.amount)}</b></td><td>${E(x.mode||'—')}</td><td>${act} ${typeof canDelete==='function'&&canDelete()?`<button class="btn red" onclick="deleteIncidental('${x.id}')">Delete</button>`:''}</td></tr>`});h+='</tbody></table>';box.innerHTML=rows.length?h:moduleEmpty(`No ${type} records found for this active camp.`)}
+window.renderIncidentalRV=function(){styleInc('RV')};window.renderIncidentalIV=function(){styleInc('IV')};
+/* Hook navigation so tables are re-rendered after every page switch. */
+const oldShow=window.showPage;if(typeof oldShow==='function'&&!window.__v68ShowWrapped){window.__v68ShowWrapped=true;window.showPage=function(){const r=oldShow.apply(this,arguments);setTimeout(()=>{try{dash();window.renderInventory();window.renderStockInList();window.renderStockOutList();window.renderPOL();window.renderIncidentalRV();window.renderIncidentalIV()}catch(e){}},40);return r}}
+function boot(){setTimeout(()=>{try{dash();window.renderInventory();window.renderStockInList();window.renderStockOutList();window.renderPOL();window.renderIncidentalRV();window.renderIncidentalIV()}catch(e){}},700)}
+window.addEventListener('load',boot);document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300));
+})();
+</script>
+
+</body></html>');
   w.document.close();setTimeout(()=>{w.focus();w.print()},300);
 }
 function renderReports(){
