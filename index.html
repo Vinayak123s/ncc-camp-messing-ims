@@ -6545,5 +6545,137 @@ setTimeout(()=>{if(AC74()&&DB74())refreshOperational74().catch(console.warn)},90
 })();
 
 </script>
+<script id="ncc-v76-final-operational-fix">
+(function(){
+'use strict';
+const $=id=>document.getElementById(id);
+const db=()=>window.sb||window.supabaseClient||null;
+const camp=()=>window.activeCamp||null;
+const num=v=>Number(v)||0;
+const esc76=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const money76=v=>'₹'+num(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const today76=()=>new Date().toISOString().slice(0,10);
+function note(id,msg,ok){const e=$(id);if(!e)return;e.textContent=msg;e.style.display='block';e.style.background=ok?'#e8f7ef':'#fff0f0';e.style.color=ok?'#11643b':'#9b1c1c';e.style.border='1px solid '+(ok?'#9ad5b5':'#efb1b1');}
+
+/* ---------- STOCK IN: save only the rows actually present ---------- */
+window.saveStockIn=async function(){
+ if(typeof canTxEdit==='function'&&!canTxEdit())return;
+ const D=db(),C=camp(); if(!D||!C)return note('inMsg','Select an active camp first.',false);
+ const edit=$('editInId')?.value||null, invoice=$('inInvoice')?.value?.trim()||'', date=$('inDate')?.value||'', supplier=$('inSupplier')?.value?.trim()||'';
+ if(!invoice||!date)return note('inMsg','Invoice number and date are required.',false);
+ const rows=[...document.querySelectorAll('#inRows .item-row')].map(r=>({item_id:r.querySelector('.in-item')?.value||'',quantity:num(r.querySelector('.in-qty')?.value),rate:num(r.querySelector('.in-rate')?.value)})).filter(r=>r.item_id&&r.quantity>0);
+ if(!rows.length)return note('inMsg','Add at least one item with quantity.',false);
+ try{
+   let hid=edit;
+   if(edit){
+     const u=await D.from('stock_in_invoices').update({invoice_number:invoice,invoice_date:date,supplier}).eq('id',edit).eq('camp_id',C.id).select('id').single();
+     if(u.error)throw u.error;
+     await D.from('stock_in_items').delete().eq('invoice_id',edit);
+   }else{
+     const ins=await D.from('stock_in_invoices').insert({camp_id:C.id,invoice_number:invoice,invoice_date:date,supplier}).select('id').single();
+     if(ins.error)throw ins.error; hid=ins.data.id;
+   }
+   const child=rows.map(r=>({invoice_id:hid,item_id:r.item_id,quantity:r.quantity,rate:r.rate,amount:r.quantity*r.rate}));
+   const cr=await D.from('stock_in_items').insert(child); if(cr.error)throw cr.error;
+   note('inMsg','Purchase invoice saved successfully.',true);
+   if(typeof resetStockInForm==='function')resetStockInForm();
+   if(typeof window.refreshAll==='function')await window.refreshAll();
+ }catch(e){note('inMsg','Unable to save purchase: '+(e.message||e),false)}
+};
+
+/* ---------- STOCK OUT: save only the rows actually present ---------- */
+window.saveStockOut=async function(){
+ if(typeof canTxEdit==='function'&&!canTxEdit())return;
+ const D=db(),C=camp(); if(!D||!C)return note('outMsg','Select an active camp first.',false);
+ const edit=$('editOutId')?.value||null,voucher=$('outVoucher')?.value?.trim()||'',date=$('outDate')?.value||'',issued=$('outIssuedTo')?.value?.trim()||'';
+ if(!date)return note('outMsg','Date is required.',false);
+ const rows=[...document.querySelectorAll('#outRows .item-row')].map(r=>({item_id:r.querySelector('.out-item')?.value||'',quantity:num(r.querySelector('.out-qty')?.value)})).filter(r=>r.item_id&&r.quantity>0);
+ if(!rows.length)return note('outMsg','Add at least one item with quantity.',false);
+ try{
+   let hid=edit;
+   if(edit){
+     const u=await D.from('stock_out_vouchers').update({voucher_number:voucher,voucher_date:date,issued_to:issued}).eq('id',edit).eq('camp_id',C.id).select('id').single();
+     if(u.error)throw u.error;
+     await D.from('stock_out_items').delete().eq('voucher_id',edit);
+   }else{
+     const ins=await D.from('stock_out_vouchers').insert({camp_id:C.id,voucher_number:voucher,voucher_date:date,issued_to:issued}).select('id').single();
+     if(ins.error)throw ins.error; hid=ins.data.id;
+   }
+   const child=rows.map(r=>{const it=(window.items||[]).find(x=>String(x.id)===String(r.item_id));const rate=num(it?.avg_rate);return {voucher_id:hid,item_id:r.item_id,quantity:r.quantity,rate,amount:r.quantity*rate};});
+   const cr=await D.from('stock_out_items').insert(child); if(cr.error)throw cr.error;
+   note('outMsg','Issue voucher saved successfully.',true);
+   if(typeof resetStockOutForm==='function')resetStockOutForm();
+   if(typeof window.refreshAll==='function')await window.refreshAll();
+ }catch(e){note('outMsg','Unable to save issue voucher: '+(e.message||e),false)}
+};
+
+/* ---------- Correct stock rendering: group children strictly by header id ---------- */
+async function reloadStockChildren76(){
+ const D=db();if(!D)return;
+ const [a,b]=await Promise.all([D.from('stock_in_items').select('*'),D.from('stock_out_items').select('*')]);
+ const ins=a.data||[],outs=b.data||[];
+ (window.inInvoices||[]).forEach(h=>h.stock_in_items=ins.filter(r=>String(r.invoice_id)===String(h.id)));
+ (window.outVouchers||[]).forEach(h=>h.stock_out_items=outs.filter(r=>String(r.voucher_id)===String(h.id)));
+ try{inInvoices=window.inInvoices;outVouchers=window.outVouchers}catch(_){ }
+ try{if(typeof window.renderStockInList==='function')window.renderStockInList();if(typeof window.renderStockOutList==='function')window.renderStockOutList()}catch(_){ }
+}
+
+/* ---------- Cash book day controls: deterministic client calculation + DB fallback ---------- */
+function cashRows76(d){return (window.cashbookEntries||[]).filter(x=>String(x.entry_date)===String(d));}
+function alloc76(e){let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}}return a&&typeof a==='object'?a:{};}
+const HEADS76=['MESSING','INCIDENTAL','POL','RANK PAY','TA CADETS','TA/DA CIV','RENT','OTHERS'];
+function headName76(k){const u=String(k||'').toUpperCase();if(u==='INC')return'INCIDENTAL';if(u==='TA/DA CIV STAFF')return'TA/DA CIV';if(u==='TA/DA CIV')return'TA/DA CIV';return u}
+function dayCalc76(d){
+ const all=window.cashbookEntries||[],rows=cashRows76(d),before=all.filter(x=>String(x.entry_date)<String(d));
+ const sum=(arr,t,m)=>arr.filter(e=>String(e.entry_type).toUpperCase()===t&&String(e.mode||'').toUpperCase()===m).reduce((s,e)=>s+num(e.amount),0);
+ let bfCash=0,bfBank=0;before.forEach(e=>{const t=String(e.entry_type).toUpperCase(),m=String(e.mode||'').toUpperCase(),a=num(e.amount);if(t==='RECEIPT'&&m==='CASH')bfCash+=a;if(t==='PAYMENT'&&m==='CASH')bfCash-=a;if(t==='CASH_DRAWN'){bfCash+=a;bfBank-=a}if(t==='RECEIPT'&&m==='BANK')bfBank+=a;if(t==='PAYMENT'&&m==='BANK')bfBank-=a});
+ const rc=sum(rows,'RECEIPT','CASH'),rb=sum(rows,'RECEIPT','BANK'),pc=sum(rows,'PAYMENT','CASH'),pb=sum(rows,'PAYMENT','BANK'),draw=rows.filter(e=>String(e.entry_type).toUpperCase()==='CASH_DRAWN').reduce((s,e)=>s+num(e.amount),0);
+ const heads={};HEADS76.forEach(h=>heads[h]={receipt:0,payment:0,closing:0});
+ rows.forEach(e=>{const t=String(e.entry_type).toUpperCase(),a=alloc76(e);const entries=Object.entries(a).filter(([,v])=>num(v));if(entries.length)entries.forEach(([k,v])=>{const h=headName76(k);if(!heads[h])heads[h]={receipt:0,payment:0,closing:0};if(t==='RECEIPT')heads[h].receipt+=num(v);if(t==='PAYMENT')heads[h].payment+=Math.abs(num(v));});else if(e.code_head){const h=headName76(e.code_head);if(!heads[h])heads[h]={receipt:0,payment:0,closing:0};if(t==='RECEIPT')heads[h].receipt+=num(e.amount);if(t==='PAYMENT')heads[h].payment+=num(e.amount)}});
+ Object.values(heads).forEach(x=>x.closing=x.receipt-x.payment);
+ return {rows,bfCash,bfBank,rc,rb,pc,pb,draw,cfCash:bfCash+rc-pc+draw,cfBank:bfBank+rb-pb-draw,heads};
+}
+window.prepareDayCashbook=function(){const d=$('cashDayDate')?.value||today76();if($('cashDayDate'))$('cashDayDate').value=d;try{if(typeof window.renderDayClose==='function')window.renderDayClose()}catch(_){ }note('cashDayMsg','Day '+d+' prepared. Opening balances and current entries have been calculated.',true);return true};
+window.closeCashbookDay=async function(){
+ const D=db(),C=camp(),d=$('cashDayDate')?.value||today76();if(!D||!C)return alert('Select an active camp first.');
+ const s=dayCalc76(d);const payload={camp_id:C.id,close_date:d,closing_cash:s.cfCash,closing_bank:s.cfBank,closing_heads:Object.fromEntries(Object.entries(s.heads).map(([k,v])=>[k,v.closing])),closed_by:(window.currentUser||window.profile)?.id||null};
+ let r=await D.from('cashbook_day_closures').upsert(payload,{onConflict:'camp_id,close_date'}).select();
+ if(r.error){const rpc=await D.rpc('close_cashbook_day_v8',{p_close_date:d});if(rpc.error){const rpc2=await D.rpc('close_cashbook_day',{p_close_date:d});if(rpc2.error)return alert('Close Day failed: '+(r.error.message||rpc2.error.message))}}
+ window.cashbookClosures=window.cashbookClosures||[];window.cashbookClosures=window.cashbookClosures.filter(x=>x.close_date!==d);window.cashbookClosures.push(payload);
+ try{if(typeof window.renderDayClose==='function')window.renderDayClose()}catch(_){ }note('cashDayMsg','Cash Book day '+d+' closed successfully.',true);return true;
+};
+window.reopenCashbookDay=async function(){
+ const D=db(),C=camp(),d=$('cashDayDate')?.value||today76();if(!D||!C)return alert('Select an active camp first.');
+ let r=await D.from('cashbook_day_closures').delete().eq('close_date',d);if(r.error)r=await D.from('cashbook_day_closures').delete().eq('camp_id',C.id).eq('close_date',d);
+ if(r.error){const a=await D.rpc('reopen_cashbook_day_v8',{p_close_date:d});if(a.error)return alert('Re-open failed: '+a.error.message)}
+ window.cashbookClosures=(window.cashbookClosures||[]).filter(x=>x.close_date!==d);try{if(typeof window.renderDayClose==='function')window.renderDayClose()}catch(_){ }note('cashDayMsg','Cash Book day '+d+' is open.',true);return true;
+};
+
+/* ---------- Cash Book preview with requested account columns ---------- */
+function lines76(d,type){const out=[];cashRows76(d).filter(e=>String(e.entry_type).toUpperCase()===type).forEach(e=>{const a=alloc76(e),keys=Object.keys(a).filter(k=>num(a[k]));if(keys.length)keys.forEach(k=>out.push({...e,head:headName76(k),line:num(a[k])}));else out.push({...e,head:headName76(e.code_head||e.source_type||'OTHERS'),line:num(e.amount)});});return out;}
+function cashHtml76(){
+ const d=$('cashDayDate')?.value||today76(),s=dayCalc76(d),r=lines76(d,'RECEIPT'),p=[...lines76(d,'PAYMENT'),...cashRows76(d).filter(e=>String(e.entry_type).toUpperCase()==='CASH_DRAWN').map(e=>({...e,head:'CASH DRAWN',line:num(e.amount),party:e.party||e.to_whom||'Bank'}))];
+ const cols=['MESSING','INCIDENTAL','POL','RANK PAY','TA CADETS','TA/DA CIV','RENT','OTHERS'];
+ const row=(e,pay)=>{const a={};cols.forEach(c=>a[c]=0);a[headName76(e?.head||'OTHERS')]=num(e?.line);return `<tr><td>${esc76(e?.entry_date||d)}</td><td>${esc76(e?.voucher_number||e?.pv_no||e?.rv_no||'')}</td><td>${esc76(e?.party||e?.to_whom||e?.supplier||'')}</td><td>${esc76(e?.on_account||e?.source_type||'')}</td><td class="num">${!pay&&String(e?.mode||'').toUpperCase()==='CASH'?money76(e.line):''}</td><td class="num">${String(e?.mode||'').toUpperCase()==='BANK'?money76(e.line):''}</td>${cols.map(c=>`<td class="num">${a[c]?money76(a[c]):''}</td>`).join('')}</tr>`};
+ const blank=`<tr><td colspan="${6+cols.length}" style="text-align:center">No entries</td></tr>`;
+ const rh=r.map(e=>row(e,false)).join('')||blank,ph=p.map(e=>row(e,true)).join('')||blank;
+ const headRows=cols.map(c=>`<tr><td>${c}</td><td class="num">${money76(s.heads[c]?.receipt||0)}</td><td class="num">${money76(s.heads[c]?.payment||0)}</td><td class="num">${money76(s.heads[c]?.closing||0)}</td></tr>`).join('');
+ return `<!doctype html><html><head><meta charset="utf-8"><title>Cash Book ${esc76(d)}</title><style>body{font-family:Inter,Segoe UI,Arial,sans-serif;color:#17324d;margin:18px;font-size:10px}h1{font-size:19px;margin:0}h2{font-size:13px;margin:15px 0 6px}.toolbar{display:flex;gap:8px;margin:10px 0}.toolbar button{padding:7px 11px;border:0;border-radius:6px;background:#087f8c;color:white;font-weight:800}table{width:100%;border-collapse:collapse;margin-bottom:10px}th{background:#d9edf3;color:#102a43;font-weight:900}th,td{border:1px solid #b8cad7;padding:4px 5px}td{font-weight:600}.num{text-align:right}.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.card{border:1px solid #b8cad7;padding:7px;background:#f5fafc}.card b{display:block}.printOnly{display:none}@media print{.toolbar{display:none}.printOnly{display:block}}</style></head><body><h1>NCC CAMP MESSING IMS — DAY CASH BOOK</h1><div>Date: <b>${esc76(d)}</b> &nbsp; Camp: <b>${esc76(camp()?.camp_name||camp()?.camp_code||'')}</b></div><div class="toolbar"><button onclick="window.print()">PRINT / SAVE PDF</button><button onclick="downloadExcel()">EXPORT EXCEL</button></div><h2>RECEIPTS</h2><table><thead><tr><th>Date</th><th>RV No.</th><th>To Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${rh}</tbody></table><h2>PAYMENTS</h2><table><thead><tr><th>Date</th><th>PV No.</th><th>To Whom Paid</th><th>On What Account</th><th>Cash</th><th>Bank</th>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead><tbody>${ph}</tbody></table><h2>BALANCES</h2><div class="summary"><div class="card"><b>Cash B/F</b>${money76(s.bfCash)}</div><div class="card"><b>Bank B/F</b>${money76(s.bfBank)}</div><div class="card"><b>Cash C/F</b>${money76(s.cfCash)}</div><div class="card"><b>Bank C/F</b>${money76(s.cfBank)}</div></div><h2>HEAD-WISE BALANCE / BALANCE SHEET</h2><table><thead><tr><th>Account Head</th><th>Receipts</th><th>Payments / Expenditure</th><th>Closing Position</th></tr></thead><tbody>${headRows}</tbody></table><h2>ACCOUNTING POSITION</h2><table><tr><th>Particular</th><th>Amount</th></tr><tr><td>Cash in Hand</td><td class="num">${money76(s.cfCash)}</td></tr><tr><td>Bank Balance</td><td class="num">${money76(s.cfBank)}</td></tr><tr><td>Total Cash + Bank</td><td class="num">${money76(s.cfCash+s.cfBank)}</td></tr></table><script>function downloadExcel(){const html=document.documentElement.outerHTML.replace(/<script[\s\S]*?<\/script>/gi,'');const blob=new Blob(['\\ufeff',html],{type:'application/vnd.ms-excel'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='Cash_Book_${esc76(d)}.xls';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}<\/script><\/body><\/html>`;
+}
+window.printDayCashbook=function(){const w=window.open('','_blank','width=1600,height=950');if(!w)return alert('Please allow pop-ups for Cash Book.');w.document.open();w.document.write(cashHtml76());w.document.close()};
+window.printCashbookV72=window.printDayCashbook;
+
+/* Bind buttons after each navigation and also through delegation, so legacy renderers cannot break them. */
+function bind76(){
+ const map=[['prepareDayCashbook',window.prepareDayCashbook],['closeCashbookDay',window.closeCashbookDay],['printDayCashbook',window.printDayCashbook]];
+ map.forEach(([name,fn])=>document.querySelectorAll(`button[onclick="${name}()"]`).forEach(b=>b.onclick=fn));
+ document.querySelectorAll('button').forEach(b=>{const t=(b.textContent||'').trim().toUpperCase();if(t==='PREPARE DAY')b.onclick=window.prepareDayCashbook;if(t==='CLOSE DAY')b.onclick=window.closeCashbookDay;if(t==='PRINT / PDF'&&b.closest('#cashbook'))b.onclick=window.printDayCashbook});
+}
+document.addEventListener('click',function(e){const b=e.target.closest?.('button');if(!b)return;const t=(b.textContent||'').trim().toUpperCase();if(t==='PREPARE DAY'){e.preventDefault();window.prepareDayCashbook();}else if(t==='CLOSE DAY'){e.preventDefault();window.closeCashbookDay();}else if(t==='PRINT / PDF'&&b.closest('#cashbook')){e.preventDefault();window.printDayCashbook();}},true);
+const oldShow=window.showPage;if(typeof oldShow==='function'&&!window.__V76_SHOW__){window.__V76_SHOW__=true;window.showPage=function(){const r=oldShow.apply(this,arguments);setTimeout(bind76,80);return r}}
+const oldRefresh=window.refreshAll;if(typeof oldRefresh==='function'&&!window.__V76_REFRESH__){window.__V76_REFRESH__=true;window.refreshAll=async function(){const r=await oldRefresh.apply(this,arguments);try{await reloadStockChildren76()}catch(_){}bind76();return r}}
+setTimeout(bind76,250);
+})();
+</script>
 </body>
 </html>
