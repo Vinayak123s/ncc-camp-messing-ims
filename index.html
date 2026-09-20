@@ -1804,7 +1804,156 @@ function printMessingReport(){
   generateMessingReport();
   const el=document.getElementById('reportsContent'); if(!el)return;
   const w=window.open('','_blank'); if(!w){alert('Please allow pop-ups for Print / PDF.');return;}
-  w.document.write('<!doctype html><html><head><title>NCC Camp Messing Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:20px}h1,h2,h3{text-align:center}.meta{text-align:center;margin-bottom:15px;color:#444}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #555;padding:6px}th{background:#eee;text-align:left}.num{text-align:right}</style></head><body><h1>NCC CAMP MESSING</h1><h2>'+esc((activeCamp?.camp_code||'')+' - '+(activeCamp?.camp_name||''))+'</h2><div class="meta">'+esc(messingReportType==='DAY'?'Day-wise Purchase / Issue Summary':messingReportType==='ITEM'?'Item-wise Purchase / Balance Report':'Statement of Item Received / Issued')+'</div>'+el.innerHTML+'\n</body></html>');
+  w.document.write('<!doctype html><html><head><title>NCC Camp Messing Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:20px}h1,h2,h3{text-align:center}.meta{text-align:center;margin-bottom:15px;color:#444}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #555;padding:6px}th{background:#eee;text-align:left}.num{text-align:right}</style></head><body><h1>NCC CAMP MESSING</h1><h2>'+esc((activeCamp?.camp_code||'')+' - '+(activeCamp?.camp_name||''))+'</h2><div class="meta">'+esc(messingReportType==='DAY'?'Day-wise Purchase / Issue Summary':messingReportType==='ITEM'?'Item-wise Purchase / Balance Report':'Statement of Item Received / Issued')+'</div>'+el.innerHTML+'\n
+<script id="ims-v45-accounts-payment-final-fix">
+/* V45 FINAL ACCOUNTS PAYMENT FIX
+   1) Always fetch linked payment sources from the SECURITY DEFINER RPC first.
+      This avoids an ACCOUNTS user's RLS-filtered stock_in_items result replacing
+      the source list with an empty list.
+   2) Current code-head balance includes the active camp's approved budget,
+      plus receipt allocations, less APPROVED payments. PENDING_MANAGER payments
+      never reduce the balance.
+*/
+(function(){
+  const cache45={MESSING_RV:[],INCIDENTAL_RV:[],POL_DRAWN:[]};
+  const n45=v=>Number(v)||0;
+  const m45=v=>'₹'+n45(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const esc45=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const role45=()=>String(profile?.role||'').trim().toUpperCase();
+  const head45=()=>String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase();
+  const type45=()=>{const h=head45();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''};
+  const approved45=e=>String(e?.approval_status||'APPROVED').trim().toUpperCase()==='APPROVED';
+  function paid45(type,id){return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.source_type||'')===type&&String(e.source_id||'')===String(id)&&approved45(e)).reduce((s,e)=>s+n45(e.amount),0)}
+
+  function normalizeRPC45(rows,type){
+    return (Array.isArray(rows)?rows:[]).map(x=>{
+      let items45=[];
+      try{items45=Array.isArray(x.items)?x.items:(typeof x.items==='string'?JSON.parse(x.items):[])}catch(_){items45=[]}
+      items45=items45.map(i=>({
+        name:i.item_name||i.name||'Item', unit:i.unit||'', qty:n45(i.quantity??i.qty), rate:n45(i.rate),
+        amount:i.amount!=null?n45(i.amount):n45(i.quantity??i.qty)*n45(i.rate)
+      }));
+      const amount=n45(x.amount);
+      return {
+        id:x.id, ref:x.reference_no||x.invoice_number||x.voucher_no||'',
+        party:x.party||x.supplier||x.petrol_bunk||'', date:x.entry_date||x.invoice_date||x.voucher_date||'',
+        amount, onAccount:x.on_account||(type==='MESSING_RV'?'MESSING':type==='INCIDENTAL_RV'?'INC':'POL'),
+        items:items45,
+        label:`${x.reference_no||x.invoice_number||x.voucher_no||''} | ${x.entry_date||x.invoice_date||x.voucher_date||''} | ${x.party||x.supplier||x.petrol_bunk||''} | Balance ${m45(amount)}`
+      };
+    }).filter(x=>x.amount>0.005);
+  }
+
+  function local45(type){
+    if(type==='MESSING_RV') return (inInvoices||[]).map(x=>{
+      const its=(x.stock_in_items||[]).map(r=>{const it=(items||[]).find(i=>String(i.id)===String(r.item_id));const q=n45(r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty:q,rate,amount:a}});
+      const total=its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||'',party:x.supplier||'',date:x.invoice_date||'',amount:rem,onAccount:'MESSING',items:its,label:`${x.invoice_number||''} | ${x.invoice_date||''} | ${x.supplier||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    if(type==='INCIDENTAL_RV') return (incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()==='RV').map(x=>{
+      const its=(x.items||[]).map(r=>{const q=n45(r.qty??r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:r.name||r.desc||r.item||'Item',unit:r.unit||'',qty:q,rate,amount:a}});
+      const total=n45(x.amount)||its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||x.voucher_no||'',party:x.party||'',date:x.voucher_date||'',amount:rem,onAccount:'INC',items:its,label:`${x.voucher_no||''} | ${x.invoice_number||'-'} | ${x.party||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    if(type==='POL_DRAWN') return (polEntries||[]).map(x=>{
+      const total=n45(x.total_amount)||n45(x.litres)*n45(x.rate),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||'',party:x.petrol_bunk||'',date:x.entry_date||'',amount:rem,onAccount:'POL',items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:n45(x.litres),rate:n45(x.rate),amount:total}],label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    return [];
+  }
+
+  async function rpc45(type){
+    if(!activeCamp?.id||!sb)return [];
+    const r=await sb.rpc('get_accounts_payment_sources_v43',{p_camp_id:activeCamp.id,p_source_type:type});
+    if(r.error)throw r.error;
+    return normalizeRPC45(r.data,type);
+  }
+
+  async function load45(){
+    if(typeof cashType!=='undefined'&&cashType!=='PAYMENT')return;
+    const h=head45(), linked=['MESSING','INC','POL'].includes(h);
+    const tw=document.getElementById('cashSourceTypeWrap'), sw=document.getElementById('cashSourceWrap'), sel=document.getElementById('cashSource'), st=document.getElementById('cashSourceType');
+    if(!tw||!sw||!sel)return;
+    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
+    tw.classList.remove('hidden');sw.classList.remove('hidden');
+    const type=type45(); if(st)st.value=type;
+    sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
+    let list=[];
+    let rpcError=null;
+    try{list=await rpc45(type)}catch(e){rpcError=e}
+    if(!list.length) list=local45(type);
+    if(!list.length){
+      sel.innerHTML=rpcError
+        ? '<option value="">No source found — check Supabase V43 RPC</option>'
+        : '<option value="">No unpaid source voucher found</option>';
+      cache45[type]=[];
+      update45Balance();
+      return;
+    }
+    cache45[type]=list;
+    sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${esc45(x.id)}">${esc45(x.label)}</option>`).join('');
+    update45Balance();
+  }
+
+  function fill45(){
+    const type=document.getElementById('cashSourceType')?.value||type45(), id=document.getElementById('cashSource')?.value||'';
+    const x=(cache45[type]||[]).find(a=>String(a.id)===String(id));
+    if(!x){update45Balance();return}
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};
+    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',n45(x.amount).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',n45(x.amount).toFixed(2));
+    const b=document.getElementById('cashSourceItemsBody');if(b)b.innerHTML=(x.items||[]).map(i=>`<tr><td>${esc45(i.name)}</td><td>${esc45(i.unit)}</td><td>${i.qty}</td><td>${m45(i.rate)}</td><td>${m45(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
+    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
+    update45Balance();
+  }
+
+  function budget45(head){
+    const c=activeCamp||{};
+    const h=String(head||'').toUpperCase();
+    if(h==='MESSING')return n45(c.messing_budget);
+    if(h==='INC')return n45(c.incidental_budget);
+    if(h==='POL')return n45(c.pol_budget);
+    return 0;
+  }
+  function alloc45(e){
+    let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}} a=a&&typeof a==='object'?a:{};
+    const out={MESSING:0,INC:0,POL:0,'RANK PAY':0,'TA CADETS':0,'TA/DA CIV STAFF':0,RENT:0,OTHERS:0};
+    Object.entries(a).forEach(([k,v])=>{const u=String(k||'').trim().toUpperCase();if(u==='MESSING'||u==='INC'||u==='POL'||u==='RANK PAY'||u==='TA CADETS'||u==='TA/DA CIV STAFF'||u==='TA/DA CIV'||u==='TA DA CIV STAFF'||u==='RENT'||u==='OTHERS'||u==='OTHER'){const z=u==='TA/DA CIV'||u==='TA DA CIV STAFF'?'TA/DA CIV STAFF':u==='OTHER'?'OTHERS':u;out[z]=(out[z]||0)+n45(v)}});return out;
+  }
+  function headBal45(head,date){
+    const h=String(head||'').trim().toUpperCase(); let total=budget45(h);
+    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date||today())).forEach(e=>{
+      if(e.entry_type==='RECEIPT') total+=n45(alloc45(e)[h]);
+      else if(e.entry_type==='PAYMENT'&&String(e.code_head||'').trim().toUpperCase()===h&&approved45(e)) total-=n45(e.amount);
+    });
+    return total;
+  }
+  function update45Balance(){
+    const date=document.getElementById('payDate')?.value||today(), mode=document.getElementById('cashPaymentMode')?.value||'CASH', head=head45(), amt=n45(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''));
+    let cash=0,bank=0;
+    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date)).forEach(e=>{const a=n45(e.amount);if(e.entry_type==='RECEIPT'){if(String(e.mode).toUpperCase()==='BANK')bank+=a;else cash+=a}else if(e.entry_type==='PAYMENT'&&approved45(e)){if(String(e.mode).toUpperCase()==='BANK')bank-=a;else cash-=a}else if(e.entry_type==='CASH_DRAWN'){bank-=a;cash+=a}});
+    const hb=head?headBal45(head,date):0;
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=m45(v)};
+    set('payCashCurrent',cash);set('payBankCurrent',bank);set('payHeadCurrent',hb);set('payCashBankAfter',mode==='BANK'?bank-amt:cash-amt);set('payBankAfter',bank-(mode==='BANK'?amt:0));set('payHeadAfter',hb-amt);
+    const type=document.getElementById('cashSourceType')?.value||'',sid=document.getElementById('cashSource')?.value||'',src=(cache45[type]||[]).find(x=>String(x.id)===String(sid));
+    const note=document.getElementById('paymentBalanceNote');if(note)note.textContent=`Cash in Hand: ${m45(cash)} | Bank Balance: ${m45(bank)} | ${head||'Head'} Balance: ${m45(hb)}${src?' | Source Remaining: '+m45(src.amount):''}`;
+  }
+
+  window.loadCashSources=load45;
+  window.paymentHeadChanged=load45;
+  window.fillCashSource=fill45;
+  window.updatePaymentBalancePreview=update45Balance;
+  window.updatePaymentBalancePreviewV7=update45Balance;
+  window.availablePaymentSources=type=>cache45[type]||local45(type);
+  window.addEventListener('load',()=>setTimeout(()=>{load45();update45Balance()},900));
+  setTimeout(()=>{try{load45();update45Balance()}catch(_){}},1200);
+  document.getElementById('cashPaymentCodeHead')?.addEventListener('change',()=>{setTimeout(load45,0);setTimeout(update45Balance,20)});
+  document.getElementById('cashSource')?.addEventListener('change',fill45);
+  document.getElementById('cashPaymentMode')?.addEventListener('change',update45Balance);
+  document.getElementById('cashPaymentAmount')?.addEventListener('input',update45Balance);
+  document.getElementById('payDate')?.addEventListener('change',update45Balance);
+})();
+</script>
+</body></html>');
   w.document.close();setTimeout(()=>{w.focus();w.print()},300);
 }
 function renderReports(){
@@ -2590,6 +2739,155 @@ function printTableReport(title,headers,rows){
   w.document.write(`<!doctype html><html><head><title>${esc(title)}</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#111}h1{text-align:center;font-size:20px;margin:0 0 4px}h2{text-align:center;font-size:13px;margin:0 0 18px;color:#555}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}footer{margin-top:25px;text-align:center;font-size:10px;color:#555}</style>
 </head><body><h1>${esc(title)}</h1><h2>${esc(activeCamp?.camp_name||"NCC CAMP MESSING IMS")}</h2><table><tr>${th}</tr>${tr}</table><footer>Developed by Vinayak Shanmukhanavar</footer>
 
+
+<script id="ims-v45-accounts-payment-final-fix">
+/* V45 FINAL ACCOUNTS PAYMENT FIX
+   1) Always fetch linked payment sources from the SECURITY DEFINER RPC first.
+      This avoids an ACCOUNTS user's RLS-filtered stock_in_items result replacing
+      the source list with an empty list.
+   2) Current code-head balance includes the active camp's approved budget,
+      plus receipt allocations, less APPROVED payments. PENDING_MANAGER payments
+      never reduce the balance.
+*/
+(function(){
+  const cache45={MESSING_RV:[],INCIDENTAL_RV:[],POL_DRAWN:[]};
+  const n45=v=>Number(v)||0;
+  const m45=v=>'₹'+n45(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const esc45=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const role45=()=>String(profile?.role||'').trim().toUpperCase();
+  const head45=()=>String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase();
+  const type45=()=>{const h=head45();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''};
+  const approved45=e=>String(e?.approval_status||'APPROVED').trim().toUpperCase()==='APPROVED';
+  function paid45(type,id){return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.source_type||'')===type&&String(e.source_id||'')===String(id)&&approved45(e)).reduce((s,e)=>s+n45(e.amount),0)}
+
+  function normalizeRPC45(rows,type){
+    return (Array.isArray(rows)?rows:[]).map(x=>{
+      let items45=[];
+      try{items45=Array.isArray(x.items)?x.items:(typeof x.items==='string'?JSON.parse(x.items):[])}catch(_){items45=[]}
+      items45=items45.map(i=>({
+        name:i.item_name||i.name||'Item', unit:i.unit||'', qty:n45(i.quantity??i.qty), rate:n45(i.rate),
+        amount:i.amount!=null?n45(i.amount):n45(i.quantity??i.qty)*n45(i.rate)
+      }));
+      const amount=n45(x.amount);
+      return {
+        id:x.id, ref:x.reference_no||x.invoice_number||x.voucher_no||'',
+        party:x.party||x.supplier||x.petrol_bunk||'', date:x.entry_date||x.invoice_date||x.voucher_date||'',
+        amount, onAccount:x.on_account||(type==='MESSING_RV'?'MESSING':type==='INCIDENTAL_RV'?'INC':'POL'),
+        items:items45,
+        label:`${x.reference_no||x.invoice_number||x.voucher_no||''} | ${x.entry_date||x.invoice_date||x.voucher_date||''} | ${x.party||x.supplier||x.petrol_bunk||''} | Balance ${m45(amount)}`
+      };
+    }).filter(x=>x.amount>0.005);
+  }
+
+  function local45(type){
+    if(type==='MESSING_RV') return (inInvoices||[]).map(x=>{
+      const its=(x.stock_in_items||[]).map(r=>{const it=(items||[]).find(i=>String(i.id)===String(r.item_id));const q=n45(r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty:q,rate,amount:a}});
+      const total=its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||'',party:x.supplier||'',date:x.invoice_date||'',amount:rem,onAccount:'MESSING',items:its,label:`${x.invoice_number||''} | ${x.invoice_date||''} | ${x.supplier||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    if(type==='INCIDENTAL_RV') return (incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()==='RV').map(x=>{
+      const its=(x.items||[]).map(r=>{const q=n45(r.qty??r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:r.name||r.desc||r.item||'Item',unit:r.unit||'',qty:q,rate,amount:a}});
+      const total=n45(x.amount)||its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||x.voucher_no||'',party:x.party||'',date:x.voucher_date||'',amount:rem,onAccount:'INC',items:its,label:`${x.voucher_no||''} | ${x.invoice_number||'-'} | ${x.party||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    if(type==='POL_DRAWN') return (polEntries||[]).map(x=>{
+      const total=n45(x.total_amount)||n45(x.litres)*n45(x.rate),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||'',party:x.petrol_bunk||'',date:x.entry_date||'',amount:rem,onAccount:'POL',items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:n45(x.litres),rate:n45(x.rate),amount:total}],label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    return [];
+  }
+
+  async function rpc45(type){
+    if(!activeCamp?.id||!sb)return [];
+    const r=await sb.rpc('get_accounts_payment_sources_v43',{p_camp_id:activeCamp.id,p_source_type:type});
+    if(r.error)throw r.error;
+    return normalizeRPC45(r.data,type);
+  }
+
+  async function load45(){
+    if(typeof cashType!=='undefined'&&cashType!=='PAYMENT')return;
+    const h=head45(), linked=['MESSING','INC','POL'].includes(h);
+    const tw=document.getElementById('cashSourceTypeWrap'), sw=document.getElementById('cashSourceWrap'), sel=document.getElementById('cashSource'), st=document.getElementById('cashSourceType');
+    if(!tw||!sw||!sel)return;
+    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
+    tw.classList.remove('hidden');sw.classList.remove('hidden');
+    const type=type45(); if(st)st.value=type;
+    sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
+    let list=[];
+    let rpcError=null;
+    try{list=await rpc45(type)}catch(e){rpcError=e}
+    if(!list.length) list=local45(type);
+    if(!list.length){
+      sel.innerHTML=rpcError
+        ? '<option value="">No source found — check Supabase V43 RPC</option>'
+        : '<option value="">No unpaid source voucher found</option>';
+      cache45[type]=[];
+      update45Balance();
+      return;
+    }
+    cache45[type]=list;
+    sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${esc45(x.id)}">${esc45(x.label)}</option>`).join('');
+    update45Balance();
+  }
+
+  function fill45(){
+    const type=document.getElementById('cashSourceType')?.value||type45(), id=document.getElementById('cashSource')?.value||'';
+    const x=(cache45[type]||[]).find(a=>String(a.id)===String(id));
+    if(!x){update45Balance();return}
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};
+    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',n45(x.amount).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',n45(x.amount).toFixed(2));
+    const b=document.getElementById('cashSourceItemsBody');if(b)b.innerHTML=(x.items||[]).map(i=>`<tr><td>${esc45(i.name)}</td><td>${esc45(i.unit)}</td><td>${i.qty}</td><td>${m45(i.rate)}</td><td>${m45(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
+    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
+    update45Balance();
+  }
+
+  function budget45(head){
+    const c=activeCamp||{};
+    const h=String(head||'').toUpperCase();
+    if(h==='MESSING')return n45(c.messing_budget);
+    if(h==='INC')return n45(c.incidental_budget);
+    if(h==='POL')return n45(c.pol_budget);
+    return 0;
+  }
+  function alloc45(e){
+    let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}} a=a&&typeof a==='object'?a:{};
+    const out={MESSING:0,INC:0,POL:0,'RANK PAY':0,'TA CADETS':0,'TA/DA CIV STAFF':0,RENT:0,OTHERS:0};
+    Object.entries(a).forEach(([k,v])=>{const u=String(k||'').trim().toUpperCase();if(u==='MESSING'||u==='INC'||u==='POL'||u==='RANK PAY'||u==='TA CADETS'||u==='TA/DA CIV STAFF'||u==='TA/DA CIV'||u==='TA DA CIV STAFF'||u==='RENT'||u==='OTHERS'||u==='OTHER'){const z=u==='TA/DA CIV'||u==='TA DA CIV STAFF'?'TA/DA CIV STAFF':u==='OTHER'?'OTHERS':u;out[z]=(out[z]||0)+n45(v)}});return out;
+  }
+  function headBal45(head,date){
+    const h=String(head||'').trim().toUpperCase(); let total=budget45(h);
+    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date||today())).forEach(e=>{
+      if(e.entry_type==='RECEIPT') total+=n45(alloc45(e)[h]);
+      else if(e.entry_type==='PAYMENT'&&String(e.code_head||'').trim().toUpperCase()===h&&approved45(e)) total-=n45(e.amount);
+    });
+    return total;
+  }
+  function update45Balance(){
+    const date=document.getElementById('payDate')?.value||today(), mode=document.getElementById('cashPaymentMode')?.value||'CASH', head=head45(), amt=n45(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''));
+    let cash=0,bank=0;
+    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date)).forEach(e=>{const a=n45(e.amount);if(e.entry_type==='RECEIPT'){if(String(e.mode).toUpperCase()==='BANK')bank+=a;else cash+=a}else if(e.entry_type==='PAYMENT'&&approved45(e)){if(String(e.mode).toUpperCase()==='BANK')bank-=a;else cash-=a}else if(e.entry_type==='CASH_DRAWN'){bank-=a;cash+=a}});
+    const hb=head?headBal45(head,date):0;
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=m45(v)};
+    set('payCashCurrent',cash);set('payBankCurrent',bank);set('payHeadCurrent',hb);set('payCashBankAfter',mode==='BANK'?bank-amt:cash-amt);set('payBankAfter',bank-(mode==='BANK'?amt:0));set('payHeadAfter',hb-amt);
+    const type=document.getElementById('cashSourceType')?.value||'',sid=document.getElementById('cashSource')?.value||'',src=(cache45[type]||[]).find(x=>String(x.id)===String(sid));
+    const note=document.getElementById('paymentBalanceNote');if(note)note.textContent=`Cash in Hand: ${m45(cash)} | Bank Balance: ${m45(bank)} | ${head||'Head'} Balance: ${m45(hb)}${src?' | Source Remaining: '+m45(src.amount):''}`;
+  }
+
+  window.loadCashSources=load45;
+  window.paymentHeadChanged=load45;
+  window.fillCashSource=fill45;
+  window.updatePaymentBalancePreview=update45Balance;
+  window.updatePaymentBalancePreviewV7=update45Balance;
+  window.availablePaymentSources=type=>cache45[type]||local45(type);
+  window.addEventListener('load',()=>setTimeout(()=>{load45();update45Balance()},900));
+  setTimeout(()=>{try{load45();update45Balance()}catch(_){}},1200);
+  document.getElementById('cashPaymentCodeHead')?.addEventListener('change',()=>{setTimeout(load45,0);setTimeout(update45Balance,20)});
+  document.getElementById('cashSource')?.addEventListener('change',fill45);
+  document.getElementById('cashPaymentMode')?.addEventListener('change',update45Balance);
+  document.getElementById('cashPaymentAmount')?.addEventListener('input',update45Balance);
+  document.getElementById('payDate')?.addEventListener('change',update45Balance);
+})();
+</script>
 </body></html>`);
   w.document.close();
   setTimeout(()=>{w.focus();w.print()},300);
@@ -2616,6 +2914,155 @@ function printPOLReport(){renderPOLReport();setTimeout(()=>{const box=document.g
 @media(max-width:650px){.rviv-item-grid{grid-template-columns:1fr 1fr!important}}
 </style></head><body><h2 style="text-align:center">NCC CAMP MESSING IMS - POL REPORT</h2>${box?.innerHTML||''}
 
+
+<script id="ims-v45-accounts-payment-final-fix">
+/* V45 FINAL ACCOUNTS PAYMENT FIX
+   1) Always fetch linked payment sources from the SECURITY DEFINER RPC first.
+      This avoids an ACCOUNTS user's RLS-filtered stock_in_items result replacing
+      the source list with an empty list.
+   2) Current code-head balance includes the active camp's approved budget,
+      plus receipt allocations, less APPROVED payments. PENDING_MANAGER payments
+      never reduce the balance.
+*/
+(function(){
+  const cache45={MESSING_RV:[],INCIDENTAL_RV:[],POL_DRAWN:[]};
+  const n45=v=>Number(v)||0;
+  const m45=v=>'₹'+n45(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const esc45=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const role45=()=>String(profile?.role||'').trim().toUpperCase();
+  const head45=()=>String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase();
+  const type45=()=>{const h=head45();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''};
+  const approved45=e=>String(e?.approval_status||'APPROVED').trim().toUpperCase()==='APPROVED';
+  function paid45(type,id){return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.source_type||'')===type&&String(e.source_id||'')===String(id)&&approved45(e)).reduce((s,e)=>s+n45(e.amount),0)}
+
+  function normalizeRPC45(rows,type){
+    return (Array.isArray(rows)?rows:[]).map(x=>{
+      let items45=[];
+      try{items45=Array.isArray(x.items)?x.items:(typeof x.items==='string'?JSON.parse(x.items):[])}catch(_){items45=[]}
+      items45=items45.map(i=>({
+        name:i.item_name||i.name||'Item', unit:i.unit||'', qty:n45(i.quantity??i.qty), rate:n45(i.rate),
+        amount:i.amount!=null?n45(i.amount):n45(i.quantity??i.qty)*n45(i.rate)
+      }));
+      const amount=n45(x.amount);
+      return {
+        id:x.id, ref:x.reference_no||x.invoice_number||x.voucher_no||'',
+        party:x.party||x.supplier||x.petrol_bunk||'', date:x.entry_date||x.invoice_date||x.voucher_date||'',
+        amount, onAccount:x.on_account||(type==='MESSING_RV'?'MESSING':type==='INCIDENTAL_RV'?'INC':'POL'),
+        items:items45,
+        label:`${x.reference_no||x.invoice_number||x.voucher_no||''} | ${x.entry_date||x.invoice_date||x.voucher_date||''} | ${x.party||x.supplier||x.petrol_bunk||''} | Balance ${m45(amount)}`
+      };
+    }).filter(x=>x.amount>0.005);
+  }
+
+  function local45(type){
+    if(type==='MESSING_RV') return (inInvoices||[]).map(x=>{
+      const its=(x.stock_in_items||[]).map(r=>{const it=(items||[]).find(i=>String(i.id)===String(r.item_id));const q=n45(r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty:q,rate,amount:a}});
+      const total=its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||'',party:x.supplier||'',date:x.invoice_date||'',amount:rem,onAccount:'MESSING',items:its,label:`${x.invoice_number||''} | ${x.invoice_date||''} | ${x.supplier||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    if(type==='INCIDENTAL_RV') return (incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()==='RV').map(x=>{
+      const its=(x.items||[]).map(r=>{const q=n45(r.qty??r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:r.name||r.desc||r.item||'Item',unit:r.unit||'',qty:q,rate,amount:a}});
+      const total=n45(x.amount)||its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||x.voucher_no||'',party:x.party||'',date:x.voucher_date||'',amount:rem,onAccount:'INC',items:its,label:`${x.voucher_no||''} | ${x.invoice_number||'-'} | ${x.party||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    if(type==='POL_DRAWN') return (polEntries||[]).map(x=>{
+      const total=n45(x.total_amount)||n45(x.litres)*n45(x.rate),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||'',party:x.petrol_bunk||'',date:x.entry_date||'',amount:rem,onAccount:'POL',items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:n45(x.litres),rate:n45(x.rate),amount:total}],label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    return [];
+  }
+
+  async function rpc45(type){
+    if(!activeCamp?.id||!sb)return [];
+    const r=await sb.rpc('get_accounts_payment_sources_v43',{p_camp_id:activeCamp.id,p_source_type:type});
+    if(r.error)throw r.error;
+    return normalizeRPC45(r.data,type);
+  }
+
+  async function load45(){
+    if(typeof cashType!=='undefined'&&cashType!=='PAYMENT')return;
+    const h=head45(), linked=['MESSING','INC','POL'].includes(h);
+    const tw=document.getElementById('cashSourceTypeWrap'), sw=document.getElementById('cashSourceWrap'), sel=document.getElementById('cashSource'), st=document.getElementById('cashSourceType');
+    if(!tw||!sw||!sel)return;
+    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
+    tw.classList.remove('hidden');sw.classList.remove('hidden');
+    const type=type45(); if(st)st.value=type;
+    sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
+    let list=[];
+    let rpcError=null;
+    try{list=await rpc45(type)}catch(e){rpcError=e}
+    if(!list.length) list=local45(type);
+    if(!list.length){
+      sel.innerHTML=rpcError
+        ? '<option value="">No source found — check Supabase V43 RPC</option>'
+        : '<option value="">No unpaid source voucher found</option>';
+      cache45[type]=[];
+      update45Balance();
+      return;
+    }
+    cache45[type]=list;
+    sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${esc45(x.id)}">${esc45(x.label)}</option>`).join('');
+    update45Balance();
+  }
+
+  function fill45(){
+    const type=document.getElementById('cashSourceType')?.value||type45(), id=document.getElementById('cashSource')?.value||'';
+    const x=(cache45[type]||[]).find(a=>String(a.id)===String(id));
+    if(!x){update45Balance();return}
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};
+    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',n45(x.amount).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',n45(x.amount).toFixed(2));
+    const b=document.getElementById('cashSourceItemsBody');if(b)b.innerHTML=(x.items||[]).map(i=>`<tr><td>${esc45(i.name)}</td><td>${esc45(i.unit)}</td><td>${i.qty}</td><td>${m45(i.rate)}</td><td>${m45(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
+    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
+    update45Balance();
+  }
+
+  function budget45(head){
+    const c=activeCamp||{};
+    const h=String(head||'').toUpperCase();
+    if(h==='MESSING')return n45(c.messing_budget);
+    if(h==='INC')return n45(c.incidental_budget);
+    if(h==='POL')return n45(c.pol_budget);
+    return 0;
+  }
+  function alloc45(e){
+    let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}} a=a&&typeof a==='object'?a:{};
+    const out={MESSING:0,INC:0,POL:0,'RANK PAY':0,'TA CADETS':0,'TA/DA CIV STAFF':0,RENT:0,OTHERS:0};
+    Object.entries(a).forEach(([k,v])=>{const u=String(k||'').trim().toUpperCase();if(u==='MESSING'||u==='INC'||u==='POL'||u==='RANK PAY'||u==='TA CADETS'||u==='TA/DA CIV STAFF'||u==='TA/DA CIV'||u==='TA DA CIV STAFF'||u==='RENT'||u==='OTHERS'||u==='OTHER'){const z=u==='TA/DA CIV'||u==='TA DA CIV STAFF'?'TA/DA CIV STAFF':u==='OTHER'?'OTHERS':u;out[z]=(out[z]||0)+n45(v)}});return out;
+  }
+  function headBal45(head,date){
+    const h=String(head||'').trim().toUpperCase(); let total=budget45(h);
+    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date||today())).forEach(e=>{
+      if(e.entry_type==='RECEIPT') total+=n45(alloc45(e)[h]);
+      else if(e.entry_type==='PAYMENT'&&String(e.code_head||'').trim().toUpperCase()===h&&approved45(e)) total-=n45(e.amount);
+    });
+    return total;
+  }
+  function update45Balance(){
+    const date=document.getElementById('payDate')?.value||today(), mode=document.getElementById('cashPaymentMode')?.value||'CASH', head=head45(), amt=n45(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''));
+    let cash=0,bank=0;
+    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date)).forEach(e=>{const a=n45(e.amount);if(e.entry_type==='RECEIPT'){if(String(e.mode).toUpperCase()==='BANK')bank+=a;else cash+=a}else if(e.entry_type==='PAYMENT'&&approved45(e)){if(String(e.mode).toUpperCase()==='BANK')bank-=a;else cash-=a}else if(e.entry_type==='CASH_DRAWN'){bank-=a;cash+=a}});
+    const hb=head?headBal45(head,date):0;
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=m45(v)};
+    set('payCashCurrent',cash);set('payBankCurrent',bank);set('payHeadCurrent',hb);set('payCashBankAfter',mode==='BANK'?bank-amt:cash-amt);set('payBankAfter',bank-(mode==='BANK'?amt:0));set('payHeadAfter',hb-amt);
+    const type=document.getElementById('cashSourceType')?.value||'',sid=document.getElementById('cashSource')?.value||'',src=(cache45[type]||[]).find(x=>String(x.id)===String(sid));
+    const note=document.getElementById('paymentBalanceNote');if(note)note.textContent=`Cash in Hand: ${m45(cash)} | Bank Balance: ${m45(bank)} | ${head||'Head'} Balance: ${m45(hb)}${src?' | Source Remaining: '+m45(src.amount):''}`;
+  }
+
+  window.loadCashSources=load45;
+  window.paymentHeadChanged=load45;
+  window.fillCashSource=fill45;
+  window.updatePaymentBalancePreview=update45Balance;
+  window.updatePaymentBalancePreviewV7=update45Balance;
+  window.availablePaymentSources=type=>cache45[type]||local45(type);
+  window.addEventListener('load',()=>setTimeout(()=>{load45();update45Balance()},900));
+  setTimeout(()=>{try{load45();update45Balance()}catch(_){}},1200);
+  document.getElementById('cashPaymentCodeHead')?.addEventListener('change',()=>{setTimeout(load45,0);setTimeout(update45Balance,20)});
+  document.getElementById('cashSource')?.addEventListener('change',fill45);
+  document.getElementById('cashPaymentMode')?.addEventListener('change',update45Balance);
+  document.getElementById('cashPaymentAmount')?.addEventListener('input',update45Balance);
+  document.getElementById('payDate')?.addEventListener('change',update45Balance);
+})();
+</script>
 </body></html>`);w.document.close();setTimeout(()=>{w.focus();w.print()},300)},100)}
 
 function populateAllPOLVehicleSelectors(){
@@ -3921,6 +4368,155 @@ window.addEventListener('DOMContentLoaded',()=>{
     const campName=activeCamp?.camp_name||''; const campCode=activeCamp?.camp_code||''; const station=activeCamp?.station||'';
     w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Incidental Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:18px}h1,h2{text-align:center;margin:4px 0}p{margin:4px 0;text-align:center;font-size:12px}.section{margin-top:18px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px;text-align:left}th{background:#eee}.num{text-align:right}@media print{body{padding:8mm}}</style></head><body><h1>INCIDENTAL PURCHASE, BALANCE &amp; EXPENDITURE REPORT</h1><p>${escR(campCode)} | ${escR(campName)} | ${escR(station)}</p><p>From: ${escR(document.getElementById('incRepFrom')?.value||'All')} &nbsp; To: ${escR(document.getElementById('incRepTo')?.value||'All')}</p><div class="section"><h2>Item-wise Purchase &amp; Balance</h2><table><tr><th>SL</th><th>Item</th><th>A/u</th><th>Exp / N-Exp</th><th>Purchased Qty</th><th>Purchase Value</th><th>Issued Qty</th><th>Expenditure</th><th>Balance Qty</th><th>Balance Value</th></tr>${items.map((o,i)=>`<tr><td>${i+1}</td><td>${escR(o.name)}</td><td>${escR(o.unit)}</td><td>${escR(o.type)}</td><td>${o.purchaseQty.toFixed(2)}</td><td class="num">${moneyR(o.purchaseValue)}</td><td>${o.issueQty.toFixed(2)}</td><td class="num">${moneyR(o.issueValue)}</td><td>${o.balanceQty.toFixed(2)}</td><td class="num">${moneyR(o.balanceValue)}</td></tr>`).join('')}</table></div><div class="section"><h2>Expenditure / Issue Details</h2><table><tr><th>SL</th><th>IV No.</th><th>Date</th><th>Receiving Unit</th><th>Item</th><th>A/u</th><th>Qty</th><th>Rate</th><th>Expenditure</th><th>Source RV</th><th>Page No.</th></tr>${ivRows.map((r,i)=>`<tr><td>${i+1}</td><td>${escR(r.iv.voucher_no)}</td><td>${escR(r.iv.voucher_date)}</td><td>${escR(r.iv.unit||r.iv.party)}</td><td>${escR(r.name)}</td><td>${escR(r.unit)}</td><td>${r.qty.toFixed(2)}</td><td class="num">${moneyR(r.rate)}</td><td class="num">${moneyR(r.amount)}</td><td>${escR(r.sourceRvNo)}</td><td>${escR(r.page)}</td></tr>`).join('')}</table></div>
 
+
+<script id="ims-v45-accounts-payment-final-fix">
+/* V45 FINAL ACCOUNTS PAYMENT FIX
+   1) Always fetch linked payment sources from the SECURITY DEFINER RPC first.
+      This avoids an ACCOUNTS user's RLS-filtered stock_in_items result replacing
+      the source list with an empty list.
+   2) Current code-head balance includes the active camp's approved budget,
+      plus receipt allocations, less APPROVED payments. PENDING_MANAGER payments
+      never reduce the balance.
+*/
+(function(){
+  const cache45={MESSING_RV:[],INCIDENTAL_RV:[],POL_DRAWN:[]};
+  const n45=v=>Number(v)||0;
+  const m45=v=>'₹'+n45(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const esc45=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const role45=()=>String(profile?.role||'').trim().toUpperCase();
+  const head45=()=>String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase();
+  const type45=()=>{const h=head45();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''};
+  const approved45=e=>String(e?.approval_status||'APPROVED').trim().toUpperCase()==='APPROVED';
+  function paid45(type,id){return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.source_type||'')===type&&String(e.source_id||'')===String(id)&&approved45(e)).reduce((s,e)=>s+n45(e.amount),0)}
+
+  function normalizeRPC45(rows,type){
+    return (Array.isArray(rows)?rows:[]).map(x=>{
+      let items45=[];
+      try{items45=Array.isArray(x.items)?x.items:(typeof x.items==='string'?JSON.parse(x.items):[])}catch(_){items45=[]}
+      items45=items45.map(i=>({
+        name:i.item_name||i.name||'Item', unit:i.unit||'', qty:n45(i.quantity??i.qty), rate:n45(i.rate),
+        amount:i.amount!=null?n45(i.amount):n45(i.quantity??i.qty)*n45(i.rate)
+      }));
+      const amount=n45(x.amount);
+      return {
+        id:x.id, ref:x.reference_no||x.invoice_number||x.voucher_no||'',
+        party:x.party||x.supplier||x.petrol_bunk||'', date:x.entry_date||x.invoice_date||x.voucher_date||'',
+        amount, onAccount:x.on_account||(type==='MESSING_RV'?'MESSING':type==='INCIDENTAL_RV'?'INC':'POL'),
+        items:items45,
+        label:`${x.reference_no||x.invoice_number||x.voucher_no||''} | ${x.entry_date||x.invoice_date||x.voucher_date||''} | ${x.party||x.supplier||x.petrol_bunk||''} | Balance ${m45(amount)}`
+      };
+    }).filter(x=>x.amount>0.005);
+  }
+
+  function local45(type){
+    if(type==='MESSING_RV') return (inInvoices||[]).map(x=>{
+      const its=(x.stock_in_items||[]).map(r=>{const it=(items||[]).find(i=>String(i.id)===String(r.item_id));const q=n45(r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty:q,rate,amount:a}});
+      const total=its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||'',party:x.supplier||'',date:x.invoice_date||'',amount:rem,onAccount:'MESSING',items:its,label:`${x.invoice_number||''} | ${x.invoice_date||''} | ${x.supplier||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    if(type==='INCIDENTAL_RV') return (incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()==='RV').map(x=>{
+      const its=(x.items||[]).map(r=>{const q=n45(r.qty??r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:r.name||r.desc||r.item||'Item',unit:r.unit||'',qty:q,rate,amount:a}});
+      const total=n45(x.amount)||its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||x.voucher_no||'',party:x.party||'',date:x.voucher_date||'',amount:rem,onAccount:'INC',items:its,label:`${x.voucher_no||''} | ${x.invoice_number||'-'} | ${x.party||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    if(type==='POL_DRAWN') return (polEntries||[]).map(x=>{
+      const total=n45(x.total_amount)||n45(x.litres)*n45(x.rate),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||'',party:x.petrol_bunk||'',date:x.entry_date||'',amount:rem,onAccount:'POL',items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:n45(x.litres),rate:n45(x.rate),amount:total}],label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    return [];
+  }
+
+  async function rpc45(type){
+    if(!activeCamp?.id||!sb)return [];
+    const r=await sb.rpc('get_accounts_payment_sources_v43',{p_camp_id:activeCamp.id,p_source_type:type});
+    if(r.error)throw r.error;
+    return normalizeRPC45(r.data,type);
+  }
+
+  async function load45(){
+    if(typeof cashType!=='undefined'&&cashType!=='PAYMENT')return;
+    const h=head45(), linked=['MESSING','INC','POL'].includes(h);
+    const tw=document.getElementById('cashSourceTypeWrap'), sw=document.getElementById('cashSourceWrap'), sel=document.getElementById('cashSource'), st=document.getElementById('cashSourceType');
+    if(!tw||!sw||!sel)return;
+    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
+    tw.classList.remove('hidden');sw.classList.remove('hidden');
+    const type=type45(); if(st)st.value=type;
+    sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
+    let list=[];
+    let rpcError=null;
+    try{list=await rpc45(type)}catch(e){rpcError=e}
+    if(!list.length) list=local45(type);
+    if(!list.length){
+      sel.innerHTML=rpcError
+        ? '<option value="">No source found — check Supabase V43 RPC</option>'
+        : '<option value="">No unpaid source voucher found</option>';
+      cache45[type]=[];
+      update45Balance();
+      return;
+    }
+    cache45[type]=list;
+    sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${esc45(x.id)}">${esc45(x.label)}</option>`).join('');
+    update45Balance();
+  }
+
+  function fill45(){
+    const type=document.getElementById('cashSourceType')?.value||type45(), id=document.getElementById('cashSource')?.value||'';
+    const x=(cache45[type]||[]).find(a=>String(a.id)===String(id));
+    if(!x){update45Balance();return}
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};
+    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',n45(x.amount).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',n45(x.amount).toFixed(2));
+    const b=document.getElementById('cashSourceItemsBody');if(b)b.innerHTML=(x.items||[]).map(i=>`<tr><td>${esc45(i.name)}</td><td>${esc45(i.unit)}</td><td>${i.qty}</td><td>${m45(i.rate)}</td><td>${m45(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
+    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
+    update45Balance();
+  }
+
+  function budget45(head){
+    const c=activeCamp||{};
+    const h=String(head||'').toUpperCase();
+    if(h==='MESSING')return n45(c.messing_budget);
+    if(h==='INC')return n45(c.incidental_budget);
+    if(h==='POL')return n45(c.pol_budget);
+    return 0;
+  }
+  function alloc45(e){
+    let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}} a=a&&typeof a==='object'?a:{};
+    const out={MESSING:0,INC:0,POL:0,'RANK PAY':0,'TA CADETS':0,'TA/DA CIV STAFF':0,RENT:0,OTHERS:0};
+    Object.entries(a).forEach(([k,v])=>{const u=String(k||'').trim().toUpperCase();if(u==='MESSING'||u==='INC'||u==='POL'||u==='RANK PAY'||u==='TA CADETS'||u==='TA/DA CIV STAFF'||u==='TA/DA CIV'||u==='TA DA CIV STAFF'||u==='RENT'||u==='OTHERS'||u==='OTHER'){const z=u==='TA/DA CIV'||u==='TA DA CIV STAFF'?'TA/DA CIV STAFF':u==='OTHER'?'OTHERS':u;out[z]=(out[z]||0)+n45(v)}});return out;
+  }
+  function headBal45(head,date){
+    const h=String(head||'').trim().toUpperCase(); let total=budget45(h);
+    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date||today())).forEach(e=>{
+      if(e.entry_type==='RECEIPT') total+=n45(alloc45(e)[h]);
+      else if(e.entry_type==='PAYMENT'&&String(e.code_head||'').trim().toUpperCase()===h&&approved45(e)) total-=n45(e.amount);
+    });
+    return total;
+  }
+  function update45Balance(){
+    const date=document.getElementById('payDate')?.value||today(), mode=document.getElementById('cashPaymentMode')?.value||'CASH', head=head45(), amt=n45(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''));
+    let cash=0,bank=0;
+    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date)).forEach(e=>{const a=n45(e.amount);if(e.entry_type==='RECEIPT'){if(String(e.mode).toUpperCase()==='BANK')bank+=a;else cash+=a}else if(e.entry_type==='PAYMENT'&&approved45(e)){if(String(e.mode).toUpperCase()==='BANK')bank-=a;else cash-=a}else if(e.entry_type==='CASH_DRAWN'){bank-=a;cash+=a}});
+    const hb=head?headBal45(head,date):0;
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=m45(v)};
+    set('payCashCurrent',cash);set('payBankCurrent',bank);set('payHeadCurrent',hb);set('payCashBankAfter',mode==='BANK'?bank-amt:cash-amt);set('payBankAfter',bank-(mode==='BANK'?amt:0));set('payHeadAfter',hb-amt);
+    const type=document.getElementById('cashSourceType')?.value||'',sid=document.getElementById('cashSource')?.value||'',src=(cache45[type]||[]).find(x=>String(x.id)===String(sid));
+    const note=document.getElementById('paymentBalanceNote');if(note)note.textContent=`Cash in Hand: ${m45(cash)} | Bank Balance: ${m45(bank)} | ${head||'Head'} Balance: ${m45(hb)}${src?' | Source Remaining: '+m45(src.amount):''}`;
+  }
+
+  window.loadCashSources=load45;
+  window.paymentHeadChanged=load45;
+  window.fillCashSource=fill45;
+  window.updatePaymentBalancePreview=update45Balance;
+  window.updatePaymentBalancePreviewV7=update45Balance;
+  window.availablePaymentSources=type=>cache45[type]||local45(type);
+  window.addEventListener('load',()=>setTimeout(()=>{load45();update45Balance()},900));
+  setTimeout(()=>{try{load45();update45Balance()}catch(_){}},1200);
+  document.getElementById('cashPaymentCodeHead')?.addEventListener('change',()=>{setTimeout(load45,0);setTimeout(update45Balance,20)});
+  document.getElementById('cashSource')?.addEventListener('change',fill45);
+  document.getElementById('cashPaymentMode')?.addEventListener('change',update45Balance);
+  document.getElementById('cashPaymentAmount')?.addEventListener('input',update45Balance);
+  document.getElementById('payDate')?.addEventListener('change',update45Balance);
+})();
+</script>
 </body></html>`);
     w.document.close();w.focus();setTimeout(()=>w.print(),250);
   }
@@ -4200,6 +4796,155 @@ window.addEventListener('DOMContentLoaded',()=>{
 
 </head><body><h2>NCC CAMP MESSING IMS - ALL REPORTS</h2>${html}
 
+
+<script id="ims-v45-accounts-payment-final-fix">
+/* V45 FINAL ACCOUNTS PAYMENT FIX
+   1) Always fetch linked payment sources from the SECURITY DEFINER RPC first.
+      This avoids an ACCOUNTS user's RLS-filtered stock_in_items result replacing
+      the source list with an empty list.
+   2) Current code-head balance includes the active camp's approved budget,
+      plus receipt allocations, less APPROVED payments. PENDING_MANAGER payments
+      never reduce the balance.
+*/
+(function(){
+  const cache45={MESSING_RV:[],INCIDENTAL_RV:[],POL_DRAWN:[]};
+  const n45=v=>Number(v)||0;
+  const m45=v=>'₹'+n45(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const esc45=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const role45=()=>String(profile?.role||'').trim().toUpperCase();
+  const head45=()=>String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase();
+  const type45=()=>{const h=head45();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''};
+  const approved45=e=>String(e?.approval_status||'APPROVED').trim().toUpperCase()==='APPROVED';
+  function paid45(type,id){return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.source_type||'')===type&&String(e.source_id||'')===String(id)&&approved45(e)).reduce((s,e)=>s+n45(e.amount),0)}
+
+  function normalizeRPC45(rows,type){
+    return (Array.isArray(rows)?rows:[]).map(x=>{
+      let items45=[];
+      try{items45=Array.isArray(x.items)?x.items:(typeof x.items==='string'?JSON.parse(x.items):[])}catch(_){items45=[]}
+      items45=items45.map(i=>({
+        name:i.item_name||i.name||'Item', unit:i.unit||'', qty:n45(i.quantity??i.qty), rate:n45(i.rate),
+        amount:i.amount!=null?n45(i.amount):n45(i.quantity??i.qty)*n45(i.rate)
+      }));
+      const amount=n45(x.amount);
+      return {
+        id:x.id, ref:x.reference_no||x.invoice_number||x.voucher_no||'',
+        party:x.party||x.supplier||x.petrol_bunk||'', date:x.entry_date||x.invoice_date||x.voucher_date||'',
+        amount, onAccount:x.on_account||(type==='MESSING_RV'?'MESSING':type==='INCIDENTAL_RV'?'INC':'POL'),
+        items:items45,
+        label:`${x.reference_no||x.invoice_number||x.voucher_no||''} | ${x.entry_date||x.invoice_date||x.voucher_date||''} | ${x.party||x.supplier||x.petrol_bunk||''} | Balance ${m45(amount)}`
+      };
+    }).filter(x=>x.amount>0.005);
+  }
+
+  function local45(type){
+    if(type==='MESSING_RV') return (inInvoices||[]).map(x=>{
+      const its=(x.stock_in_items||[]).map(r=>{const it=(items||[]).find(i=>String(i.id)===String(r.item_id));const q=n45(r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty:q,rate,amount:a}});
+      const total=its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||'',party:x.supplier||'',date:x.invoice_date||'',amount:rem,onAccount:'MESSING',items:its,label:`${x.invoice_number||''} | ${x.invoice_date||''} | ${x.supplier||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    if(type==='INCIDENTAL_RV') return (incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()==='RV').map(x=>{
+      const its=(x.items||[]).map(r=>{const q=n45(r.qty??r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:r.name||r.desc||r.item||'Item',unit:r.unit||'',qty:q,rate,amount:a}});
+      const total=n45(x.amount)||its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||x.voucher_no||'',party:x.party||'',date:x.voucher_date||'',amount:rem,onAccount:'INC',items:its,label:`${x.voucher_no||''} | ${x.invoice_number||'-'} | ${x.party||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    if(type==='POL_DRAWN') return (polEntries||[]).map(x=>{
+      const total=n45(x.total_amount)||n45(x.litres)*n45(x.rate),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||'',party:x.petrol_bunk||'',date:x.entry_date||'',amount:rem,onAccount:'POL',items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:n45(x.litres),rate:n45(x.rate),amount:total}],label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    return [];
+  }
+
+  async function rpc45(type){
+    if(!activeCamp?.id||!sb)return [];
+    const r=await sb.rpc('get_accounts_payment_sources_v43',{p_camp_id:activeCamp.id,p_source_type:type});
+    if(r.error)throw r.error;
+    return normalizeRPC45(r.data,type);
+  }
+
+  async function load45(){
+    if(typeof cashType!=='undefined'&&cashType!=='PAYMENT')return;
+    const h=head45(), linked=['MESSING','INC','POL'].includes(h);
+    const tw=document.getElementById('cashSourceTypeWrap'), sw=document.getElementById('cashSourceWrap'), sel=document.getElementById('cashSource'), st=document.getElementById('cashSourceType');
+    if(!tw||!sw||!sel)return;
+    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
+    tw.classList.remove('hidden');sw.classList.remove('hidden');
+    const type=type45(); if(st)st.value=type;
+    sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
+    let list=[];
+    let rpcError=null;
+    try{list=await rpc45(type)}catch(e){rpcError=e}
+    if(!list.length) list=local45(type);
+    if(!list.length){
+      sel.innerHTML=rpcError
+        ? '<option value="">No source found — check Supabase V43 RPC</option>'
+        : '<option value="">No unpaid source voucher found</option>';
+      cache45[type]=[];
+      update45Balance();
+      return;
+    }
+    cache45[type]=list;
+    sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${esc45(x.id)}">${esc45(x.label)}</option>`).join('');
+    update45Balance();
+  }
+
+  function fill45(){
+    const type=document.getElementById('cashSourceType')?.value||type45(), id=document.getElementById('cashSource')?.value||'';
+    const x=(cache45[type]||[]).find(a=>String(a.id)===String(id));
+    if(!x){update45Balance();return}
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};
+    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',n45(x.amount).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',n45(x.amount).toFixed(2));
+    const b=document.getElementById('cashSourceItemsBody');if(b)b.innerHTML=(x.items||[]).map(i=>`<tr><td>${esc45(i.name)}</td><td>${esc45(i.unit)}</td><td>${i.qty}</td><td>${m45(i.rate)}</td><td>${m45(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
+    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
+    update45Balance();
+  }
+
+  function budget45(head){
+    const c=activeCamp||{};
+    const h=String(head||'').toUpperCase();
+    if(h==='MESSING')return n45(c.messing_budget);
+    if(h==='INC')return n45(c.incidental_budget);
+    if(h==='POL')return n45(c.pol_budget);
+    return 0;
+  }
+  function alloc45(e){
+    let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}} a=a&&typeof a==='object'?a:{};
+    const out={MESSING:0,INC:0,POL:0,'RANK PAY':0,'TA CADETS':0,'TA/DA CIV STAFF':0,RENT:0,OTHERS:0};
+    Object.entries(a).forEach(([k,v])=>{const u=String(k||'').trim().toUpperCase();if(u==='MESSING'||u==='INC'||u==='POL'||u==='RANK PAY'||u==='TA CADETS'||u==='TA/DA CIV STAFF'||u==='TA/DA CIV'||u==='TA DA CIV STAFF'||u==='RENT'||u==='OTHERS'||u==='OTHER'){const z=u==='TA/DA CIV'||u==='TA DA CIV STAFF'?'TA/DA CIV STAFF':u==='OTHER'?'OTHERS':u;out[z]=(out[z]||0)+n45(v)}});return out;
+  }
+  function headBal45(head,date){
+    const h=String(head||'').trim().toUpperCase(); let total=budget45(h);
+    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date||today())).forEach(e=>{
+      if(e.entry_type==='RECEIPT') total+=n45(alloc45(e)[h]);
+      else if(e.entry_type==='PAYMENT'&&String(e.code_head||'').trim().toUpperCase()===h&&approved45(e)) total-=n45(e.amount);
+    });
+    return total;
+  }
+  function update45Balance(){
+    const date=document.getElementById('payDate')?.value||today(), mode=document.getElementById('cashPaymentMode')?.value||'CASH', head=head45(), amt=n45(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''));
+    let cash=0,bank=0;
+    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date)).forEach(e=>{const a=n45(e.amount);if(e.entry_type==='RECEIPT'){if(String(e.mode).toUpperCase()==='BANK')bank+=a;else cash+=a}else if(e.entry_type==='PAYMENT'&&approved45(e)){if(String(e.mode).toUpperCase()==='BANK')bank-=a;else cash-=a}else if(e.entry_type==='CASH_DRAWN'){bank-=a;cash+=a}});
+    const hb=head?headBal45(head,date):0;
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=m45(v)};
+    set('payCashCurrent',cash);set('payBankCurrent',bank);set('payHeadCurrent',hb);set('payCashBankAfter',mode==='BANK'?bank-amt:cash-amt);set('payBankAfter',bank-(mode==='BANK'?amt:0));set('payHeadAfter',hb-amt);
+    const type=document.getElementById('cashSourceType')?.value||'',sid=document.getElementById('cashSource')?.value||'',src=(cache45[type]||[]).find(x=>String(x.id)===String(sid));
+    const note=document.getElementById('paymentBalanceNote');if(note)note.textContent=`Cash in Hand: ${m45(cash)} | Bank Balance: ${m45(bank)} | ${head||'Head'} Balance: ${m45(hb)}${src?' | Source Remaining: '+m45(src.amount):''}`;
+  }
+
+  window.loadCashSources=load45;
+  window.paymentHeadChanged=load45;
+  window.fillCashSource=fill45;
+  window.updatePaymentBalancePreview=update45Balance;
+  window.updatePaymentBalancePreviewV7=update45Balance;
+  window.availablePaymentSources=type=>cache45[type]||local45(type);
+  window.addEventListener('load',()=>setTimeout(()=>{load45();update45Balance()},900));
+  setTimeout(()=>{try{load45();update45Balance()}catch(_){}},1200);
+  document.getElementById('cashPaymentCodeHead')?.addEventListener('change',()=>{setTimeout(load45,0);setTimeout(update45Balance,20)});
+  document.getElementById('cashSource')?.addEventListener('change',fill45);
+  document.getElementById('cashPaymentMode')?.addEventListener('change',update45Balance);
+  document.getElementById('cashPaymentAmount')?.addEventListener('input',update45Balance);
+  document.getElementById('payDate')?.addEventListener('change',update45Balance);
+})();
+</script>
 </body></html>`);
     w.document.close();setTimeout(()=>{w.focus();w.print()},300);
   }
@@ -4519,6 +5264,155 @@ window.addEventListener('DOMContentLoaded',()=>{
   window.loadCashSources=load43;window.paymentHeadChanged=load43;window.fillCashSource=fill43;window.availablePaymentSources=type=>cache[type]||local43(type);
   window.addEventListener('load',()=>setTimeout(load43,500));
   setTimeout(load43,700);
+})();
+</script>
+
+<script id="ims-v45-accounts-payment-final-fix">
+/* V45 FINAL ACCOUNTS PAYMENT FIX
+   1) Always fetch linked payment sources from the SECURITY DEFINER RPC first.
+      This avoids an ACCOUNTS user's RLS-filtered stock_in_items result replacing
+      the source list with an empty list.
+   2) Current code-head balance includes the active camp's approved budget,
+      plus receipt allocations, less APPROVED payments. PENDING_MANAGER payments
+      never reduce the balance.
+*/
+(function(){
+  const cache45={MESSING_RV:[],INCIDENTAL_RV:[],POL_DRAWN:[]};
+  const n45=v=>Number(v)||0;
+  const m45=v=>'₹'+n45(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const esc45=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const role45=()=>String(profile?.role||'').trim().toUpperCase();
+  const head45=()=>String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase();
+  const type45=()=>{const h=head45();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''};
+  const approved45=e=>String(e?.approval_status||'APPROVED').trim().toUpperCase()==='APPROVED';
+  function paid45(type,id){return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.source_type||'')===type&&String(e.source_id||'')===String(id)&&approved45(e)).reduce((s,e)=>s+n45(e.amount),0)}
+
+  function normalizeRPC45(rows,type){
+    return (Array.isArray(rows)?rows:[]).map(x=>{
+      let items45=[];
+      try{items45=Array.isArray(x.items)?x.items:(typeof x.items==='string'?JSON.parse(x.items):[])}catch(_){items45=[]}
+      items45=items45.map(i=>({
+        name:i.item_name||i.name||'Item', unit:i.unit||'', qty:n45(i.quantity??i.qty), rate:n45(i.rate),
+        amount:i.amount!=null?n45(i.amount):n45(i.quantity??i.qty)*n45(i.rate)
+      }));
+      const amount=n45(x.amount);
+      return {
+        id:x.id, ref:x.reference_no||x.invoice_number||x.voucher_no||'',
+        party:x.party||x.supplier||x.petrol_bunk||'', date:x.entry_date||x.invoice_date||x.voucher_date||'',
+        amount, onAccount:x.on_account||(type==='MESSING_RV'?'MESSING':type==='INCIDENTAL_RV'?'INC':'POL'),
+        items:items45,
+        label:`${x.reference_no||x.invoice_number||x.voucher_no||''} | ${x.entry_date||x.invoice_date||x.voucher_date||''} | ${x.party||x.supplier||x.petrol_bunk||''} | Balance ${m45(amount)}`
+      };
+    }).filter(x=>x.amount>0.005);
+  }
+
+  function local45(type){
+    if(type==='MESSING_RV') return (inInvoices||[]).map(x=>{
+      const its=(x.stock_in_items||[]).map(r=>{const it=(items||[]).find(i=>String(i.id)===String(r.item_id));const q=n45(r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty:q,rate,amount:a}});
+      const total=its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||'',party:x.supplier||'',date:x.invoice_date||'',amount:rem,onAccount:'MESSING',items:its,label:`${x.invoice_number||''} | ${x.invoice_date||''} | ${x.supplier||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    if(type==='INCIDENTAL_RV') return (incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()==='RV').map(x=>{
+      const its=(x.items||[]).map(r=>{const q=n45(r.qty??r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:r.name||r.desc||r.item||'Item',unit:r.unit||'',qty:q,rate,amount:a}});
+      const total=n45(x.amount)||its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||x.voucher_no||'',party:x.party||'',date:x.voucher_date||'',amount:rem,onAccount:'INC',items:its,label:`${x.voucher_no||''} | ${x.invoice_number||'-'} | ${x.party||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    if(type==='POL_DRAWN') return (polEntries||[]).map(x=>{
+      const total=n45(x.total_amount)||n45(x.litres)*n45(x.rate),rem=Math.max(0,total-paid45(type,x.id));
+      return{id:x.id,ref:x.invoice_number||'',party:x.petrol_bunk||'',date:x.entry_date||'',amount:rem,onAccount:'POL',items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:n45(x.litres),rate:n45(x.rate),amount:total}],label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${m45(rem)}`};
+    }).filter(x=>x.amount>0.005);
+    return [];
+  }
+
+  async function rpc45(type){
+    if(!activeCamp?.id||!sb)return [];
+    const r=await sb.rpc('get_accounts_payment_sources_v43',{p_camp_id:activeCamp.id,p_source_type:type});
+    if(r.error)throw r.error;
+    return normalizeRPC45(r.data,type);
+  }
+
+  async function load45(){
+    if(typeof cashType!=='undefined'&&cashType!=='PAYMENT')return;
+    const h=head45(), linked=['MESSING','INC','POL'].includes(h);
+    const tw=document.getElementById('cashSourceTypeWrap'), sw=document.getElementById('cashSourceWrap'), sel=document.getElementById('cashSource'), st=document.getElementById('cashSourceType');
+    if(!tw||!sw||!sel)return;
+    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
+    tw.classList.remove('hidden');sw.classList.remove('hidden');
+    const type=type45(); if(st)st.value=type;
+    sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
+    let list=[];
+    let rpcError=null;
+    try{list=await rpc45(type)}catch(e){rpcError=e}
+    if(!list.length) list=local45(type);
+    if(!list.length){
+      sel.innerHTML=rpcError
+        ? '<option value="">No source found — check Supabase V43 RPC</option>'
+        : '<option value="">No unpaid source voucher found</option>';
+      cache45[type]=[];
+      update45Balance();
+      return;
+    }
+    cache45[type]=list;
+    sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${esc45(x.id)}">${esc45(x.label)}</option>`).join('');
+    update45Balance();
+  }
+
+  function fill45(){
+    const type=document.getElementById('cashSourceType')?.value||type45(), id=document.getElementById('cashSource')?.value||'';
+    const x=(cache45[type]||[]).find(a=>String(a.id)===String(id));
+    if(!x){update45Balance();return}
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};
+    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',n45(x.amount).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',n45(x.amount).toFixed(2));
+    const b=document.getElementById('cashSourceItemsBody');if(b)b.innerHTML=(x.items||[]).map(i=>`<tr><td>${esc45(i.name)}</td><td>${esc45(i.unit)}</td><td>${i.qty}</td><td>${m45(i.rate)}</td><td>${m45(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
+    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
+    update45Balance();
+  }
+
+  function budget45(head){
+    const c=activeCamp||{};
+    const h=String(head||'').toUpperCase();
+    if(h==='MESSING')return n45(c.messing_budget);
+    if(h==='INC')return n45(c.incidental_budget);
+    if(h==='POL')return n45(c.pol_budget);
+    return 0;
+  }
+  function alloc45(e){
+    let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}} a=a&&typeof a==='object'?a:{};
+    const out={MESSING:0,INC:0,POL:0,'RANK PAY':0,'TA CADETS':0,'TA/DA CIV STAFF':0,RENT:0,OTHERS:0};
+    Object.entries(a).forEach(([k,v])=>{const u=String(k||'').trim().toUpperCase();if(u==='MESSING'||u==='INC'||u==='POL'||u==='RANK PAY'||u==='TA CADETS'||u==='TA/DA CIV STAFF'||u==='TA/DA CIV'||u==='TA DA CIV STAFF'||u==='RENT'||u==='OTHERS'||u==='OTHER'){const z=u==='TA/DA CIV'||u==='TA DA CIV STAFF'?'TA/DA CIV STAFF':u==='OTHER'?'OTHERS':u;out[z]=(out[z]||0)+n45(v)}});return out;
+  }
+  function headBal45(head,date){
+    const h=String(head||'').trim().toUpperCase(); let total=budget45(h);
+    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date||today())).forEach(e=>{
+      if(e.entry_type==='RECEIPT') total+=n45(alloc45(e)[h]);
+      else if(e.entry_type==='PAYMENT'&&String(e.code_head||'').trim().toUpperCase()===h&&approved45(e)) total-=n45(e.amount);
+    });
+    return total;
+  }
+  function update45Balance(){
+    const date=document.getElementById('payDate')?.value||today(), mode=document.getElementById('cashPaymentMode')?.value||'CASH', head=head45(), amt=n45(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''));
+    let cash=0,bank=0;
+    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date)).forEach(e=>{const a=n45(e.amount);if(e.entry_type==='RECEIPT'){if(String(e.mode).toUpperCase()==='BANK')bank+=a;else cash+=a}else if(e.entry_type==='PAYMENT'&&approved45(e)){if(String(e.mode).toUpperCase()==='BANK')bank-=a;else cash-=a}else if(e.entry_type==='CASH_DRAWN'){bank-=a;cash+=a}});
+    const hb=head?headBal45(head,date):0;
+    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=m45(v)};
+    set('payCashCurrent',cash);set('payBankCurrent',bank);set('payHeadCurrent',hb);set('payCashBankAfter',mode==='BANK'?bank-amt:cash-amt);set('payBankAfter',bank-(mode==='BANK'?amt:0));set('payHeadAfter',hb-amt);
+    const type=document.getElementById('cashSourceType')?.value||'',sid=document.getElementById('cashSource')?.value||'',src=(cache45[type]||[]).find(x=>String(x.id)===String(sid));
+    const note=document.getElementById('paymentBalanceNote');if(note)note.textContent=`Cash in Hand: ${m45(cash)} | Bank Balance: ${m45(bank)} | ${head||'Head'} Balance: ${m45(hb)}${src?' | Source Remaining: '+m45(src.amount):''}`;
+  }
+
+  window.loadCashSources=load45;
+  window.paymentHeadChanged=load45;
+  window.fillCashSource=fill45;
+  window.updatePaymentBalancePreview=update45Balance;
+  window.updatePaymentBalancePreviewV7=update45Balance;
+  window.availablePaymentSources=type=>cache45[type]||local45(type);
+  window.addEventListener('load',()=>setTimeout(()=>{load45();update45Balance()},900));
+  setTimeout(()=>{try{load45();update45Balance()}catch(_){}},1200);
+  document.getElementById('cashPaymentCodeHead')?.addEventListener('change',()=>{setTimeout(load45,0);setTimeout(update45Balance,20)});
+  document.getElementById('cashSource')?.addEventListener('change',fill45);
+  document.getElementById('cashPaymentMode')?.addEventListener('change',update45Balance);
+  document.getElementById('cashPaymentAmount')?.addEventListener('input',update45Balance);
+  document.getElementById('payDate')?.addEventListener('change',update45Balance);
 })();
 </script>
 </body>
