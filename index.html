@@ -455,6 +455,187 @@ td{border-color:#e6ebef!important}
 }
 </style>
 
+
+<style id="ims-v65-project-style">
+/* V65 — full-project reference layout
+   Fixed sidebar, no hamburger, clean card hierarchy, readable typography. */
+:root{
+  --v65-bg:#edf3f7; --v65-card:#ffffff; --v65-text:#25313c; --v65-muted:#71808d;
+  --v65-line:#dfe7ed; --v65-teal:#0fb7a7; --v65-cyan:#159fc5; --v65-blue:#1977c8;
+  --v65-navy:#18354d; --v65-shadow:0 10px 28px rgba(31,54,72,.10);
+}
+html,body{background:var(--v65-bg)!important;color:var(--v65-text)!important}
+body{font-family:Inter,Segoe UI,Roboto,Arial,sans-serif!important;font-size:14px!important;overflow-x:hidden!important}
+
+/* Permanent navigation — hamburger removed */
+.sidebar{
+  position:fixed!important;left:0!important;top:0!important;bottom:0!important;
+  width:246px!important;padding:18px 10px 14px!important;
+  background:linear-gradient(180deg,#11b7a7 0%,#129fbd 48%,#1978c8 100%)!important;
+  border:0!important;border-right:1px solid rgba(255,255,255,.18)!important;
+  box-shadow:7px 0 24px rgba(22,65,91,.12)!important;
+  overflow-y:auto!important;overflow-x:hidden!important;z-index:100!important;
+}
+.sidebar.expanded{width:246px!important}
+.hamb{display:none!important}
+.side-brand{
+  height:82px!important;padding:5px 10px 17px!important;
+  border-bottom:1px solid rgba(255,255,255,.20)!important;
+  display:flex!important;align-items:center!important;gap:12px!important;
+}
+.side-brand .nc{
+  flex:0 0 48px!important;width:48px!important;height:48px!important;
+  border-radius:15px!important;background:#fff!important;color:#079c9a!important;
+  box-shadow:0 7px 18px rgba(0,0,0,.10)!important;
+}
+.side-brand .side-name{display:block!important;color:#fff!important;font-size:13px!important;font-weight:900!important;line-height:1.15!important}
+.nav{
+  width:100%!important;min-height:43px!important;margin:5px 0!important;padding:10px 12px!important;
+  border-radius:11px!important;background:transparent!important;color:#fff!important;
+  display:flex!important;align-items:center!important;gap:11px!important;font-weight:800!important;
+}
+.nav .ni{color:#fff!important;width:18px!important}
+.nav:hover{background:rgba(255,255,255,.13)!important}
+.nav.active{background:rgba(255,255,255,.20)!important;box-shadow:0 7px 16px rgba(0,0,0,.08)!important}
+.nav .nl{display:block!important;white-space:nowrap!important}
+.subnav{background:rgba(0,0,0,.08)!important;border-radius:11px!important}
+.side-footer{margin-top:auto!important;border-top:1px solid rgba(255,255,255,.20)!important;padding-top:12px!important}
+.nav.logout{background:#fff!important;color:#0c96b0!important;justify-content:center!important}
+.nav.logout .ni{color:#0c96b0!important}
+
+/* Topbar and content never slide under the sidebar */
+.topbar{
+  left:246px!important;height:62px!important;padding:0 22px!important;
+  background:#fff!important;color:var(--v65-text)!important;
+  border-bottom:1px solid var(--v65-line)!important;box-shadow:0 2px 12px rgba(31,54,72,.06)!important;
+  z-index:90!important;
+}
+.topbar .brand{color:#25313c!important;font-size:17px!important;font-weight:900!important}
+.topbar select,.camp-top select{background:#fff!important;color:#34414d!important;border:1px solid #d7e0e7!important;border-radius:10px!important}
+.top-right{color:#6d7a86!important}
+.avatar{background:linear-gradient(135deg,var(--v65-teal),var(--v65-blue))!important;color:#fff!important}
+
+/* Main page geometry */
+main{
+  margin-left:246px!important;padding:82px 28px 36px!important;
+  min-height:100vh!important;background:var(--v65-bg)!important;
+}
+.page{max-width:1480px!important;margin:0 auto!important}
+.section-head,.module-banner{
+  background:#fff!important;color:var(--v65-text)!important;
+  border:1px solid var(--v65-line)!important;border-radius:18px!important;
+  box-shadow:var(--v65-shadow)!important;
+}
+.section-head{padding:18px 20px!important}
+.section-head h1,.module-banner h2{color:#26333e!important}
+.section-head p,.module-banner .muted{color:var(--v65-muted)!important}
+.panel,.formbox{
+  background:#fff!important;color:var(--v65-text)!important;
+  border:1px solid var(--v65-line)!important;border-radius:18px!important;
+  box-shadow:var(--v65-shadow)!important;
+}
+.panel{padding:18px!important}
+.field label,label{color:#657381!important;font-weight:800!important}
+input,select,textarea{
+  background:#fff!important;color:#2f3b46!important;border:1px solid #d6e0e7!important;
+  border-radius:9px!important;min-height:38px!important;
+}
+input::placeholder,textarea::placeholder{color:#9aa6b0!important}
+input:focus,select:focus,textarea:focus{
+  border-color:#12aeb0!important;box-shadow:0 0 0 3px rgba(18,174,176,.10)!important;outline:none!important
+}
+.btn{border:0!important;border-radius:9px!important;font-weight:900!important}
+.btn:not(.ghost):not(.red):not(.dark){background:linear-gradient(135deg,var(--v65-teal),var(--v65-cyan))!important}
+.btn.ghost{background:#f5f8fa!important;color:#3e4c58!important;border:1px solid #d9e2e8!important}
+.btn.dark{background:#243b86!important}
+table{background:#fff!important;color:#33414d!important}
+th{background:#eef4f7!important;color:#566574!important;border-bottom:1px solid #dbe4ea!important}
+td{color:#33414d!important;border-bottom:1px solid #e7edf1!important}
+tr:hover td{background:#f8fbfc!important}
+.tablewrap{border:1px solid var(--v65-line)!important;border-radius:14px!important;background:#fff!important}
+
+/* Camp register: clear, dense, readable cards/table */
+#campTable{margin-top:14px!important}
+#campTable .v65-camp-register{display:grid!important;gap:12px!important}
+#campTable .v65-camp-card{
+  background:#fff!important;border:1px solid var(--v65-line)!important;border-radius:16px!important;
+  padding:16px!important;box-shadow:0 7px 18px rgba(31,54,72,.07)!important;
+}
+#campTable .v65-camp-card-head{display:flex!important;justify-content:space-between!important;align-items:flex-start!important;gap:15px!important}
+#campTable .v65-camp-title{font-size:18px!important;font-weight:900!important;color:#263541!important}
+#campTable .v65-camp-code{font-size:11px!important;font-weight:900!important;color:#0a9da5!important;text-transform:uppercase!important;letter-spacing:.08em!important}
+#campTable .v65-camp-meta{color:#758391!important;font-size:12px!important;margin-top:3px!important}
+#campTable .v65-status{padding:6px 10px!important;border-radius:999px!important;font-weight:900!important;font-size:11px!important}
+#campTable .v65-status.active{background:#dff7ef!important;color:#087d5c!important}
+#campTable .v65-status.available{background:#eaf2ff!important;color:#245da7!important}
+#campTable .v65-camp-stats{display:grid!important;grid-template-columns:repeat(6,1fr)!important;gap:9px!important;margin-top:13px!important}
+#campTable .v65-stat{background:#f7fafb!important;border:1px solid #e4ebef!important;border-radius:11px!important;padding:10px!important}
+#campTable .v65-stat span{display:block!important;font-size:10px!important;color:#7a8792!important;font-weight:800!important}
+#campTable .v65-stat b{display:block!important;color:#293640!important;font-size:14px!important;margin-top:4px!important}
+#campTable .v65-camp-actions{display:flex!important;gap:8px!important;flex-wrap:wrap!important;margin-top:13px!important}
+#campTable .v65-camp-actions .btn{min-height:34px!important;padding:8px 12px!important}
+
+/* Existing operational pages */
+.module-tabs{background:transparent!important}
+.module-tab{background:#fff!important;color:#33414d!important;border:1px solid #d9e2e8!important;border-radius:10px!important}
+.module-tab.active{background:linear-gradient(135deg,var(--v65-teal),var(--v65-cyan))!important;color:#fff!important;border-color:transparent!important}
+.summary-card,.card-grid-3 .summary-card,.pol-section .summary-card{
+  background:#fff!important;color:var(--v65-text)!important;border:1px solid var(--v65-line)!important;
+  border-radius:15px!important;box-shadow:0 7px 18px rgba(31,54,72,.07)!important;
+}
+.summary-card span{color:#788692!important}.summary-card b{color:#293640!important}
+.kpi,.module-card,.report-card{
+  background:#fff!important;color:var(--v65-text)!important;border:1px solid var(--v65-line)!important;
+  border-radius:15px!important;box-shadow:0 7px 18px rgba(31,54,72,.07)!important;
+}
+
+/* Dashboard: one clean grid, no overlapping cards */
+#nccNewDashboard{width:100%!important;max-width:none!important}
+#nccNewDashboard .v62-layout{display:block!important;min-height:0!important;background:transparent!important}
+#nccNewDashboard .v62-main{width:100%!important;max-width:none!important;padding:0!important}
+#nccNewDashboard .v62-top{display:grid!important;grid-template-columns:290px minmax(0,1fr)!important;gap:18px!important;margin-bottom:18px!important}
+#nccNewDashboard .v62-profile,#nccNewDashboard .v62-company,#nccNewDashboard .v62-card{
+  background:#fff!important;color:var(--v65-text)!important;border:1px solid var(--v65-line)!important;
+  border-radius:18px!important;box-shadow:var(--v65-shadow)!important;box-sizing:border-box!important;
+}
+#nccNewDashboard .v62-profile,#nccNewDashboard .v62-company,#nccNewDashboard .v62-card{overflow:hidden!important}
+#nccNewDashboard .v62-kpis{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important}
+#nccNewDashboard .v62-kpi{min-height:88px!important;border:0!important;border-radius:14px!important;box-shadow:none!important}
+#nccNewDashboard .v62-grid{display:grid!important;grid-template-columns:minmax(0,2fr) minmax(280px,1fr)!important;gap:18px!important}
+#nccNewDashboard .v62-full{grid-column:1/-1!important}
+#nccNewDashboard .v62-chart{min-height:250px!important;background:#f7fafb!important;border:1px solid #e7edf1!important;border-radius:14px!important;overflow:hidden!important}
+#nccNewDashboard .v62-card h3,#nccNewDashboard .v62-company h2{color:#2d3943!important}
+#nccNewDashboard .v62-card p,#nccNewDashboard .v62-sub{color:#7b8893!important}
+#nccNewDashboard .v62-head-item,#nccNewDashboard .v62-op{background:#f7fafb!important;border:1px solid #e3eaef!important;border-radius:12px!important}
+#nccNewDashboard .v62-table{overflow:auto!important}
+#nccNewDashboard .v62-table table{min-width:680px!important}
+
+/* Remove accidental tiny/zoomed dashboard widths */
+.dashboard,.dashboard-wrap,.dash-grid{width:100%!important;max-width:none!important;box-sizing:border-box!important}
+#nccNewDashboard *{box-sizing:border-box!important}
+
+/* Footer */
+footer{color:#7f8b96!important}
+
+/* Responsive */
+@media(max-width:1100px){
+  .sidebar{width:220px!important}.topbar{left:220px!important}.topbar{padding-left:18px!important}
+  main{margin-left:220px!important;padding-left:18px!important;padding-right:18px!important}
+  #nccNewDashboard .v62-camp-stats{grid-template-columns:repeat(3,1fr)!important}
+  #campTable .v65-camp-stats{grid-template-columns:repeat(3,1fr)!important}
+}
+@media(max-width:760px){
+  .sidebar{width:82px!important;padding:12px 8px!important}
+  .side-brand{justify-content:center!important}.side-brand .side-name{display:none!important}
+  .nav .nl{display:none!important}.nav{justify-content:center!important}
+  .topbar{left:82px!important}.topbar .brand{font-size:13px!important}
+  main{margin-left:82px!important;padding:76px 12px 24px!important}
+  #nccNewDashboard .v62-top,#nccNewDashboard .v62-grid{grid-template-columns:1fr!important}
+  #nccNewDashboard .v62-kpis{grid-template-columns:1fr 1fr!important}
+  #campTable .v65-camp-stats{grid-template-columns:1fr 1fr!important}
+}
+</style>
+
 </head>
 <body>
 
@@ -4927,6 +5108,88 @@ window.renderDashboard=render62;
 <script id="ims-v64-reference-runtime">
 /* V64 reference-style shell: visual-only runtime marker. */
 document.documentElement.classList.add('ims-v64-reference-shell');
+</script>
+
+
+<script id="ims-v65-project-runtime">
+(function(){
+  function v65Money(n){
+    try { return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(Number(n)||0); }
+    catch(e){ return '₹'+(Number(n)||0).toFixed(2); }
+  }
+  function v65Esc(v){
+    return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  }
+  function v65Days(a,b){
+    if(!a||!b)return 0;
+    const x=new Date(a+'T00:00:00'), y=new Date(b+'T00:00:00');
+    return Math.max(0,Math.floor((y-x)/86400000)+1);
+  }
+  function v65CampRegister(){
+    const el=document.getElementById('campTable');
+    if(!el)return;
+    const list=Array.isArray(window.camps)?window.camps:[];
+    if(!list.length){
+      el.innerHTML='<div class="v65-camp-register"><div class="v65-camp-card"><b>No camp details found.</b><div class="v65-camp-meta">Refresh the application or create/select a camp.</div></div></div>';
+      return;
+    }
+    el.innerHTML='<div class="v65-camp-register">'+list.map(c=>{
+      const strength=Number(c.total_strength||0), days=v65Days(c.from_date,c.to_date);
+      const active=String(window.activeCamp?.id||'')===String(c.id);
+      const off=Number(c.officers||0), pi=Number(c.pi_staffs||0), an=Number(c.anos||0), cad=Number(c.cadets||0);
+      const actions=`<div class="v65-camp-actions">
+        <button class="btn" onclick="switchCamp('${v65Esc(c.id)}')">${active?'RESELECT':'SELECT'}</button>
+        ${typeof window.openCampUpdate==='function' ? `<button class="btn ghost camp-update-btn" onclick="openCampUpdate('${v65Esc(c.id)}')">UPDATE</button>` : ''}
+        ${typeof window.roleIs==='function' && window.roleIs('ADMIN') ? `<button class="btn red" onclick="deleteCamp('${v65Esc(c.id)}')">DELETE</button>` : ''}
+      </div>`;
+      return `<article class="v65-camp-card">
+        <div class="v65-camp-card-head">
+          <div><div class="v65-camp-code">${v65Esc(c.camp_code||'')}</div>
+          <div class="v65-camp-title">${v65Esc(c.camp_name||'Unnamed Camp')}</div>
+          <div class="v65-camp-meta">${v65Esc(c.station||'Location not specified')} · ${v65Esc(c.from_date||'—')} to ${v65Esc(c.to_date||'—')} · ${days} day(s)</div></div>
+          <span class="v65-status ${active?'active':'available'}">${active?'ACTIVE':'AVAILABLE'}</span>
+        </div>
+        <div class="v65-camp-stats">
+          <div class="v65-stat"><span>Officers</span><b>${off}</b></div>
+          <div class="v65-stat"><span>PI Staff</span><b>${pi}</b></div>
+          <div class="v65-stat"><span>ANOs</span><b>${an}</b></div>
+          <div class="v65-stat"><span>Cadets</span><b>${cad}</b></div>
+          <div class="v65-stat"><span>Total Strength</span><b>${strength}</b></div>
+          <div class="v65-stat"><span>Total Budget</span><b>${v65Money(c.total_budget)}</b></div>
+        </div>
+        <div class="v65-camp-stats">
+          <div class="v65-stat"><span>Messing Budget</span><b>${v65Money(c.messing_budget)}</b></div>
+          <div class="v65-stat"><span>Incidental Budget</span><b>${v65Money(c.incidental_budget)}</b></div>
+          <div class="v65-stat"><span>POL Rate / Cadet</span><b>${v65Money(c.pol_rate_per_cadet)}</b></div>
+          <div class="v65-stat"><span>POL Budget</span><b>${v65Money(c.pol_budget)}</b></div>
+          <div class="v65-stat"><span>From</span><b>${v65Esc(c.from_date||'—')}</b></div>
+          <div class="v65-stat"><span>To</span><b>${v65Esc(c.to_date||'—')}</b></div>
+        </div>${actions}
+      </article>`;
+    }).join('')+'</div>';
+  }
+
+  // Replace the old table renderer with the readable V65 register.
+  window.renderCamps=v65CampRegister;
+
+  // Keep the global active camp in sync for the renderer.
+  const oldPopulate=window.populateCampTop;
+  if(typeof oldPopulate==='function'){
+    window.populateCampTop=function(){
+      try{return oldPopulate.apply(this,arguments)}finally{
+        const badge=document.getElementById('campActiveLabel');
+        if(badge && window.activeCamp) badge.textContent=(window.activeCamp.camp_code||'')+' | '+(window.activeCamp.camp_name||'');
+      }
+    };
+  }
+
+  // Re-render the register whenever the Camp Details page becomes visible.
+  document.addEventListener('click',function(e){
+    const target=e.target.closest?.('[data-page="camp"]');
+    if(target) setTimeout(v65CampRegister,50);
+  },true);
+  window.addEventListener('load',function(){setTimeout(v65CampRegister,600);});
+})();
 </script>
 
 </body>
