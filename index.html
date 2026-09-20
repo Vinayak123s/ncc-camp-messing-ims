@@ -1619,7 +1619,66 @@ function jsonObj(v){if(!v)return {};if(typeof v==='string'){try{return JSON.pars
 function headZero(){const o={};CASH_HEADS.forEach(h=>o[h]=0);return o}
 function dayHeadValues(rows){const receipts=headZero(),payments=headZero();rows.forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);Object.entries(a).forEach(([k,v])=>{if(receipts[k]!==undefined)receipts[k]+=Number(v)||0})}else if(e.entry_type==='PAYMENT'){if(payments[e.code_head]!==undefined)payments[e.code_head]+=Number(e.amount)||0}});return{receipts,payments}}
 function calculateDay(date){const prev=latestClosureBefore(date);let bfCash=prev?+prev.closing_cash:0,bfBank=prev?+prev.closing_bank:0,bfHeads=jsonObj(prev?.closing_heads);CASH_HEADS.forEach(h=>{if(bfHeads[h]==null)bfHeads[h]=0});let rc=0,rb=0,pc=0,pb=0,draw=0;const rows=cashbookEntries.filter(x=>x.entry_date===date);rows.forEach(e=>{const a=+e.amount||0;if(e.entry_type==='RECEIPT'){if(e.mode==='CASH')rc+=a;else rb+=a}else if(e.entry_type==='PAYMENT'){if(e.mode==='CASH')pc+=a;else pb+=a}else if(e.entry_type==='CASH_DRAWN')draw+=a});const hv=dayHeadValues(rows),cfHeads=headZero();CASH_HEADS.forEach(h=>cfHeads[h]=(Number(bfHeads[h])||0)+(Number(hv.receipts[h])||0)-(Number(hv.payments[h])||0));const cfCash=bfCash+rc-pc+draw,cfBank=bfBank+rb-pb-draw;return{bfCash,bfBank,rc,rb,pc,pb,draw,cfCash,cfBank,net:cfCash+cfBank,rows,closed:!!cashbookClosures.find(x=>x.close_date===date),bfHeads,headReceipts:hv.receipts,headPayments:hv.payments,cfHeads}}
-function currentHeadBalance(head,date=today()){let total=0;cashbookEntries.filter(e=>e.entry_date<=date).forEach(e=>{if(e.entry_type==='RECEIPT'){const a=jsonObj(e.head_allocations);total+=Number(a[head]||0)}else if(e.entry_type==='PAYMENT'&&e.code_head===head)total-=Number(e.amount||0)});return total}
+function currentHeadBalance(head,date=today()){
+  const H = String(head || '').trim().toUpperCase();
+
+  // Camp budget is the starting allocation for the head
+  const budgetMap = {
+    MESSING: Number(activeCamp?.messing_budget || 0),
+    INC: Number(activeCamp?.incidental_budget || 0),
+    POL: Number(activeCamp?.pol_budget || 0)
+  };
+
+  let total = budgetMap[H] || 0;
+
+  const entries = Array.isArray(cashbookEntries) ? cashbookEntries : [];
+
+  entries.forEach(e => {
+    if (e.entry_date && e.entry_date > date) return;
+
+    // Receipts / allotments
+    if (e.entry_type === 'RECEIPT') {
+      let a = {};
+      try {
+        a = typeof e.head_allocations === 'string'
+          ? JSON.parse(e.head_allocations || '{}')
+          : (e.head_allocations || {});
+      } catch (_) {
+        a = {};
+      }
+
+      if (H === 'MESSING') {
+        total += Number(a.Messing || a.MESSING || a.messing || 0);
+      }
+      else if (H === 'INC') {
+        total += Number(a.INC || a.Inc || a.inc || 0);
+      }
+      else if (H === 'POL') {
+        total += Number(a.POL || a.Pol || a.pol || 0);
+      }
+      else {
+        total += Number(
+          a[H] ||
+          a[head] ||
+          0
+        );
+      }
+    }
+
+    // ONLY APPROVED payments reduce the head balance
+    if (
+      e.entry_type === 'PAYMENT' &&
+      String(e.code_head || '').trim().toUpperCase() === H &&
+      String(e.approval_status || 'APPROVED').toUpperCase() === 'APPROVED'
+    ) {
+      total -= Number(e.amount || 0);
+    }
+  });
+
+  return Math.max(0, total);
+}
+window.currentHeadBalance = currentHeadBalance;
+window.headBalanceAsOf = currentHeadBalance;
 function currentSourceBalance(mode){let total=0;cashbookEntries.forEach(e=>{const a=Number(e.amount)||0;if(e.entry_type==='RECEIPT'&&e.mode===mode)total+=a;if(e.entry_type==='PAYMENT'&&e.mode===mode)total-=a;if(e.entry_type==='CASH_DRAWN'){if(mode==='CASH')total+=a;if(mode==='BANK')total-=a}});return total}
 function updatePaymentBalancePreview(){
   const mode=document.getElementById('cashPaymentMode')?.value||'CASH';
@@ -5206,65 +5265,614 @@ window.addEventListener('DOMContentLoaded',()=>{
 })();
 </script>
 
-<script id="ims-v43-accounts-messing-source-final">
-/* V43 FINAL: Accounts payment source loader.
-   Prefer the already-loaded invoice data (the same data shown in Stock In),
-   then use the SECURITY DEFINER RPC as a fallback. This makes the MESSING
-   dropdown work even when an older source-loader override/RLS path fails. */
+<script id="FINAL_ACCOUNTS_PAYMENT_FIX">
+
 (function(){
-  const cache={MESSING_RV:[],INCIDENTAL_RV:[],POL_DRAWN:[]};
-  const money43=n=>'₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const esc43=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const num43=x=>Number(x)||0;
-  function head43(){return String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase()}
-  function type43(){const h=head43();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''}
-  function paid43(type,id){return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.source_type||'')===type&&String(e.source_id||'')===String(id)&&String(e.approval_status||'APPROVED').toUpperCase()==='APPROVED').reduce((s,e)=>s+num43(e.amount),0)}
-  function local43(type){
-    if(type==='MESSING_RV') return (inInvoices||[]).map(x=>{
-      const its=(x.stock_in_items||[]).map(r=>{const it=(items||[]).find(i=>String(i.id)===String(r.item_id));const qty=num43(r.quantity),rate=num43(r.rate),amount=r.amount!=null?num43(r.amount):qty*rate;return {name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty,rate,amount}});
-      const gross=its.reduce((s,i)=>s+i.amount,0),remaining=Math.max(0,gross-paid43(type,x.id));
-      return {id:x.id,ref:x.invoice_number||'',party:x.supplier||'',date:x.invoice_date||'',amount:remaining,onAccount:'MESSING',items:its,label:`${x.invoice_number||''} | ${x.invoice_date||''} | ${x.supplier||''} | Balance ${money43(remaining)}`}
-    }).filter(x=>x.amount>0.005);
-    if(type==='INCIDENTAL_RV') return (incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()==='RV').map(x=>{const its=(x.items||[]).map(r=>{const qty=num43(r.qty||r.quantity),rate=num43(r.rate),amount=r.amount!=null?num43(r.amount):qty*rate;return{name:r.name||r.desc||r.item||'Item',unit:r.unit||'',qty,rate,amount}});const total=num43(x.amount)||its.reduce((s,i)=>s+i.amount,0),remaining=Math.max(0,total-paid43(type,x.id));return{id:x.id,ref:x.invoice_number||x.voucher_no||'',party:x.party||'',date:x.voucher_date||'',amount:remaining,onAccount:'INC',items:its,label:`${x.voucher_no||''} | ${x.invoice_number||'-'} | ${x.party||''} | Balance ${money43(remaining)}`}}).filter(x=>x.amount>0.005);
-    if(type==='POL_DRAWN') return (polEntries||[]).map(x=>{const total=num43(x.total_amount)||num43(x.litres)*num43(x.rate),remaining=Math.max(0,total-paid43(type,x.id));return{id:x.id,ref:x.invoice_number||'',party:x.petrol_bunk||'',date:x.entry_date||'',amount:remaining,onAccount:'POL',items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`,unit:'Ltr',qty:num43(x.litres),rate:num43(x.rate),amount:total}],label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${money43(remaining)}`}}).filter(x=>x.amount>0.005);
-    return [];
+
+  const sourceCache = {
+    MESSING_RV: [],
+    INCIDENTAL_RV: [],
+    POL_DRAWN: []
+  };
+
+  function moneyFix(n){
+    return '₹' + Number(n || 0).toLocaleString('en-IN',{
+      minimumFractionDigits:2,
+      maximumFractionDigits:2
+    });
   }
-  async function rpc43(type){
-    if(!activeCamp?.id||!sb)return [];
-    const r=await sb.rpc('get_accounts_payment_sources_v43',{p_camp_id:activeCamp.id,p_source_type:type});
-    if(r.error)throw r.error;
-    return (Array.isArray(r.data)?r.data:[]).map(x=>{let its=[];try{its=Array.isArray(x.items)?x.items:(typeof x.items==='string'?JSON.parse(x.items):[])}catch(_){its=[]}its=its.map(i=>{const it=(items||[]).find(z=>String(z.id)===String(i.item_id));return{name:it?.name||i.item_name||i.name||'Item',unit:it?.unit||i.unit||'',qty:num43(i.quantity??i.qty),rate:num43(i.rate),amount:i.amount!=null?num43(i.amount):num43(i.quantity??i.qty)*num43(i.rate)}});const amount=num43(x.amount);return{id:x.id,ref:x.reference_no||'',party:x.party||'',date:x.entry_date||'',amount,onAccount:x.on_account||'',items:its,label:`${x.reference_no||''} | ${x.entry_date||''} | ${x.party||''} | Balance ${money43(amount)}`}})
+
+  function escFix(v){
+    return String(v ?? '').replace(/[&<>"']/g,function(m){
+      return {
+        '&':'&amp;',
+        '<':'&lt;',
+        '>':'&gt;',
+        '"':'&quot;',
+        "'":'&#39;'
+      }[m];
+    });
   }
-  async function load43(){
-    if(typeof cashType!=='undefined'&&cashType!=='PAYMENT')return;
-    const h=head43(),linked=['MESSING','INC','POL'].includes(h),tw=document.getElementById('cashSourceTypeWrap'),sw=document.getElementById('cashSourceWrap'),sel=document.getElementById('cashSource'),st=document.getElementById('cashSourceType');
-    if(!tw||!sw||!sel)return;
-    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
-    tw.classList.remove('hidden');sw.classList.remove('hidden');const type=type43();if(st)st.value=type;
-    sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
-    let list=local43(type);
-    if(!list.length){
-      try{list=await rpc43(type)}catch(e){console.error('V43 payment source lookup failed:',e);sel.innerHTML='<option value="">No source found — '+esc43(e.message||'RPC error')+'</option>';return}
+
+  function numFix(v){
+    return Number(v) || 0;
+  }
+
+  function getHead(){
+    return String(
+      document.getElementById('cashPaymentCodeHead')?.value || ''
+    ).trim().toUpperCase();
+  }
+
+  function getSourceType(){
+    const h = getHead();
+
+    if(h === 'MESSING') return 'MESSING_RV';
+    if(h === 'INC') return 'INCIDENTAL_RV';
+    if(h === 'POL') return 'POL_DRAWN';
+
+    return '';
+  }
+
+
+  /* =========================================================
+     LOAD MESSING / INC / POL SOURCES
+     ========================================================= */
+
+  async function loadAccountsPaymentSources(){
+
+    if(typeof cashType !== 'undefined' && cashType !== 'PAYMENT'){
+      return;
     }
-    cache[type]=list;
-    sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${esc43(x.id)}">${esc43(x.label)}</option>`).join('');
-    if(typeof updatePaymentBalancePreviewV7==='function')updatePaymentBalancePreviewV7();
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
+
+    const head = getHead();
+
+    const sourceWrap =
+      document.getElementById('cashSourceWrap');
+
+    const sourceTypeWrap =
+      document.getElementById('cashSourceTypeWrap');
+
+    const sourceSelect =
+      document.getElementById('cashSource');
+
+    const sourceType =
+      document.getElementById('cashSourceType');
+
+    if(!sourceSelect) return;
+
+    if(!['MESSING','INC','POL'].includes(head)){
+
+      sourceWrap?.classList.add('hidden');
+      sourceTypeWrap?.classList.add('hidden');
+
+      return;
+    }
+
+    sourceWrap?.classList.remove('hidden');
+    sourceTypeWrap?.classList.remove('hidden');
+
+    const type = getSourceType();
+
+    if(sourceType){
+      sourceType.value = type;
+    }
+
+    sourceSelect.innerHTML =
+      '<option value="">Loading source invoice / voucher...</option>';
+
+
+    let list = [];
+
+
+    /* ---------------------------------------------------------
+       FIRST: SECURE SUPABASE RPC
+       --------------------------------------------------------- */
+
+    try{
+
+      if(
+        typeof sb !== 'undefined' &&
+        sb &&
+        activeCamp &&
+        activeCamp.id
+      ){
+
+        const result = await sb.rpc(
+          'get_accounts_payment_sources_v43',
+          {
+            p_camp_id: activeCamp.id,
+            p_source_type: type
+          }
+        );
+
+        if(result.error){
+          console.error(
+            'Payment source RPC error:',
+            result.error
+          );
+        }
+        else if(Array.isArray(result.data)){
+
+          list = result.data.map(x => {
+
+            let items = [];
+
+            try{
+              items =
+                Array.isArray(x.items)
+                ? x.items
+                : JSON.parse(x.items || '[]');
+            }
+            catch(_){
+              items = [];
+            }
+
+            return {
+              id:x.id,
+
+              ref:
+                x.reference_no ||
+                x.invoice_number ||
+                '',
+
+              party:x.party || '',
+
+              date:
+                x.entry_date ||
+                x.invoice_date ||
+                '',
+
+              amount:numFix(x.amount),
+
+              onAccount:
+                x.on_account ||
+                head,
+
+              items:items,
+
+              label:
+                `${x.reference_no || ''} | ` +
+                `${x.entry_date || ''} | ` +
+                `${x.party || ''} | ` +
+                `Balance ${moneyFix(x.amount)}`
+            };
+
+          });
+
+        }
+
+      }
+
+    }
+    catch(err){
+
+      console.error(
+        'Accounts payment source error:',
+        err
+      );
+
+    }
+
+
+    /* ---------------------------------------------------------
+       SECOND: LOCAL INVOICE DATA
+       --------------------------------------------------------- */
+
+    if(!list.length && head === 'MESSING'){
+
+      const invoices =
+        Array.isArray(inInvoices)
+        ? inInvoices
+        : [];
+
+      list = invoices.map(x => {
+
+        const rows =
+          Array.isArray(x.stock_in_items)
+          ? x.stock_in_items
+          : [];
+
+        const items = rows.map(r => {
+
+          const inventoryItems =
+                Array.isArray(window.items)
+                    ? window.items
+                    : [];
+
+          const item =
+                inventoryItems.find(i =>
+                  String(i.id) === String(r.item_id)
+                );
+              .find(i =>
+                String(i.id) === String(r.item_id)
+              );
+
+          const qty =
+            numFix(r.quantity);
+
+          const rate =
+            numFix(r.rate);
+
+          const amount =
+            r.amount != null
+            ? numFix(r.amount)
+            : qty * rate;
+
+          return {
+            name:
+              item?.name ||
+              r.item_name ||
+              'Item',
+
+            unit:
+              item?.unit ||
+              r.unit ||
+              '',
+
+            qty,
+            rate,
+            amount
+          };
+
+        });
+
+        const gross =
+          items.reduce(
+            (s,i)=>s+i.amount,
+            0
+          );
+
+        return {
+          id:x.id,
+
+          ref:
+            x.invoice_number || '',
+
+          party:
+            x.supplier || '',
+
+          date:
+            x.invoice_date || '',
+
+          amount:gross,
+
+          onAccount:'MESSING',
+
+          items,
+
+          label:
+            `${x.invoice_number || ''} | ` +
+            `${x.invoice_date || ''} | ` +
+            `${x.supplier || ''} | ` +
+            `Balance ${moneyFix(gross)}`
+        };
+
+      }).filter(x => x.amount > 0);
+
+    }
+
+
+    sourceCache[type] = list;
+
+
+    /* ---------------------------------------------------------
+       DISPLAY
+       --------------------------------------------------------- */
+
+    if(!list.length){
+
+      sourceSelect.innerHTML =
+        '<option value="">No MESSING voucher found</option>';
+
+      console.warn(
+        'No payment source found:',
+        {
+          camp:activeCamp?.id,
+          head,
+          type
+        }
+      );
+
+      updateAccountsHeadBalance();
+
+      return;
+    }
+
+
+    sourceSelect.innerHTML =
+      '<option value="">Select source invoice / voucher</option>' +
+
+      list.map(x =>
+        `<option value="${escFix(x.id)}">
+          ${escFix(x.label)}
+        </option>`
+      ).join('');
+
+
+    updateAccountsHeadBalance();
+
   }
-  function fill43(){
-    const type=document.getElementById('cashSourceType')?.value||type43(),id=document.getElementById('cashSource')?.value||'',x=(cache[type]||[]).find(a=>String(a.id)===String(id));
-    if(!x)return;
-    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};
-    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',Number(x.amount||0).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',Number(x.amount||0).toFixed(2));
-    const b=document.getElementById('cashSourceItemsBody');if(b)b.innerHTML=(x.items||[]).map(i=>`<tr><td>${esc43(i.name)}</td><td>${esc43(i.unit)}</td><td>${i.qty}</td><td>${money43(i.rate)}</td><td>${money43(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
-    document.getElementById('cashSourceDetails')?.classList.remove('hidden');
-    if(typeof updatePaymentBalancePreviewV7==='function')updatePaymentBalancePreviewV7();
-    if(typeof updateBalanceV38==='function')updateBalanceV38();
+
+
+  /* =========================================================
+     SELECT MESSING VOUCHER
+     ========================================================= */
+
+  function fillAccountsPaymentSource(){
+
+    const type =
+      document.getElementById(
+        'cashSourceType'
+      )?.value || getSourceType();
+
+    const id =
+      document.getElementById(
+        'cashSource'
+      )?.value || '';
+
+    const list =
+      sourceCache[type] || [];
+
+    const source =
+      list.find(x =>
+        String(x.id) === String(id)
+      );
+
+    if(!source){
+      return;
+    }
+
+
+    function set(id,value){
+
+      const el =
+        document.getElementById(id);
+
+      if(el){
+        el.value =
+          value ?? '';
+      }
+
+    }
+
+
+    set(
+      'cashInvoice',
+      source.ref
+    );
+
+    set(
+      'cashPaymentParty',
+      source.party
+    );
+
+    set(
+      'cashPaymentAccount',
+      source.onAccount
+    );
+
+    set(
+      'cashPaymentAmount',
+      Number(source.amount || 0).toFixed(2)
+    );
+
+    set(
+      'cashSourceDate',
+      source.date
+    );
+
+    set(
+      'cashSourceParty',
+      source.party
+    );
+
+    set(
+      'cashSourceTotal',
+      Number(source.amount || 0).toFixed(2)
+    );
+
+
+    const body =
+      document.getElementById(
+        'cashSourceItemsBody'
+      );
+
+    if(body){
+
+      body.innerHTML =
+        (source.items || []).map(i =>
+
+          `<tr>
+            <td>${escFix(i.name)}</td>
+            <td>${escFix(i.unit)}</td>
+            <td>${i.qty ?? ''}</td>
+            <td>${moneyFix(i.rate)}</td>
+            <td>${moneyFix(i.amount)}</td>
+          </tr>`
+
+        ).join('') ||
+
+        `<tr>
+          <td colspan="5">
+            No item details
+          </td>
+        </tr>`;
+
+    }
+
+
+    document
+      .getElementById('cashSourceDetails')
+      ?.classList.remove('hidden');
+
+
+    updateAccountsHeadBalance();
+
   }
-  window.loadCashSources=load43;window.paymentHeadChanged=load43;window.fillCashSource=fill43;window.availablePaymentSources=type=>cache[type]||local43(type);
-  window.addEventListener('load',()=>setTimeout(load43,500));
-  setTimeout(load43,700);
+
+
+  /* =========================================================
+     HEAD BALANCE
+     ========================================================= */
+
+  function updateAccountsHeadBalance(){
+
+    const head =
+      getHead();
+
+    const date =
+      document.getElementById(
+        'payDate'
+      )?.value ||
+      today();
+
+
+    const balance =
+      currentHeadBalance(
+        head,
+        date
+      );
+
+
+    const amount =
+      Number(
+        String(
+          document.getElementById(
+            'cashPaymentAmount'
+          )?.value || ''
+        ).replace(/[^0-9.]/g,'')
+      ) || 0;
+
+
+    const current =
+      document.getElementById(
+        'payHeadCurrent'
+      );
+
+    const after =
+      document.getElementById(
+        'payHeadAfter'
+      );
+
+
+    if(current){
+      current.textContent =
+        moneyFix(balance);
+    }
+
+    if(after){
+      after.textContent =
+        moneyFix(
+          Math.max(0,balance-amount)
+        );
+    }
+
+
+    /* Also update old balance preview fields */
+
+    const note =
+      document.getElementById(
+        'paymentBalanceNote'
+      );
+
+    if(note){
+
+      note.textContent =
+        `${head || 'Head'} Balance: ${moneyFix(balance)}`;
+    }
+
+  }
+
+
+  /* =========================================================
+     IMPORTANT: OVERRIDE ALL OLD FUNCTIONS
+     ========================================================= */
+
+  window.loadCashSources =
+    loadAccountsPaymentSources;
+
+  window.paymentHeadChanged =
+    loadAccountsPaymentSources;
+
+  window.fillCashSource =
+    fillAccountsPaymentSource;
+
+  window.updatePaymentBalancePreview =
+    updateAccountsHeadBalance;
+
+
+  /* Existing HTML uses onchange on these controls */
+
+  document.addEventListener(
+    'DOMContentLoaded',
+    function(){
+
+      const head =
+        document.getElementById(
+          'cashPaymentCodeHead'
+        );
+
+      const source =
+        document.getElementById(
+          'cashSource'
+        );
+
+      const amount =
+        document.getElementById(
+          'cashPaymentAmount'
+        );
+
+      const date =
+        document.getElementById(
+          'payDate'
+        );
+
+
+      head?.addEventListener(
+        'change',
+        loadAccountsPaymentSources
+      );
+
+      source?.addEventListener(
+        'change',
+        fillAccountsPaymentSource
+      );
+
+      amount?.addEventListener(
+        'input',
+        updateAccountsHeadBalance
+      );
+
+      date?.addEventListener(
+        'change',
+        updateAccountsHeadBalance
+      );
+
+
+      setTimeout(
+        function(){
+
+          if(
+            getHead() === 'MESSING'
+          ){
+
+            loadAccountsPaymentSources();
+
+          }
+
+          updateAccountsHeadBalance();
+
+        },
+        800
+      );
+
+    }
+  );
+
+
 })();
+
 </script>
 
 <script id="ims-v45-accounts-payment-final-fix">
