@@ -636,6 +636,302 @@ footer{color:#7f8b96!important}
 }
 </style>
 
+
+<style id="ims-v66-professional-inventory-style">
+/* ==========================================================
+ V66 — PROFESSIONAL INVENTORY / ERP STYLE
+ Clean hierarchy, stable grids, desktop + mobile responsive.
+ Inspired by common inventory dashboards: KPI row, chart/activity
+ area, dense tables on desktop and cards on mobile.
+========================================================== */
+:root{
+ --v66-bg:#f3f6f8;
+ --v66-surface:#fff;
+ --v66-surface2:#f8fafb;
+ --v66-text:#23313d;
+ --v66-muted:#71808d;
+ --v66-line:#dce5ea;
+ --v66-primary:#0aa7a5;
+ --v66-primary2:#087f92;
+ --v66-blue:#2453a6;
+ --v66-green:#0b956d;
+ --v66-orange:#f1a52b;
+ --v66-red:#d94a4a;
+ --v66-shadow:0 6px 22px rgba(30,54,72,.08);
+ --v66-radius:16px;
+}
+*{box-sizing:border-box}
+html,body{margin:0!important;background:var(--v66-bg)!important;color:var(--v66-text)!important;font-family:Inter,Segoe UI,Roboto,Arial,sans-serif!important;font-size:14px!important;line-height:1.4!important}
+body{overflow-x:hidden!important}
+
+/* ---------- FIXED DESKTOP SHELL ---------- */
+.sidebar{
+ position:fixed!important;left:0!important;top:0!important;bottom:0!important;width:232px!important;
+ padding:16px 10px!important;background:linear-gradient(180deg,#0bb5a7 0%,#119dbb 50%,#1979c5 100%)!important;
+ z-index:1000!important;overflow:auto!important;border:0!important;box-shadow:6px 0 22px rgba(19,55,77,.12)!important;
+}
+.hamb{display:none!important}
+.side-brand{height:68px!important;padding:4px 10px 14px!important;display:flex!important;align-items:center!important;gap:10px!important;border-bottom:1px solid rgba(255,255,255,.2)!important}
+.side-brand .nc{width:44px!important;height:44px!important;flex:0 0 44px!important;border-radius:14px!important;background:#fff!important;color:#0aa7a5!important}
+.side-brand .side-name{display:block!important;color:#fff!important;font-size:12px!important;font-weight:900!important;line-height:1.1!important}
+.nav{display:flex!important;align-items:center!important;gap:10px!important;width:100%!important;min-height:42px!important;padding:10px 11px!important;margin:4px 0!important;border-radius:10px!important;color:#fff!important;background:transparent!important;font-weight:800!important}
+.nav:hover{background:rgba(255,255,255,.12)!important}
+.nav.active{background:rgba(255,255,255,.19)!important;box-shadow:0 6px 16px rgba(0,0,0,.08)!important}
+.nav .ni{color:#fff!important;min-width:18px!important}
+.nav .nl{display:block!important;white-space:nowrap!important}
+.side-footer{border-top:1px solid rgba(255,255,255,.2)!important;margin-top:12px!important;padding-top:10px!important}
+.nav.logout{background:#fff!important;color:#087f92!important;justify-content:center!important}
+.nav.logout .ni{color:#087f92!important}
+
+.topbar{
+ position:fixed!important;left:232px!important;right:0!important;top:0!important;height:60px!important;
+ padding:0 20px!important;background:#fff!important;color:var(--v66-text)!important;
+ border-bottom:1px solid var(--v66-line)!important;box-shadow:0 2px 12px rgba(30,54,72,.05)!important;z-index:900!important;
+}
+.topbar .brand{font-weight:900!important;color:#24323d!important;font-size:16px!important}
+.topbar select,.camp-top select{height:38px!important;background:#fff!important;color:#354451!important;border:1px solid #d3dee5!important;border-radius:9px!important}
+.top-right{color:#65727e!important;font-size:12px!important}
+.avatar{background:linear-gradient(135deg,#0aa7a5,#2453a6)!important;color:#fff!important}
+
+main{margin-left:232px!important;padding:78px 24px 30px!important;min-height:100vh!important;background:var(--v66-bg)!important}
+.page{width:100%!important;max-width:1480px!important;margin:0 auto!important}
+.section-head{
+ min-height:74px!important;background:#fff!important;border:1px solid var(--v66-line)!important;border-radius:var(--v66-radius)!important;
+ box-shadow:var(--v66-shadow)!important;padding:17px 18px!important;margin-bottom:14px!important;
+}
+.section-head h1{margin:0!important;color:#243440!important;font-size:21px!important;line-height:1.2!important}
+.section-head p{margin:5px 0 0!important;color:var(--v66-muted)!important;font-size:12px!important}
+.actions{display:flex!important;gap:8px!important;flex-wrap:wrap!important;align-items:center!important}
+.panel,.formbox,.card,.module-card,.report-card,.summary-card{
+ background:#fff!important;color:var(--v66-text)!important;border:1px solid var(--v66-line)!important;
+ border-radius:var(--v66-radius)!important;box-shadow:var(--v66-shadow)!important;
+}
+.panel{padding:16px!important}
+.field label,label{color:#5f6e7a!important;font-weight:800!important;font-size:11px!important}
+input,select,textarea{
+ width:100%!important;min-height:38px!important;background:#fff!important;color:#263541!important;
+ border:1px solid #d4dfe6!important;border-radius:8px!important;padding:8px 10px!important;
+}
+textarea{min-height:80px!important;resize:vertical!important}
+input:focus,select:focus,textarea:focus{outline:none!important;border-color:var(--v66-primary)!important;box-shadow:0 0 0 3px rgba(10,167,165,.10)!important}
+.btn{
+ min-height:36px!important;padding:8px 13px!important;border:0!important;border-radius:8px!important;
+ font-weight:900!important;font-size:12px!important;letter-spacing:.01em!important;white-space:nowrap!important;
+ background:linear-gradient(135deg,var(--v66-primary),#159ec2)!important;color:#fff!important;
+ box-shadow:0 4px 12px rgba(10,167,165,.15)!important;
+}
+.btn:hover{filter:brightness(.97)!important;transform:translateY(-1px)}
+.btn.ghost{background:#f4f7f9!important;color:#394957!important;border:1px solid #d7e1e7!important;box-shadow:none!important}
+.btn.dark{background:var(--v66-blue)!important}.btn.green{background:var(--v66-green)!important}.btn.red{background:var(--v66-red)!important}
+
+/* ---------- FORM GRID: INCIDENTAL / MESSING / POL ---------- */
+.form-grid,.grid-3,.grid3,.three-col,.form-row{
+ display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:12px!important;align-items:end!important;
+}
+.form-grid-2,.grid-2,.grid2,.two-col{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important}
+.form-grid>*,.form-grid-2>*{min-width:0!important}
+.form-actions{display:flex!important;gap:8px!important;flex-wrap:wrap!important;margin-top:12px!important}
+
+/* ---------- MODULE TABS ---------- */
+.module-tabs,.tabs,.pol-tabs,.inc-tabs,.messing-tabs{
+ display:flex!important;gap:7px!important;flex-wrap:wrap!important;margin:0 0 14px!important;
+}
+.module-tab,.tab,.pol-tab,.inc-tab,.messing-tab{
+ min-height:38px!important;padding:9px 13px!important;border-radius:9px!important;
+ background:#fff!important;color:#30404d!important;border:1px solid #d6e0e6!important;font-weight:900!important;
+}
+.module-tab.active,.tab.active,.pol-tab.active,.inc-tab.active,.messing-tab.active{
+ background:linear-gradient(135deg,var(--v66-primary),#159ec2)!important;color:#fff!important;border-color:transparent!important;
+}
+
+/* ---------- KPI ROWS ---------- */
+.kpi-grid,.summary-grid,.card-grid-3,.stats-grid{
+ display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important;margin-bottom:14px!important;
+}
+.kpi,.summary-card,.stat-card{
+ min-height:92px!important;padding:15px!important;border-radius:14px!important;background:#fff!important;
+ border:1px solid var(--v66-line)!important;box-shadow:var(--v66-shadow)!important;
+}
+.kpi small,.summary-card small,.stat-card small{display:block!important;color:#75838e!important;font-size:10px!important;font-weight:800!important}
+.kpi strong,.summary-card strong,.stat-card strong{display:block!important;margin-top:7px!important;color:#263540!important;font-size:21px!important;font-weight:900!important}
+
+/* ---------- TABLES: DESKTOP DENSE, MOBILE CARDS ---------- */
+.tablewrap,.table-container,.table-scroll{background:#fff!important;border:1px solid var(--v66-line)!important;border-radius:13px!important;overflow:auto!important}
+table{width:100%!important;border-collapse:separate!important;border-spacing:0!important;background:#fff!important;color:#30404b!important}
+thead th{position:sticky!important;top:0!important;z-index:2!important;background:#f0f5f7!important;color:#5b6975!important;font-size:10px!important;text-transform:uppercase!important;letter-spacing:.04em!important}
+th,td{padding:10px 11px!important;border-bottom:1px solid #e6edf1!important;text-align:left!important;vertical-align:middle!important;white-space:nowrap!important}
+tbody tr:hover td{background:#f7fbfc!important}
+
+/* ---------- DASHBOARD ---------- */
+#nccNewDashboard{width:100%!important;max-width:none!important}
+#nccNewDashboard .v62-layout{display:block!important;width:100%!important;background:transparent!important}
+#nccNewDashboard .v62-main{width:100%!important;max-width:none!important;padding:0!important}
+#nccNewDashboard .v62-top{
+ display:grid!important;grid-template-columns:270px minmax(0,1fr)!important;gap:14px!important;margin-bottom:14px!important;
+}
+#nccNewDashboard .v62-profile,#nccNewDashboard .v62-company,#nccNewDashboard .v62-card{
+ background:#fff!important;color:var(--v66-text)!important;border:1px solid var(--v66-line)!important;
+ border-radius:16px!important;box-shadow:var(--v66-shadow)!important;overflow:hidden!important;
+}
+#nccNewDashboard .v62-profile{padding:17px!important}
+#nccNewDashboard .v62-company{padding:17px!important}
+#nccNewDashboard .v62-company-head{display:flex!important;justify-content:space-between!important;align-items:flex-start!important;gap:12px!important}
+#nccNewDashboard .v62-kpis{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important;margin-top:14px!important}
+#nccNewDashboard .v62-kpi{min-height:82px!important;border-radius:12px!important;padding:13px!important;box-shadow:none!important}
+#nccNewDashboard .v62-grid{display:grid!important;grid-template-columns:minmax(0,2fr) minmax(300px,1fr)!important;gap:14px!important}
+#nccNewDashboard .v62-full{grid-column:1/-1!important}
+#nccNewDashboard .v62-card{padding:16px!important}
+#nccNewDashboard .v62-card h3{margin:0 0 5px!important;color:#2c3a46!important;font-size:14px!important}
+#nccNewDashboard .v62-card p,#nccNewDashboard .v62-sub{color:#788692!important;font-size:11px!important}
+#nccNewDashboard .v62-chart{min-height:245px!important;background:#f8fafb!important;border:1px solid #e3ebef!important;border-radius:12px!important;padding:10px!important}
+#nccNewDashboard .v62-op,#nccNewDashboard .v62-head-item{background:#f7fafb!important;border:1px solid #e0e9ee!important;border-radius:10px!important}
+#nccNewDashboard .v62-table{overflow:auto!important}
+#nccNewDashboard .v62-table table{min-width:680px!important}
+
+/* ---------- INCIDENT / MESSING / POL REPORT PAGES ---------- */
+.report-filters,.filter-bar,.toolbar{
+ display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important;
+ background:#fff!important;border:1px solid var(--v66-line)!important;border-radius:14px!important;padding:13px!important;
+ box-shadow:var(--v66-shadow)!important;margin-bottom:14px!important;
+}
+.report-summary,.report-kpis{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:9px!important;margin:0 0 14px!important}
+.report-summary>*{background:#fff!important;border:1px solid var(--v66-line)!important;border-radius:12px!important;padding:10px!important}
+.report-section{background:#fff!important;border:1px solid var(--v66-line)!important;border-radius:15px!important;padding:15px!important;box-shadow:var(--v66-shadow)!important;margin-bottom:14px!important}
+.report-section h2,.report-section h3{margin:0!important;color:#2c3b47!important}
+
+/* ---------- INVENTORY EMPTY STATE ---------- */
+.empty,.empty-state{
+ background:#f8fafb!important;border:1px dashed #ccd9e0!important;color:#7a8792!important;
+ border-radius:12px!important;padding:24px!important;text-align:center!important;
+}
+
+/* ---------- TOAST / ERROR PRESENTATION ---------- */
+.toast,.message,.alert{
+ border-radius:10px!important;box-shadow:0 8px 22px rgba(0,0,0,.10)!important;
+}
+.error,.danger{color:#b63838!important}
+
+/* ---------- MOBILE: no hamburger; bottom navigation ---------- */
+@media(max-width:900px){
+ .sidebar{
+   width:76px!important;padding:12px 7px!important;
+ }
+ .side-brand{justify-content:center!important;padding:4px 0 12px!important}
+ .side-brand .side-name{display:none!important}
+ .nav{justify-content:center!important;padding:10px 6px!important}
+ .nav .nl{display:none!important}
+ .topbar{left:76px!important;padding:0 12px!important}
+ main{margin-left:76px!important;padding:74px 12px 24px!important}
+ .form-grid,.grid-3,.grid3,.three-col,.form-row{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .kpi-grid,.summary-grid,.card-grid-3,.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .report-summary,.report-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+@media(max-width:600px){
+ body{font-size:13px!important}
+ .sidebar{
+   top:auto!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;height:68px!important;
+   padding:5px 6px!important;display:flex!important;align-items:center!important;overflow-x:auto!important;overflow-y:hidden!important;
+   background:#fff!important;border-top:1px solid #dbe4e9!important;box-shadow:0 -5px 18px rgba(30,54,72,.10)!important;
+ }
+ .side-brand,.side-footer{display:none!important}
+ .nav{
+   flex:0 0 68px!important;width:68px!important;min-height:56px!important;margin:0 2px!important;
+   border-radius:9px!important;display:flex!important;flex-direction:column!important;gap:2px!important;
+   color:#52606d!important;background:transparent!important;font-size:9px!important;
+ }
+ .nav .ni{color:#52606d!important;min-width:0!important;font-size:16px!important}
+ .nav .nl{display:block!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:64px!important}
+ .nav.active{background:#e6f7f5!important;color:#087f78!important}
+ .nav.active .ni{color:#087f78!important}
+ .nav.logout{display:none!important}
+ .topbar{left:0!important;height:56px!important;padding:0 10px!important}
+ .topbar .brand{font-size:12px!important}
+ .topbar .camp-top{display:none!important}
+ main{margin-left:0!important;padding:68px 9px 82px!important}
+ .section-head{padding:14px!important;border-radius:13px!important}
+ .section-head h1{font-size:18px!important}
+ .actions{width:100%!important}
+ .actions .btn{flex:1 1 auto!important}
+ .form-grid,.grid-3,.grid3,.three-col,.form-row,.form-grid-2,.grid-2,.grid2,.two-col{
+   grid-template-columns:1fr!important;
+ }
+ .kpi-grid,.summary-grid,.card-grid-3,.stats-grid{grid-template-columns:1fr 1fr!important}
+ .report-filters,.filter-bar,.toolbar{grid-template-columns:1fr!important}
+ .report-summary,.report-kpis{grid-template-columns:1fr 1fr!important}
+ #nccNewDashboard .v62-top,#nccNewDashboard .v62-grid{grid-template-columns:1fr!important}
+ #nccNewDashboard .v62-kpis{grid-template-columns:1fr 1fr!important}
+ .tablewrap,.table-container,.table-scroll{border:0!important;overflow:visible!important;background:transparent!important}
+ table{display:block!important}
+ thead{display:none!important}
+ tbody{display:grid!important;gap:9px!important}
+ tbody tr{display:grid!important;grid-template-columns:1fr 1fr!important;background:#fff!important;border:1px solid var(--v66-line)!important;border-radius:12px!important;padding:9px!important;box-shadow:0 4px 14px rgba(30,54,72,.06)!important}
+ tbody td{display:flex!important;justify-content:space-between!important;gap:8px!important;white-space:normal!important;border:0!important;padding:6px 4px!important}
+ tbody td::before{content:attr(data-label)!important;color:#788692!important;font-size:10px!important;font-weight:800!important}
+ .btn{min-height:40px!important}
+}
+</style>
+
+
+<style id="ims-v67-final-ui-audit-style">
+/* V67 FINAL UI AUDIT — no overlapping dashboard, readable modules, responsive inventory UX */
+#dashboard,#dashboard.page,#dashboard .page,#dashboard .page-inner,#nccNewDashboard,
+#nccNewDashboard .v62-layout,#nccNewDashboard .v62-main{
+  width:100%!important;max-width:none!important;min-width:0!important;
+}
+#dashboard .page{margin:0 auto!important}
+#nccNewDashboard .v62-top{width:100%!important;grid-template-columns:280px minmax(0,1fr)!important}
+#nccNewDashboard .v62-grid{width:100%!important;grid-template-columns:minmax(0,2fr) minmax(300px,1fr)!important}
+#nccNewDashboard .v62-card,#nccNewDashboard .v62-profile,#nccNewDashboard .v62-company{min-width:0!important}
+#nccNewDashboard .v62-kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+#nccNewDashboard svg,#nccNewDashboard canvas{max-width:100%!important;height:auto!important}
+
+/* Module headers: consistent hierarchy */
+.module-banner,.module-header,.subhead{
+  background:#fff!important;border:1px solid var(--v66-line)!important;border-radius:14px!important;
+}
+.module-banner{padding:16px 18px!important;margin-bottom:13px!important;box-shadow:var(--v66-shadow)!important}
+.module-banner h2{color:#243541!important;margin:2px 0 4px!important;font-size:20px!important}
+.module-banner .crumb{color:#0a9c99!important;font-size:10px!important;font-weight:900!important;letter-spacing:.08em!important}
+.side-pill,.badge{background:#edf7f7!important;color:#087f78!important;border:1px solid #cceae7!important;border-radius:999px!important}
+
+/* Inventory / stock / voucher work areas */
+#inventory .panel,#stockin .panel,#stockout .panel,#incidentalRV .panel,#incidentalIV .panel,
+#incidentalReports .panel,#pol .panel,#cashbook .panel,#reports .panel{
+  margin-bottom:13px!important;
+}
+.items-box,.rv-items-box,.iv-items-box,.invoice-items,.receipt-items{
+  background:#fff!important;border:1px solid var(--v66-line)!important;border-radius:13px!important;padding:12px!important;
+}
+.items-box table,.rv-items-box table,.iv-items-box table{font-size:12px!important}
+.grand-total,.rv-grand-total{background:#f4f8f9!important;border:1px solid #dce7eb!important;border-radius:10px!important;padding:10px 12px!important;color:#263742!important}
+
+/* Action bars */
+.actions,.toolbar{align-items:center!important}
+.actions .btn,.toolbar .btn{margin:0!important}
+.searchbar,.toolbar input,.toolbar select{min-height:38px!important}
+
+/* Reports: remove loose text and align summary values */
+.report-summary strong,.report-kpis strong,.summary-value{font-size:18px!important;color:#263742!important}
+.report-summary span,.report-kpis span,.summary-label{font-size:10px!important;color:#7a8792!important;font-weight:800!important}
+
+/* Better empty states */
+.empty,.empty-state,.no-data{
+ min-height:54px!important;display:flex!important;align-items:center!important;justify-content:center!important;
+ color:#758490!important;font-size:12px!important;
+}
+
+/* Mobile cards for operational registers */
+@media(max-width:600px){
+ #nccNewDashboard .v62-top,#nccNewDashboard .v62-grid{grid-template-columns:1fr!important}
+ #nccNewDashboard .v62-kpis{grid-template-columns:1fr 1fr!important}
+ .module-banner{padding:13px!important}
+ .module-banner h2{font-size:17px!important}
+ .toolbar{display:grid!important;grid-template-columns:1fr!important}
+ .report-summary,.report-kpis{grid-template-columns:1fr 1fr!important}
+ .actions .btn{min-width:110px!important}
+}
+</style>
+
 </head>
 <body>
 
@@ -5189,6 +5485,109 @@ document.documentElement.classList.add('ims-v64-reference-shell');
     if(target) setTimeout(v65CampRegister,50);
   },true);
   window.addEventListener('load',function(){setTimeout(v65CampRegister,600);});
+})();
+</script>
+
+
+<script id="ims-v66-project-runtime">
+(function(){
+  /* V66 keeps existing business logic intact and adds only safe UI behavior. */
+  function v66LabelTables(){
+    document.querySelectorAll('table').forEach(function(t){
+      var heads=[...t.querySelectorAll('thead th')].map(x=>x.textContent.trim());
+      if(!heads.length)return;
+      t.querySelectorAll('tbody tr').forEach(function(tr){
+        [...tr.children].forEach(function(td,i){
+          if(!td.getAttribute('data-label') && heads[i]) td.setAttribute('data-label',heads[i]);
+        });
+      });
+    });
+  }
+  function v66FixDashboard(){
+    var d=document.getElementById('nccNewDashboard');
+    if(!d)return;
+    d.style.width='100%';
+    d.querySelectorAll('.v62-card,.v62-profile,.v62-company').forEach(function(x){
+      x.style.minWidth='0';
+      x.style.maxWidth='none';
+    });
+  }
+  function v66Refresh(){
+    v66LabelTables();
+    v66FixDashboard();
+  }
+  document.addEventListener('DOMContentLoaded',function(){setTimeout(v66Refresh,300);});
+  window.addEventListener('load',function(){setTimeout(v66Refresh,800);});
+  document.addEventListener('click',function(){setTimeout(v66Refresh,80);},true);
+})();
+</script>
+
+
+<script id="ims-v67-missing-action-fixes">
+(function(){
+  /* These four handlers were referenced by existing buttons but were absent
+     from the legacy layers. V67 supplies the missing client-side handlers. */
+
+  window.toggleModuleGroup=function(btn,id){
+    const box=document.getElementById(id);
+    if(!box)return;
+    const willOpen=box.classList.contains('hidden') || getComputedStyle(box).display==='none';
+    box.classList.toggle('hidden',!willOpen);
+    if(!willOpen) box.style.display='none';
+    else box.style.display='';
+    btn?.classList.toggle('expanded',willOpen);
+    const arrow=btn?.querySelector('.group-arrow');
+    if(arrow) arrow.textContent=willOpen?'▾':'▸';
+  };
+
+  window.clearCarDiary=function(){
+    ['diaryVehicle','diaryDate','diaryNature','diaryPurpose','diaryFrom','diaryTo','diaryKmRun','diaryClosingKm','diaryKpl','diaryPolConsumed','diaryRemarks']
+      .forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+    const msg=document.getElementById('diaryMsg'); if(msg)msg.textContent='';
+    if(typeof window.calcDiary==='function')window.calcDiary();
+  };
+
+  window.deleteCarDiary=async function(id){
+    if(typeof window.canDelete==='function' && !window.canDelete()) return alert('You do not have permission to delete this entry.');
+    if(!id || !window.sb || !window.activeCamp)return;
+    if(!confirm('Delete this car diary entry?'))return;
+    try{
+      const {error}=await window.sb.from('pol_car_diary').delete().eq('id',id).eq('camp_id',window.activeCamp.id);
+      if(error)throw error;
+      if(typeof window.refreshAll==='function')await window.refreshAll();
+      if(typeof window.loadCarDiary==='function')await window.loadCarDiary();
+      if(typeof window.renderCarDiaryRegister==='function')window.renderCarDiaryRegister();
+    }catch(e){
+      console.error(e); alert(e?.message||'Unable to delete the car diary entry.');
+    }
+  };
+
+  function csvCell(v){return '"'+String(v??'').replace(/"/g,'""')+'"';}
+  window.exportIncidentalCSV=function(type){
+    const rows=(Array.isArray(window.incidentals)?window.incidentals:[]).filter(x=>x.voucher_type===type);
+    const data=[
+      ['Voucher No','Date','Invoice / Ref','Party','Items','Mode','Total'],
+      ...rows.map(x=>[x.voucher_no,x.voucher_date,x.invoice_number||'',x.party||'',Array.isArray(x.items)?x.items.length:0,x.mode||'',Number(x.amount||0)])
+    ];
+    const csv=data.map(r=>r.map(csvCell).join(',')).join('\r\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download='incidental-'+String(type||'RV').toLowerCase()+'-'+(new Date().toISOString().slice(0,10))+'.csv';
+    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),500);
+  };
+
+  /* Ensure mobile table labels are refreshed after dynamic renders. */
+  function labelTables(){
+    document.querySelectorAll('table').forEach(t=>{
+      const heads=[...t.querySelectorAll('thead th')].map(x=>x.textContent.trim());
+      if(!heads.length)return;
+      t.querySelectorAll('tbody tr').forEach(tr=>{
+        [...tr.children].forEach((td,i)=>{if(heads[i]&&!td.dataset.label)td.dataset.label=heads[i]});
+      });
+    });
+  }
+  window.addEventListener('load',()=>setTimeout(labelTables,700));
+  document.addEventListener('click',()=>setTimeout(labelTables,100),true);
 })();
 </script>
 
