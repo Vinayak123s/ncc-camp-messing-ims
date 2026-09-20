@@ -4530,152 +4530,343 @@ window.addEventListener('DOMContentLoaded',()=>{
 })();
 </script>
 
-<script id="ims-v45-accounts-payment-final-fix">
-/* V45 FINAL ACCOUNTS PAYMENT FIX
-   1) Always fetch linked payment sources from the SECURITY DEFINER RPC first.
-      This avoids an ACCOUNTS user's RLS-filtered stock_in_items result replacing
-      the source list with an empty list.
-   2) Current code-head balance includes the active camp's approved budget,
-      plus receipt allocations, less APPROVED payments. PENDING_MANAGER payments
-      never reduce the balance.
+
+<script id="ims-v47-accounts-payment-final">
+/* V47 FINAL PAYMENT FIX
+   - Accounts/Manager/Admin use SECURITY DEFINER RPCs for source bills and head balance.
+   - Pending Manager payments never consume a source bill or head balance.
+   - No dependency on Accounts RLS visibility of stock_in_items.
+   - Final handlers are installed last so earlier Cash Book overrides cannot replace them.
 */
 (function(){
-  const cache45={MESSING_RV:[],INCIDENTAL_RV:[],POL_DRAWN:[]};
-  const n45=v=>Number(v)||0;
-  const m45=v=>'₹'+n45(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-  const esc45=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-  const role45=()=>String(profile?.role||'').trim().toUpperCase();
-  const head45=()=>String(document.getElementById('cashPaymentCodeHead')?.value||'').trim().toUpperCase();
-  const type45=()=>{const h=head45();return h==='MESSING'?'MESSING_RV':h==='INC'?'INCIDENTAL_RV':h==='POL'?'POL_DRAWN':''};
-  const approved45=e=>String(e?.approval_status||'APPROVED').trim().toUpperCase()==='APPROVED';
-  function paid45(type,id){return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.source_type||'')===type&&String(e.source_id||'')===String(id)&&approved45(e)).reduce((s,e)=>s+n45(e.amount),0)}
+  const cache47 = {MESSING_RV:[], INCIDENTAL_RV:[], POL_DRAWN:[]};
+  const n = v => Number(v) || 0;
+  const money47 = v => '₹' + n(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const esc47 = s => String(s ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const approved47 = e => String(e?.approval_status || 'APPROVED').trim().toUpperCase() === 'APPROVED';
+  const head47 = () => String(document.getElementById('cashPaymentCodeHead')?.value || '').trim().toUpperCase();
+  const type47 = () => {
+    const h = head47();
+    return h === 'MESSING' ? 'MESSING_RV' : h === 'INC' ? 'INCIDENTAL_RV' : h === 'POL' ? 'POL_DRAWN' : '';
+  };
 
-  function normalizeRPC45(rows,type){
+  function normalizeSource47(rows,type){
     return (Array.isArray(rows)?rows:[]).map(x=>{
-      let items45=[];
-      try{items45=Array.isArray(x.items)?x.items:(typeof x.items==='string'?JSON.parse(x.items):[])}catch(_){items45=[]}
-      items45=items45.map(i=>({
-        name:i.item_name||i.name||'Item', unit:i.unit||'', qty:n45(i.quantity??i.qty), rate:n45(i.rate),
-        amount:i.amount!=null?n45(i.amount):n45(i.quantity??i.qty)*n45(i.rate)
+      let its = [];
+      try { its = Array.isArray(x.items) ? x.items : (typeof x.items === 'string' ? JSON.parse(x.items) : []); }
+      catch(_) { its = []; }
+
+      its = its.map(i=>({
+        name:i.item_name || i.name || i.nomenclature || 'Item',
+        unit:i.unit || i.au || '',
+        qty:n(i.quantity ?? i.qty),
+        rate:n(i.rate),
+        amount:i.amount != null ? n(i.amount) : n(i.quantity ?? i.qty) * n(i.rate)
       }));
-      const amount=n45(x.amount);
+
+      const amount = n(x.amount);
+      const ref = x.reference_no || x.invoice_number || x.voucher_no || '';
+      const date = x.entry_date || x.invoice_date || x.voucher_date || '';
+      const party = x.party || x.supplier || x.petrol_bunk || '';
+
       return {
-        id:x.id, ref:x.reference_no||x.invoice_number||x.voucher_no||'',
-        party:x.party||x.supplier||x.petrol_bunk||'', date:x.entry_date||x.invoice_date||x.voucher_date||'',
-        amount, onAccount:x.on_account||(type==='MESSING_RV'?'MESSING':type==='INCIDENTAL_RV'?'INC':'POL'),
-        items:items45,
-        label:`${x.reference_no||x.invoice_number||x.voucher_no||''} | ${x.entry_date||x.invoice_date||x.voucher_date||''} | ${x.party||x.supplier||x.petrol_bunk||''} | Balance ${m45(amount)}`
+        id:x.id,
+        ref,
+        party,
+        date,
+        amount,
+        onAccount:x.on_account || (type==='MESSING_RV'?'MESSING':type==='INCIDENTAL_RV'?'INC':'POL'),
+        items:its,
+        label:`${ref} | ${date} | ${party} | Balance ${money47(amount)}`
       };
-    }).filter(x=>x.amount>0.005);
+    }).filter(x=>x.amount > 0.005);
   }
 
-  function local45(type){
-    if(type==='MESSING_RV') return (inInvoices||[]).map(x=>{
-      const its=(x.stock_in_items||[]).map(r=>{const it=(items||[]).find(i=>String(i.id)===String(r.item_id));const q=n45(r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty:q,rate,amount:a}});
-      const total=its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
-      return{id:x.id,ref:x.invoice_number||'',party:x.supplier||'',date:x.invoice_date||'',amount:rem,onAccount:'MESSING',items:its,label:`${x.invoice_number||''} | ${x.invoice_date||''} | ${x.supplier||''} | Balance ${m45(rem)}`};
-    }).filter(x=>x.amount>0.005);
-    if(type==='INCIDENTAL_RV') return (incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()==='RV').map(x=>{
-      const its=(x.items||[]).map(r=>{const q=n45(r.qty??r.quantity),rate=n45(r.rate),a=r.amount!=null?n45(r.amount):q*rate;return{name:r.name||r.desc||r.item||'Item',unit:r.unit||'',qty:q,rate,amount:a}});
-      const total=n45(x.amount)||its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,total-paid45(type,x.id));
-      return{id:x.id,ref:x.invoice_number||x.voucher_no||'',party:x.party||'',date:x.voucher_date||'',amount:rem,onAccount:'INC',items:its,label:`${x.voucher_no||''} | ${x.invoice_number||'-'} | ${x.party||''} | Balance ${m45(rem)}`};
-    }).filter(x=>x.amount>0.005);
-    if(type==='POL_DRAWN') return (polEntries||[]).map(x=>{
-      const total=n45(x.total_amount)||n45(x.litres)*n45(x.rate),rem=Math.max(0,total-paid45(type,x.id));
-      return{id:x.id,ref:x.invoice_number||'',party:x.petrol_bunk||'',date:x.entry_date||'',amount:rem,onAccount:'POL',items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:n45(x.litres),rate:n45(x.rate),amount:total}],label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${m45(rem)}`};
-    }).filter(x=>x.amount>0.005);
+  async function rpcSources47(type){
+    if(!activeCamp?.id || !sb) return [];
+    const r = await sb.rpc('get_accounts_payment_sources_v47',{
+      p_camp_id:activeCamp.id,
+      p_source_type:type
+    });
+    if(r.error) throw r.error;
+    return normalizeSource47(r.data,type);
+  }
+
+  function localSources47(type){
+    /* Fallback only. The V47 RPC is the authoritative source for Accounts. */
+    if(type==='MESSING_RV'){
+      return (inInvoices||[]).map(x=>{
+        const rows = x.stock_in_items || [];
+        const its = rows.map(r=>{
+          const it = (items||[]).find(i=>String(i.id)===String(r.item_id));
+          const q=n(r.quantity), rate=n(r.rate);
+          return {
+            name:it?.name || r.item_name || 'Item',
+            unit:it?.unit || r.unit || '',
+            qty:q, rate, amount:r.amount!=null?n(r.amount):q*rate
+          };
+        });
+        const total=its.reduce((s,i)=>s+i.amount,0);
+        return {
+          id:x.id, ref:x.invoice_number||'', party:x.supplier||'', date:x.invoice_date||'',
+          amount:total, onAccount:'MESSING', items:its,
+          label:`${x.invoice_number||''} | ${x.invoice_date||''} | ${x.supplier||''} | Balance ${money47(total)}`
+        };
+      }).filter(x=>x.amount>0.005);
+    }
+    if(type==='INCIDENTAL_RV'){
+      return (incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()==='RV').map(x=>{
+        const its=(x.items||[]).map(r=>{
+          const q=n(r.qty??r.quantity), rate=n(r.rate);
+          return {name:r.name||r.desc||r.item||'Item',unit:r.unit||'',qty:q,rate,amount:r.amount!=null?n(r.amount):q*rate};
+        });
+        const total=n(x.amount)||its.reduce((s,i)=>s+i.amount,0);
+        return {id:x.id,ref:x.invoice_number||x.voucher_no||'',party:x.party||'',date:x.voucher_date||'',amount:total,onAccount:'INC',items:its,
+          label:`${x.voucher_no||''} | ${x.invoice_number||'-'} | ${x.party||''} | Balance ${money47(total)}`};
+      }).filter(x=>x.amount>0.005);
+    }
+    if(type==='POL_DRAWN'){
+      return (polEntries||[]).map(x=>{
+        const total=n(x.total_amount)||n(x.litres)*n(x.rate);
+        return {id:x.id,ref:x.invoice_number||'',party:x.petrol_bunk||'',date:x.entry_date||'',amount:total,onAccount:'POL',
+          items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:n(x.litres),rate:n(x.rate),amount:total}],
+          label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${money47(total)}`};
+      }).filter(x=>x.amount>0.005);
+    }
     return [];
   }
 
-  async function rpc45(type){
-    if(!activeCamp?.id||!sb)return [];
-    const r=await sb.rpc('get_accounts_payment_sources_v43',{p_camp_id:activeCamp.id,p_source_type:type});
-    if(r.error)throw r.error;
-    return normalizeRPC45(r.data,type);
-  }
+  async function load47(){
+    if(typeof cashType !== 'undefined' && cashType !== 'PAYMENT') return;
 
-  async function load45(){
-    if(typeof cashType!=='undefined'&&cashType!=='PAYMENT')return;
-    const h=head45(), linked=['MESSING','INC','POL'].includes(h);
-    const tw=document.getElementById('cashSourceTypeWrap'), sw=document.getElementById('cashSourceWrap'), sel=document.getElementById('cashSource'), st=document.getElementById('cashSourceType');
-    if(!tw||!sw||!sel)return;
-    if(!linked){tw.classList.add('hidden');sw.classList.add('hidden');return}
-    tw.classList.remove('hidden');sw.classList.remove('hidden');
-    const type=type45(); if(st)st.value=type;
-    sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
-    let list=[];
-    let rpcError=null;
-    try{list=await rpc45(type)}catch(e){rpcError=e}
-    if(!list.length) list=local45(type);
-    if(!list.length){
-      sel.innerHTML=rpcError
-        ? '<option value="">No source found — check Supabase V43 RPC</option>'
-        : '<option value="">No unpaid source voucher found</option>';
-      cache45[type]=[];
-      update45Balance();
+    const h=head47();
+    const linked=['MESSING','INC','POL'].includes(h);
+    const tw=document.getElementById('cashSourceTypeWrap');
+    const sw=document.getElementById('cashSourceWrap');
+    const sel=document.getElementById('cashSource');
+    const st=document.getElementById('cashSourceType');
+
+    if(!tw || !sw || !sel) return;
+
+    if(!linked){
+      tw.classList.add('hidden');
+      sw.classList.add('hidden');
+      updateBalance47();
       return;
     }
-    cache45[type]=list;
-    sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${esc45(x.id)}">${esc45(x.label)}</option>`).join('');
-    update45Balance();
+
+    tw.classList.remove('hidden');
+    sw.classList.remove('hidden');
+
+    const type=type47();
+    if(st) st.value=type;
+
+    sel.innerHTML='<option value="">Loading source invoice / voucher...</option>';
+
+    let list=[];
+    let rpcError=null;
+
+    try{
+      list=await rpcSources47(type);
+    }catch(e){
+      rpcError=e;
+      console.error('V47 payment source RPC:',e);
+    }
+
+    /* Never let an empty RLS-filtered local list overwrite a successful RPC result. */
+    if(!list.length){
+      const fallback=localSources47(type);
+      if(fallback.length) list=fallback;
+    }
+
+    cache47[type]=list;
+
+    if(!list.length){
+      const msg=rpcError
+        ? 'No source found — run V47 Supabase SQL'
+        : 'No unpaid source voucher found';
+      sel.innerHTML=`<option value="">${msg}</option>`;
+      updateBalance47();
+      return;
+    }
+
+    sel.innerHTML =
+      '<option value="">Select source invoice / voucher</option>' +
+      list.map(x=>`<option value="${esc47(x.id)}">${esc47(x.label)}</option>`).join('');
+
+    updateBalance47();
   }
 
-  function fill45(){
-    const type=document.getElementById('cashSourceType')?.value||type45(), id=document.getElementById('cashSource')?.value||'';
-    const x=(cache45[type]||[]).find(a=>String(a.id)===String(id));
-    if(!x){update45Balance();return}
-    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};
-    set('cashInvoice',x.ref);set('cashPaymentParty',x.party);set('cashPaymentAccount',x.onAccount);set('cashPaymentAmount',n45(x.amount).toFixed(2));set('cashSourceDate',x.date);set('cashSourceParty',x.party);set('cashSourceTotal',n45(x.amount).toFixed(2));
-    const b=document.getElementById('cashSourceItemsBody');if(b)b.innerHTML=(x.items||[]).map(i=>`<tr><td>${esc45(i.name)}</td><td>${esc45(i.unit)}</td><td>${i.qty}</td><td>${m45(i.rate)}</td><td>${m45(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
+  function fill47(){
+    const type=document.getElementById('cashSourceType')?.value || type47();
+    const id=document.getElementById('cashSource')?.value || '';
+    const x=(cache47[type]||[]).find(a=>String(a.id)===String(id));
+
+    if(!x){
+      updateBalance47();
+      return;
+    }
+
+    const set=(id,v)=>{
+      const e=document.getElementById(id);
+      if(e) e.value=v ?? '';
+    };
+
+    set('cashInvoice',x.ref);
+    set('cashPaymentParty',x.party);
+    set('cashPaymentAccount',x.onAccount);
+    set('cashPaymentAmount',n(x.amount).toFixed(2));
+    set('cashSourceDate',x.date);
+    set('cashSourceParty',x.party);
+    set('cashSourceTotal',n(x.amount).toFixed(2));
+
+    const b=document.getElementById('cashSourceItemsBody');
+    if(b){
+      b.innerHTML=(x.items||[]).map(i=>
+        `<tr><td>${esc47(i.name)}</td><td>${esc47(i.unit)}</td><td>${i.qty}</td><td>${money47(i.rate)}</td><td>${money47(i.amount)}</td></tr>`
+      ).join('') || '<tr><td colspan="5">No item details</td></tr>';
+    }
+
     document.getElementById('cashSourceDetails')?.classList.remove('hidden');
-    update45Balance();
+    updateBalance47();
   }
 
-  function budget45(head){
+  async function headBalanceRPC47(head,date){
+    if(!activeCamp?.id || !sb || !head) return 0;
+    try{
+      const r=await sb.rpc('get_accounts_head_balance_v47',{
+        p_camp_id:activeCamp.id,
+        p_head:head,
+        p_as_of_date:date || today()
+      });
+      if(r.error) throw r.error;
+      return n(Array.isArray(r.data) ? r.data[0]?.balance : r.data?.balance);
+    }catch(e){
+      console.error('V47 head balance RPC:',e);
+      return null;
+    }
+  }
+
+  function localHeadBalance47(head,date){
+    const h=String(head||'').trim().toUpperCase();
+    let total=0;
+
     const c=activeCamp||{};
-    const h=String(head||'').toUpperCase();
-    if(h==='MESSING')return n45(c.messing_budget);
-    if(h==='INC')return n45(c.incidental_budget);
-    if(h==='POL')return n45(c.pol_budget);
-    return 0;
-  }
-  function alloc45(e){
-    let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}} a=a&&typeof a==='object'?a:{};
-    const out={MESSING:0,INC:0,POL:0,'RANK PAY':0,'TA CADETS':0,'TA/DA CIV STAFF':0,RENT:0,OTHERS:0};
-    Object.entries(a).forEach(([k,v])=>{const u=String(k||'').trim().toUpperCase();if(u==='MESSING'||u==='INC'||u==='POL'||u==='RANK PAY'||u==='TA CADETS'||u==='TA/DA CIV STAFF'||u==='TA/DA CIV'||u==='TA DA CIV STAFF'||u==='RENT'||u==='OTHERS'||u==='OTHER'){const z=u==='TA/DA CIV'||u==='TA DA CIV STAFF'?'TA/DA CIV STAFF':u==='OTHER'?'OTHERS':u;out[z]=(out[z]||0)+n45(v)}});return out;
-  }
-  function headBal45(head,date){
-    const h=String(head||'').trim().toUpperCase(); let total=budget45(h);
-    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date||today())).forEach(e=>{
-      if(e.entry_type==='RECEIPT') total+=n45(alloc45(e)[h]);
-      else if(e.entry_type==='PAYMENT'&&String(e.code_head||'').trim().toUpperCase()===h&&approved45(e)) total-=n45(e.amount);
-    });
+    if(h==='MESSING') total+=n(c.messing_budget);
+    if(h==='INC') total+=n(c.incidental_budget);
+    if(h==='POL') total+=n(c.pol_budget);
+
+    (cashbookEntries||[])
+      .filter(e=>String(e.entry_date||'')<=String(date||today()))
+      .forEach(e=>{
+        if(e.entry_type==='RECEIPT'){
+          let a=e.head_allocations;
+          if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}}
+          Object.entries(a||{}).forEach(([k,v])=>{
+            const u=String(k||'').trim().toUpperCase();
+            const canon=u==='MESSING'?'MESSING':
+              u==='INC'?'INC':
+              u==='POL'?'POL':
+              u==='RANK PAY'?'RANK PAY':
+              u==='TA CADETS'?'TA CADETS':
+              (u==='TA/DA CIV' || u==='TA DA CIV STAFF')?'TA/DA CIV STAFF':
+              u==='RENT'?'RENT':
+              (u==='OTHER'||u==='OTHERS')?'OTHERS':u;
+            if(canon===h) total+=n(v);
+          });
+        }else if(e.entry_type==='PAYMENT' &&
+                 String(e.code_head||'').trim().toUpperCase()===h &&
+                 approved47(e)){
+          total-=n(e.amount);
+        }
+      });
+
     return total;
   }
-  function update45Balance(){
-    const date=document.getElementById('payDate')?.value||today(), mode=document.getElementById('cashPaymentMode')?.value||'CASH', head=head45(), amt=n45(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''));
+
+  async function updateBalance47(){
+    const date=document.getElementById('payDate')?.value || today();
+    const mode=document.getElementById('cashPaymentMode')?.value || 'CASH';
+    const head=head47();
+    const amt=n(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''));
+
     let cash=0,bank=0;
-    (cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date)).forEach(e=>{const a=n45(e.amount);if(e.entry_type==='RECEIPT'){if(String(e.mode).toUpperCase()==='BANK')bank+=a;else cash+=a}else if(e.entry_type==='PAYMENT'&&approved45(e)){if(String(e.mode).toUpperCase()==='BANK')bank-=a;else cash-=a}else if(e.entry_type==='CASH_DRAWN'){bank-=a;cash+=a}});
-    const hb=head?headBal45(head,date):0;
-    const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=m45(v)};
-    set('payCashCurrent',cash);set('payBankCurrent',bank);set('payHeadCurrent',hb);set('payCashBankAfter',mode==='BANK'?bank-amt:cash-amt);set('payBankAfter',bank-(mode==='BANK'?amt:0));set('payHeadAfter',hb-amt);
-    const type=document.getElementById('cashSourceType')?.value||'',sid=document.getElementById('cashSource')?.value||'',src=(cache45[type]||[]).find(x=>String(x.id)===String(sid));
-    const note=document.getElementById('paymentBalanceNote');if(note)note.textContent=`Cash in Hand: ${m45(cash)} | Bank Balance: ${m45(bank)} | ${head||'Head'} Balance: ${m45(hb)}${src?' | Source Remaining: '+m45(src.amount):''}`;
+    (cashbookEntries||[])
+      .filter(e=>String(e.entry_date||'')<=String(date))
+      .forEach(e=>{
+        const a=n(e.amount);
+        if(e.entry_type==='RECEIPT'){
+          if(String(e.mode||'').toUpperCase()==='BANK') bank+=a;
+          else cash+=a;
+        }else if(e.entry_type==='PAYMENT' && approved47(e)){
+          if(String(e.mode||'').toUpperCase()==='BANK') bank-=a;
+          else cash-=a;
+        }else if(e.entry_type==='CASH_DRAWN'){
+          bank-=a;
+          cash+=a;
+        }
+      });
+
+    let hb=null;
+    if(head) hb=await headBalanceRPC47(head,date);
+    if(hb===null) hb=localHeadBalance47(head,date);
+
+    const set=(id,v)=>{
+      const e=document.getElementById(id);
+      if(e)e.textContent=money47(v);
+    };
+
+    set('payCashCurrent',cash);
+    set('payBankCurrent',bank);
+    set('payHeadCurrent',hb);
+    set('payCashBankAfter',mode==='BANK'?bank-amt:cash-amt);
+    set('payBankAfter',bank-(mode==='BANK'?amt:0));
+    set('payHeadAfter',hb-amt);
+
+    const type=document.getElementById('cashSourceType')?.value||'';
+    const sid=document.getElementById('cashSource')?.value||'';
+    const src=(cache47[type]||[]).find(x=>String(x.id)===String(sid));
+
+    const note=document.getElementById('paymentBalanceNote');
+    if(note){
+      note.textContent =
+        `Cash in Hand: ${money47(cash)} | Bank Balance: ${money47(bank)} | ${head||'Head'} Balance: ${money47(hb)}` +
+        (src ? ` | Source Remaining: ${money47(src.amount)}` : '');
+    }
   }
 
-  window.loadCashSources=load45;
-  window.paymentHeadChanged=load45;
-  window.fillCashSource=fill45;
-  window.updatePaymentBalancePreview=update45Balance;
-  window.updatePaymentBalancePreviewV7=update45Balance;
-  window.availablePaymentSources=type=>cache45[type]||local45(type);
-  window.addEventListener('load',()=>setTimeout(()=>{load45();update45Balance()},900));
-  setTimeout(()=>{try{load45();update45Balance()}catch(_){}},1200);
-  document.getElementById('cashPaymentCodeHead')?.addEventListener('change',()=>{setTimeout(load45,0);setTimeout(update45Balance,20)});
-  document.getElementById('cashSource')?.addEventListener('change',fill45);
-  document.getElementById('cashPaymentMode')?.addEventListener('change',update45Balance);
-  document.getElementById('cashPaymentAmount')?.addEventListener('input',update45Balance);
-  document.getElementById('payDate')?.addEventListener('change',update45Balance);
+  /* Install LAST — this is the authoritative Accounts/Payment handler. */
+  window.loadCashSources=load47;
+  window.paymentHeadChanged=load47;
+  window.fillCashSource=fill47;
+  window.updatePaymentBalancePreview=updateBalance47;
+  window.availablePaymentSources=type=>cache47[type]||localSources47(type);
+
+  document.getElementById('cashPaymentCodeHead')?.addEventListener('change',()=>{
+    setTimeout(()=>{load47();updateBalance47();},50);
+  });
+  document.getElementById('cashSource')?.addEventListener('change',fill47);
+  document.getElementById('cashPaymentMode')?.addEventListener('change',updateBalance47);
+  document.getElementById('cashPaymentAmount')?.addEventListener('input',updateBalance47);
+  document.getElementById('payDate')?.addEventListener('change',updateBalance47);
+
+  window.addEventListener('load',()=>{
+    setTimeout(()=>{
+      if(typeof cashType==='undefined' || cashType==='PAYMENT'){
+        load47();
+        updateBalance47();
+      }
+    },900);
+  });
+
+  setTimeout(()=>{
+    try{
+      if(typeof cashType==='undefined' || cashType==='PAYMENT'){
+        load47();
+        updateBalance47();
+      }
+    }catch(e){console.error('V47 init',e);}
+  },1200);
 })();
 </script>
 </body>
