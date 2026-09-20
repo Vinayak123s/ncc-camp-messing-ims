@@ -2382,7 +2382,13 @@ setTimeout(()=>{try{renderAccountsDashboard();renderDayClose();updatePaymentBala
 
 </script>
 
-<script id="pol-v4-overrides">
+<script id="ims-v56-unified-layer">
+(function(){
+  "use strict";
+  window.__NCC_IMS_V56_UNIFIED__ = true;
+})();
+
+/* ===== NCC IMS V56 UNIFIED ALL-ROLE LAYER: legacy compatibility segment 3 ===== */
 /* ================= POL V4: IMMUTABLE ATTACHMENT BASE + VEHICLE DETACHMENT ================= */
 function polInitialKm(v){ return Number(v.initial_km_reading ?? v.km_reading ?? 0); }
 function polInitialTank(v){ return Number(v.initial_tank_balance ?? v.pol_balance ?? 0); }
@@ -2837,9 +2843,8 @@ window.updatePaymentBalancePreview=updatePaymentBalancePreview;
 window.updateCashDrawnPreview=updateCashDrawnPreview;
 window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview()}catch(e){}},250);
 
-</script>
 
-<script id="ims-v7-stable-data-repair">
+/* ===== NCC IMS V56 UNIFIED ALL-ROLE LAYER: legacy compatibility segment 4 ===== */
 /* NCC IMS V7 - stable data loading + compatibility repair */
 (() => {
   if (window.__NCC_IMS_V7__) return;
@@ -3081,9 +3086,8 @@ window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview(
   });
 })();
 
-</script>
 
-<script id="ims-v8-cashbook-patch">
+/* ===== NCC IMS V56 UNIFIED ALL-ROLE LAYER: legacy compatibility segment 5 ===== */
 /* NCC IMS V8 - Cash Book source/balance/cash-drawn/day-close repair */
 (function(){
   const previousSaveCashbook = window.saveCashbook;
@@ -3241,15 +3245,15 @@ window.setTimeout(()=>{try{updatePaymentBalancePreview();updateCashDrawnPreview(
   }
   window.addEventListener('load',rebind);setTimeout(rebind,250);
 })();
-</script>
 
-<script>
+
+/* ===== NCC IMS V56 UNIFIED ALL-ROLE LAYER: legacy compatibility segment 6 ===== */
 window.addEventListener('DOMContentLoaded',()=>{
   try{populateAllPOLVehicleSelectors();bindPOLVehicleSelectors();}catch(_){}
 });
-</script>
 
-<script id="pol-v22-detachment-final-fix">
+
+/* ===== NCC IMS V56 UNIFIED ALL-ROLE LAYER: legacy compatibility segment 7 ===== */
 (function(){
   function n(v){
     const x=Number(String(v??'').replace(/₹/g,'').replace(/,/g,'').trim());
@@ -3341,9 +3345,9 @@ window.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('load',init);
   setTimeout(init,500);
 })();
-</script>
 
-<script>
+
+/* ===== NCC IMS V56 UNIFIED ALL-ROLE LAYER: legacy compatibility segment 8 ===== */
 /* ===== V25 INCIDENTAL RV FINAL FIX ===== */
 (function(){
   function fyForDate(ds){
@@ -3511,9 +3515,9 @@ window.addEventListener('DOMContentLoaded',()=>{
     const wrapped=function(id,btn){oldShow(id,btn);if(id==='incidentalRV')setTimeout(()=>{applyRVFields();window.nextCRVNo();},50);};wrapped.__v25=true;window.showPage=wrapped;
   }
 })();
-</script>
 
-<script id="incidental-iv-v26-final">
+
+/* ===== NCC IMS V56 UNIFIED ALL-ROLE LAYER: legacy compatibility segment 9 ===== */
 (function(){
   function ivEsc(v){return typeof esc==='function'?esc(v??''):String(v??'').replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]))}
   function ivNum(v){return Number(v)||0}
@@ -3780,9 +3784,9 @@ window.addEventListener('DOMContentLoaded',()=>{
     window.showPage=wrapped;
   }
 })();
-</script>
 
-<script id="incidental-report-fix-v29">
+
+/* ===== NCC IMS V56 UNIFIED ALL-ROLE LAYER: legacy compatibility segment 10 ===== */
 (function(){
   const num = v => Number(v)||0;
   const arr = v => Array.isArray(v) ? v : [];
@@ -3954,11 +3958,9 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
   window.addEventListener('load',()=>setTimeout(()=>{prepareIncidentalReportFilters();},300));
 })();
-</script>
-<style id="role-dashboard-v36-css">
-.role-dash-hidden{display:none!important}
-</style>
-<script id="role-dashboard-v36-js">
+
+
+/* ===== NCC IMS V56 UNIFIED ALL-ROLE LAYER: legacy compatibility segment 11 ===== */
 (function(){
   function setVisible(id,show){
     const el=document.getElementById(id);
@@ -4186,22 +4188,22 @@ window.addEventListener('DOMContentLoaded',()=>{
     const html=document.getElementById('allReportsResults')?.innerHTML||'';
     const w=window.open('','_blank','width=1200,height=800');if(!w){alert('Please allow popups for reports.');return;}
     w.document.write(`<!doctype html><html><head><title>NCC CAMP MESSING - All Reports</title><style>body{font-family:Arial,sans-serif;color:#111;padding:18px}h2{text-align:center}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #555;padding:5px}th{background:#eee}.num{text-align:right}</style>
-<style id="approval-v38-css">
-#accountsRoleDashboardV38{margin-top:10px}
-.v38-accounts-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
-.v38-card{background:#101d2a;border:1px solid #294254;border-radius:10px;padding:14px}
-.v38-card h3{margin:0 0 8px;font-size:15px}.v38-kpi{font-size:10px;color:#8ea6b8}.v38-kpi b{display:block;color:#fff;font-size:23px;margin-top:7px}
-.v38-section{margin-top:14px;background:#101a27;border:1px solid #294254;border-radius:10px;padding:14px}
-.v38-section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
-.v38-status{display:inline-block;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:900;background:#5b4211;color:#ffd56a}
-.v38-status.approved{background:#123f2b;color:#70e0a0}.v38-status.pending{background:#5b4211;color:#ffd56a}
-.v38-approval-panel{margin:0 0 14px;background:#102131;border:1px solid #3a5970;border-radius:10px;padding:14px}
-.v38-approval-row{padding:10px;border:1px solid #294254;border-radius:8px;background:#0c1723;margin-top:8px}
-.v38-approval-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
-.v38-approval-details{color:#8fa8ba;font-size:11px;line-height:1.5}
-.v38-table{width:100%;border-collapse:collapse;font-size:11px}.v38-table th,.v38-table td{border:1px solid #294254;padding:7px;text-align:left}.v38-table th{background:#142536;color:#a9bdcc}
-@media(max-width:1000px){.v38-accounts-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:650px){.v38-accounts-grid{grid-template-columns:1fr}.v38-table{font-size:10px}}
+<style id="approval-v55-css">
+#accountsRoleDashboardV55{margin-top:10px}
+.v55-accounts-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+.v55-card{background:#101d2a;border:1px solid #294254;border-radius:10px;padding:14px}
+.v55-card h3{margin:0 0 8px;font-size:15px}.v55-kpi{font-size:10px;color:#8ea6b8}.v55-kpi b{display:block;color:#fff;font-size:23px;margin-top:7px}
+.v55-section{margin-top:14px;background:#101a27;border:1px solid #294254;border-radius:10px;padding:14px}
+.v55-section-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.v55-status{display:inline-block;padding:4px 8px;border-radius:999px;font-size:10px;font-weight:900;background:#5b4211;color:#ffd56a}
+.v55-status.approved{background:#123f2b;color:#70e0a0}.v55-status.pending{background:#5b4211;color:#ffd56a}
+.v55-approval-panel{margin:0 0 14px;background:#102131;border:1px solid #3a5970;border-radius:10px;padding:14px}
+.v55-approval-row{padding:10px;border:1px solid #294254;border-radius:8px;background:#0c1723;margin-top:8px}
+.v55-approval-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.v55-approval-details{color:#8fa8ba;font-size:11px;line-height:1.5}
+.v55-table{width:100%;border-collapse:collapse;font-size:11px}.v55-table th,.v55-table td{border:1px solid #294254;padding:7px;text-align:left}.v55-table th{background:#142536;color:#a9bdcc}
+@media(max-width:1000px){.v55-accounts-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.v55-accounts-grid{grid-template-columns:1fr}.v55-table{font-size:10px}}
 </style>
 
 </head><body><h2>NCC CAMP MESSING IMS - ALL REPORTS</h2>${html}
@@ -4226,12 +4228,12 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
   window.exportAllReportsHub=exportAllReportsHub;
 })();
-</script>
 
-<script id="ims-v38-accounts-approval">
+
+/* ===== NCC IMS V56 UNIFIED ALL-ROLE LAYER: legacy compatibility segment 12 ===== */
 (function(){
-  if(window.__NCC_IMS_V38__) return;
-  window.__NCC_IMS_V38__=true;
+  if(window.__NCC_IMS_V55__) return;
+  window.__NCC_IMS_V55__=true;
 
   const normRole=()=>String((typeof profile!=='undefined'&&profile&&profile.role)||'').trim().toUpperCase();
   const approved=e=>String(e?.approval_status||'APPROVED').toUpperCase()==='APPROVED';
@@ -4291,7 +4293,7 @@ window.addEventListener('DOMContentLoaded',()=>{
     return (cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&approved(e)&&String(e.source_type||'')===String(sourceType)&&String(e.source_id||'')===String(id)).reduce((s,e)=>s+numx(e.amount),0);
   }
 
-  function paymentSourcesV38(type){
+  function paymentSourcesV55(type){
     if(type==='MESSING_RV'){
       return (inInvoices||[]).map(h=>{
         const rows=h.stock_in_items||[];
@@ -4312,9 +4314,9 @@ window.addEventListener('DOMContentLoaded',()=>{
     }
     return [];
   }
-  window.paymentSources=paymentSourcesV38;window.availablePaymentSources=paymentSourcesV38;
+  window.paymentSources=paymentSourcesV55;window.availablePaymentSources=paymentSourcesV55;
 
-  function loadSourcesV38(){
+  function loadSourcesV55(){
     const code=document.getElementById('cashPaymentCodeHead')?.value||'';
     const head=String(code).trim().toUpperCase();
     const linked=['MESSING','INC','POL'].includes(head);
@@ -4324,42 +4326,42 @@ window.addEventListener('DOMContentLoaded',()=>{
       tw.classList.remove('hidden');sw.classList.remove('hidden');
       const type=head==='MESSING'?'MESSING_RV':head==='INC'?'INCIDENTAL_RV':'POL_DRAWN';
       const st=document.getElementById('cashSourceType');if(st)st.value=type;
-      const sel=document.getElementById('cashSource');if(sel){const list=paymentSourcesV38(type);sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${escx(x.id)}">${escx(x.label)}</option>`).join('');}
+      const sel=document.getElementById('cashSource');if(sel){const list=paymentSourcesV55(type);sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${escx(x.id)}">${escx(x.label)}</option>`).join('');}
     }else{
       tw.classList.add('hidden');sw.classList.add('hidden');
       const e=document.getElementById('cashPaymentAccount');if(e)e.value=code;
       const a=document.getElementById('cashSource');if(a)a.value='';
     }
-    window.availablePaymentSources=paymentSourcesV38;updateBalanceV38();
+    window.availablePaymentSources=paymentSourcesV55;updateBalanceV55();
   }
 
-  function fillSourceV38(){
+  function fillSourceV55(){
     const type=document.getElementById('cashSourceType')?.value||'',id=document.getElementById('cashSource')?.value||'';
-    const x=paymentSourcesV38(type).find(a=>String(a.id)===String(id));
-    if(!x){['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});document.getElementById('cashSourceDetails')?.classList.add('hidden');updateBalanceV38();return}
+    const x=paymentSourcesV55(type).find(a=>String(a.id)===String(id));
+    if(!x){['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});document.getElementById('cashSourceDetails')?.classList.add('hidden');updateBalanceV55();return}
     const set=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v};
     set('cashInvoice',x.ref||'');set('cashPaymentParty',x.party||'');set('cashPaymentAccount',x.onAccount||'');set('cashPaymentAmount',Number(x.amount||0).toFixed(2));set('cashSourceDate',x.date||'');set('cashSourceParty',x.party||'');set('cashSourceTotal',Number(x.amount||0).toFixed(2));
     const body=document.getElementById('cashSourceItemsBody');if(body)body.innerHTML=(x.items||[]).map(i=>`<tr><td>${escx(i.name)}</td><td>${escx(i.unit||'')}</td><td>${i.qty??''}</td><td>${money8x(i.rate)}</td><td>${money8x(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
-    document.getElementById('cashSourceDetails')?.classList.remove('hidden');updateBalanceV38();
+    document.getElementById('cashSourceDetails')?.classList.remove('hidden');updateBalanceV55();
   }
 
-  function updateBalanceV38(){
+  function updateBalanceV55(){
     const date=document.getElementById('payDate')?.value||today(),mode=document.getElementById('cashPaymentMode')?.value||'CASH',head=document.getElementById('cashPaymentCodeHead')?.value||'',amt=Number(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''))||0;
     const b=typeof bankCashAsOf==='function'?bankCashAsOf(date):{cash:0,bank:0};
     const hb=typeof headBalanceAsOf==='function'?headBalanceAsOf(head,date):0;
     const t=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money8x(v)};
     t('payCashCurrent',b.cash);t('payBankCurrent',b.bank);t('payHeadCurrent',hb);t('payCashBankAfter',mode==='BANK'?b.bank-amt:b.cash-amt);t('payBankAfter',b.bank-(mode==='BANK'?amt:0));t('payHeadAfter',hb-amt);
-    const sid=document.getElementById('cashSource')?.value||'',stype=document.getElementById('cashSourceType')?.value||'',src=sid?paymentSourcesV38(stype).find(x=>String(x.id)===String(sid)):null;
+    const sid=document.getElementById('cashSource')?.value||'',stype=document.getElementById('cashSourceType')?.value||'',src=sid?paymentSourcesV55(stype).find(x=>String(x.id)===String(sid)):null;
     const note=document.getElementById('paymentBalanceNote');if(note)note.textContent=`Cash in Hand: ${money8x(b.cash)} | Bank Balance: ${money8x(b.bank)} | ${head||'Head'} Balance: ${money8x(hb)}${src?' | Source Remaining: '+money8x(src.amount):''}`;
   }
 
-  async function savePaymentApprovalV38(){
+  async function savePaymentApprovalV55(){
     if(!['ACCOUNTS','ADMIN'].includes(normRole())){setMsg('paymentMsg','Only ACCOUNTS/ADMIN can create a payment.');return}
     if(!activeCamp){setMsg('paymentMsg','Select an active camp first.');return}
     const date=document.getElementById('payDate')?.value||today(),voucher=(document.getElementById('payVoucherNo')?.value||'').trim(),head=document.getElementById('cashPaymentCodeHead')?.value||'',stype=document.getElementById('cashSourceType')?.value||'',sid=document.getElementById('cashSource')?.value||null,ref=(document.getElementById('cashInvoice')?.value||'').trim(),party=(document.getElementById('cashPaymentParty')?.value||'').trim(),amount=Number(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''))||0,mode=document.getElementById('cashPaymentMode')?.value||'CASH',narr=(document.getElementById('cashPaymentNarration')?.value||'').trim();
     if(!voucher||!head||amount<=0){setMsg('paymentMsg','Enter Date, PV No., Code Head and a valid amount.');return}
     const linked=['MESSING','INC','POL'].includes(String(head).toUpperCase());
-    let src=null;if(linked){if(!sid){setMsg('paymentMsg','Select the linked source invoice / voucher.');return}src=paymentSourcesV38(stype).find(x=>String(x.id)===String(sid));if(!src){setMsg('paymentMsg','Selected source is not available. Refresh and select again.');return}if(amount>src.amount+0.005){setMsg('paymentMsg',`Payment exceeds source balance ${money8x(src.amount)}.`);return}}
+    let src=null;if(linked){if(!sid){setMsg('paymentMsg','Select the linked source invoice / voucher.');return}src=paymentSourcesV55(stype).find(x=>String(x.id)===String(sid));if(!src){setMsg('paymentMsg','Selected source is not available. Refresh and select again.');return}if(amount>src.amount+0.005){setMsg('paymentMsg',`Payment exceeds source balance ${money8x(src.amount)}.`);return}}
     const b=typeof bankCashAsOf==='function'?bankCashAsOf(date):{cash:0,bank:0};const hb=typeof headBalanceAsOf==='function'?headBalanceAsOf(head,date):0;const available=mode==='BANK'?b.bank:b.cash;
     if(amount>available+0.005){setMsg('paymentMsg',`Insufficient ${mode} balance. Available: ${money8x(available)}.`);return}
     if(amount>hb+0.005){setMsg('paymentMsg',`Insufficient ${head} balance. Available: ${money8x(hb)}.`);return}
@@ -4369,10 +4371,10 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(res.error){setMsg('paymentMsg','Approval workflow is not installed in Supabase. Run the V40 accounts approval SQL migration first. '+res.error.message);return}
     const pending=normRole()==='ACCOUNTS';
     setMsg('paymentMsg',pending?'Payment submitted successfully. Waiting for MANAGER approval.':'Payment saved and approved.',true);
-    clearCashbookForm();await window.refreshAll();loadSourcesV38();updateBalanceV38();
+    clearCashbookForm();await window.refreshAll();loadSourcesV55();updateBalanceV55();
   }
 
-  async function approvePaymentV38(id){
+  async function approvePaymentV55(id){
     if(!['MANAGER','ADMIN'].includes(normRole()))return alert('Only MANAGER or ADMIN can approve payments.');
     const row=(cashbookEntries||[]).find(e=>String(e.id)===String(id));
     if(!row)return;
@@ -4381,46 +4383,46 @@ window.addEventListener('DOMContentLoaded',()=>{
     const note=prompt('Approval note (optional):','Verified and approved by Manager')||'';
     const {error}=await sb.rpc('approve_accounts_payment_v1',{p_payment_id:id,p_approval_note:note});
     if(error){alert(error.message);return}
-    await window.refreshAll();renderPendingApprovalsV38();alert('Payment approved successfully.');
+    await window.refreshAll();renderPendingApprovalsV55();alert('Payment approved successfully.');
   }
-  window.approveAccountsPayment=approvePaymentV38;
+  window.approveAccountsPayment=approvePaymentV55;
 
   function ensureApprovalPanel(){
     const page=document.getElementById('cashbook');if(!page)return null;
     let panel=document.getElementById('managerPaymentApprovalPanel');
     if(panel)return panel;
-    panel=document.createElement('div');panel.id='managerPaymentApprovalPanel';panel.className='v38-approval-panel hidden';
+    panel=document.createElement('div');panel.id='managerPaymentApprovalPanel';panel.className='v55-approval-panel hidden';
     const tabs=page.querySelector('.cash-tabs');if(tabs)tabs.parentNode.insertBefore(panel,tabs);else page.insertBefore(panel,page.firstChild);
     return panel;
   }
 
-  function renderPendingApprovalsV38(){
+  function renderPendingApprovalsV55(){
     const panel=ensureApprovalPanel();if(!panel)return;
     const role=normRole();
     if(!['MANAGER','ADMIN'].includes(role)){panel.classList.add('hidden');panel.innerHTML='';return}
     const rows=(cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.approval_status||'APPROVED').toUpperCase()==='PENDING_MANAGER').sort((a,b)=>String(b.entry_date||'').localeCompare(String(a.entry_date||''))||String(b.created_at||'').localeCompare(String(a.created_at||'')));
     panel.classList.remove('hidden');
-    panel.innerHTML=`<div class="v38-section-head"><div><h3 style="margin:0">Payments Awaiting Manager Approval</h3><div class="kpi-note">Accounts-submitted payment vouchers are not included in cash/bank/head balances until approved.</div></div><span class="v38-status pending">${rows.length} PENDING</span></div>`+
-      (rows.length?rows.map(r=>{const d=jsonx(r.source_details);const items=(d.items||[]).map(i=>`${escx(i.name||'')} ${i.qty!=null?'× '+i.qty:''}`).join(', ');return `<div class="v38-approval-row"><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px"><div><div class="v38-kpi">DATE</div><b>${escx(r.entry_date)}</b></div><div><div class="v38-kpi">PV NO.</div><b>${escx(r.voucher_number)}</b></div><div><div class="v38-kpi">CODE HEAD</div><b>${escx(r.code_head||'')}</b></div><div><div class="v38-kpi">TO WHOM PAID</div><b>${escx(d.to_whom_paid||r.party||'')}</b></div><div><div class="v38-kpi">ACCOUNT</div><b>${escx(d.on_account||r.code_head||'')}</b></div><div><div class="v38-kpi">MODE</div><b>${escx(r.mode||'')}</b></div><div><div class="v38-kpi">AMOUNT</div><b>${money8x(r.amount)}</b></div></div><div class="v38-approval-details" style="margin-top:8px"><b>Source:</b> ${escx(r.source_type||'OTHER')} &nbsp; <b>Invoice/Ref:</b> ${escx(r.reference_no||'')} &nbsp; <b>Particulars:</b> ${items||'—'}</div><div class="v38-approval-actions"><span class="v38-status pending">PENDING MANAGER APPROVAL</span><button class="btn green" onclick="approveAccountsPayment('${r.id}')">✓ VERIFY &amp; APPROVE</button></div></div>`}).join(''):`<div class="empty">No payment vouchers are awaiting approval.</div>`);
+    panel.innerHTML=`<div class="v55-section-head"><div><h3 style="margin:0">Payments Awaiting Manager Approval</h3><div class="kpi-note">Accounts-submitted payment vouchers are not included in cash/bank/head balances until approved.</div></div><span class="v55-status pending">${rows.length} PENDING</span></div>`+
+      (rows.length?rows.map(r=>{const d=jsonx(r.source_details);const items=(d.items||[]).map(i=>`${escx(i.name||'')} ${i.qty!=null?'× '+i.qty:''}`).join(', ');return `<div class="v55-approval-row"><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:8px"><div><div class="v55-kpi">DATE</div><b>${escx(r.entry_date)}</b></div><div><div class="v55-kpi">PV NO.</div><b>${escx(r.voucher_number)}</b></div><div><div class="v55-kpi">CODE HEAD</div><b>${escx(r.code_head||'')}</b></div><div><div class="v55-kpi">TO WHOM PAID</div><b>${escx(d.to_whom_paid||r.party||'')}</b></div><div><div class="v55-kpi">ACCOUNT</div><b>${escx(d.on_account||r.code_head||'')}</b></div><div><div class="v55-kpi">MODE</div><b>${escx(r.mode||'')}</b></div><div><div class="v55-kpi">AMOUNT</div><b>${money8x(r.amount)}</b></div></div><div class="v55-approval-details" style="margin-top:8px"><b>Source:</b> ${escx(r.source_type||'OTHER')} &nbsp; <b>Invoice/Ref:</b> ${escx(r.reference_no||'')} &nbsp; <b>Particulars:</b> ${items||'—'}</div><div class="v55-approval-actions"><span class="v55-status pending">PENDING MANAGER APPROVAL</span><button class="btn green" onclick="approveAccountsPayment('${r.id}')">✓ VERIFY &amp; APPROVE</button></div></div>`}).join(''):`<div class="empty">No payment vouchers are awaiting approval.</div>`);
   }
 
   function renderCashbookApprovalAware(){
     const table=document.getElementById('cashbookTable');
     if(table){
       let h='<table><tr><th>Date</th><th>Type</th><th>RV / PV No.</th><th>Status</th><th>Source Type</th><th>Invoice / Ref</th><th>To Whom / Party</th><th>On What Account</th><th>Mode</th><th>Code Head / Distribution</th><th>Particulars</th><th>Amount</th><th>Action</th></tr>';
-      (cashbookEntries||[]).forEach(x=>{const d=jsonx(x.source_details);const st=String(x.approval_status||'APPROVED').toUpperCase();const status=st==='PENDING_MANAGER'?'<span class="v38-status pending">PENDING</span>':'<span class="v38-status approved">APPROVED</span>';h+=`<tr><td>${escx(x.entry_date)}</td><td>${escx(x.entry_type)}</td><td><b>${escx(x.voucher_number)}</b></td><td>${status}</td><td>${escx(x.source_type||'')}</td><td>${escx(x.reference_no||'')}</td><td>${escx(d.to_whom_paid||x.party||'')}</td><td>${escx(d.on_account||x.code_head||x.reference_no||'')}</td><td>${escx(x.mode||'')}</td><td>${escx(typeof allocationSummary==='function'?allocationSummary(x):x.code_head||'')}</td><td>${escx(typeof itemSummary==='function'?itemSummary(x):(d.items||[]).map(i=>i.name).join(', '))}</td><td>${money8x(x.amount)}</td><td>${st==='PENDING_MANAGER'&&['MANAGER','ADMIN'].includes(normRole())?`<button class="btn green" onclick="approveAccountsPayment('${x.id}')">APPROVE</button>`:(['ADMIN','ACCOUNTS'].includes(normRole())?`<button class="btn red" onclick="deleteCashbook('${x.id}')">Delete</button>`:'View')}</td></tr>`});
+      (cashbookEntries||[]).forEach(x=>{const d=jsonx(x.source_details);const st=String(x.approval_status||'APPROVED').toUpperCase();const status=st==='PENDING_MANAGER'?'<span class="v55-status pending">PENDING</span>':'<span class="v55-status approved">APPROVED</span>';h+=`<tr><td>${escx(x.entry_date)}</td><td>${escx(x.entry_type)}</td><td><b>${escx(x.voucher_number)}</b></td><td>${status}</td><td>${escx(x.source_type||'')}</td><td>${escx(x.reference_no||'')}</td><td>${escx(d.to_whom_paid||x.party||'')}</td><td>${escx(d.on_account||x.code_head||x.reference_no||'')}</td><td>${escx(x.mode||'')}</td><td>${escx(typeof allocationSummary==='function'?allocationSummary(x):x.code_head||'')}</td><td>${escx(typeof itemSummary==='function'?itemSummary(x):(d.items||[]).map(i=>i.name).join(', '))}</td><td>${money8x(x.amount)}</td><td>${st==='PENDING_MANAGER'&&['MANAGER','ADMIN'].includes(normRole())?`<button class="btn green" onclick="approveAccountsPayment('${x.id}')">APPROVE</button>`:(['ADMIN','ACCOUNTS'].includes(normRole())?`<button class="btn red" onclick="deleteCashbook('${x.id}')">Delete</button>`:'View')}</td></tr>`});
       h+='</table>';table.innerHTML=(cashbookEntries||[]).length?h:'<div class="empty">No Cash Book entries for this camp.</div>';
     }
-    renderPendingApprovalsV38();
+    renderPendingApprovalsV55();
   }
 
   // Accounts dashboard is deliberately isolated from the operational dashboard.
   function ensureAccountsDashboard(){
     const dash=document.getElementById('dashboard');if(!dash)return null;
-    let box=document.getElementById('accountsRoleDashboardV38');
+    let box=document.getElementById('accountsRoleDashboardV55');
     if(box)return box;
-    box=document.createElement('div');box.id='accountsRoleDashboardV38';
-    box.innerHTML=`<div class="section-head"><div><h1>Cash / Bank Position</h1><p>Accounts dashboard for the active camp</p></div><div class="actions"><button class="btn" onclick="showPage('cashbook',document.querySelector('[data-page=cashbook]'));setTimeout(()=>setCashType('PAYMENT'),40)">CASH BOOK</button><button class="btn dark" onclick="showPage('reports',document.querySelector('[data-page=reports]'))">REPORTS</button></div></div><div class="v38-accounts-grid"><div class="v38-card"><div class="v38-kpi">CASH IN HAND</div><div class="v38-kpi"><b id="v38AccCash">₹0.00</b></div><div class="kpi-note">Approved current balance</div></div><div class="v38-card"><div class="v38-kpi">CASH AT BANK</div><div class="v38-kpi"><b id="v38AccBank">₹0.00</b></div><div class="kpi-note">Approved current balance</div></div><div class="v38-card"><div class="v38-kpi">TODAY'S RECEIPTS</div><div class="v38-kpi"><b id="v38AccReceipts">₹0.00</b></div><div class="kpi-note">Selected active camp</div></div><div class="v38-card"><div class="v38-kpi">TODAY'S APPROVED PAYMENTS</div><div class="v38-kpi"><b id="v38AccPayments">₹0.00</b></div><div class="kpi-note">Pending payments excluded</div></div></div><div class="v38-section"><div class="v38-section-head"><div><h3 style="margin:0">Code Head Allotments &amp; Balance</h3><div class="kpi-note">Allotment / receipts less approved payments</div></div></div><div id="v38AccHeadTable"></div></div><div class="v38-section"><div class="v38-section-head"><div><h3 style="margin:0">My Payment Submissions</h3><div class="kpi-note">Accounts payments remain pending until a Manager approves them.</div></div><span id="v38AccPendingBadge" class="v38-status pending">0 PENDING</span></div><div id="v38AccPendingTable"></div></div><div class="v38-section"><div class="v38-section-head"><div><h3 style="margin:0">Day Cash Book Position</h3><div id="v38AccDayCaption" class="kpi-note"></div></div></div><div id="v38AccDayTable"></div></div>`;
+    box=document.createElement('div');box.id='accountsRoleDashboardV55';
+    box.innerHTML=`<div class="section-head"><div><h1>Cash / Bank Position</h1><p>Accounts dashboard for the active camp</p></div><div class="actions"><button class="btn" onclick="showPage('cashbook',document.querySelector('[data-page=cashbook]'));setTimeout(()=>setCashType('PAYMENT'),40)">CASH BOOK</button><button class="btn dark" onclick="showPage('reports',document.querySelector('[data-page=reports]'))">REPORTS</button></div></div><div class="v55-accounts-grid"><div class="v55-card"><div class="v55-kpi">CASH IN HAND</div><div class="v55-kpi"><b id="v55AccCash">₹0.00</b></div><div class="kpi-note">Approved current balance</div></div><div class="v55-card"><div class="v55-kpi">CASH AT BANK</div><div class="v55-kpi"><b id="v55AccBank">₹0.00</b></div><div class="kpi-note">Approved current balance</div></div><div class="v55-card"><div class="v55-kpi">TODAY'S RECEIPTS</div><div class="v55-kpi"><b id="v55AccReceipts">₹0.00</b></div><div class="kpi-note">Selected active camp</div></div><div class="v55-card"><div class="v55-kpi">TODAY'S APPROVED PAYMENTS</div><div class="v55-kpi"><b id="v55AccPayments">₹0.00</b></div><div class="kpi-note">Pending payments excluded</div></div></div><div class="v55-section"><div class="v55-section-head"><div><h3 style="margin:0">Code Head Allotments &amp; Balance</h3><div class="kpi-note">Allotment / receipts less approved payments</div></div></div><div id="v55AccHeadTable"></div></div><div class="v55-section"><div class="v55-section-head"><div><h3 style="margin:0">My Payment Submissions</h3><div class="kpi-note">Accounts payments remain pending until a Manager approves them.</div></div><span id="v55AccPendingBadge" class="v55-status pending">0 PENDING</span></div><div id="v55AccPendingTable"></div></div><div class="v55-section"><div class="v55-section-head"><div><h3 style="margin:0">Day Cash Book Position</h3><div id="v55AccDayCaption" class="kpi-note"></div></div></div><div id="v55AccDayTable"></div></div>`;
     const main=dash.querySelector('main')||dash;
     // Hide the original monitoring dashboard content while retaining the section itself for showPage routing.
     dash.insertBefore(box,dash.firstChild);
@@ -4431,14 +4433,14 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(normRole()!=='ACCOUNTS')return;
     const box=ensureAccountsDashboard();if(!box)return;
     const b=typeof bankCashAsOf==='function'?bankCashAsOf(today()):{cash:0,bank:0};const d=typeof calculateDay==='function'?calculateDay(today()):{rc:0,rb:0,pc:0,pb:0,bfCash:0,bfBank:0,cfCash:0,cfBank:0,closed:false,bfHeads:{},headReceipts:{},headPayments:{},cfHeads:{}};
-    const t=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money8x(v)};t('v38AccCash',b.cash);t('v38AccBank',b.bank);t('v38AccReceipts',d.rc+d.rb);t('v38AccPayments',d.pc+d.pb);
-    const heads=Object.keys(d.cfHeads||{});let h='<table class="v38-table"><tr><th>Code Head</th><th>B/F</th><th>Receipt / Allotment</th><th>Approved Payments</th><th>Balance</th></tr>';heads.forEach(x=>h+=`<tr><td><b>${escx(x)}</b></td><td>${money8x(d.bfHeads[x])}</td><td>${money8x(d.headReceipts[x])}</td><td>${money8x(d.headPayments[x])}</td><td><b>${money8x(d.cfHeads[x])}</b></td></tr>`);h+='</table>';const ht=document.getElementById('v38AccHeadTable');if(ht)ht.innerHTML=h;
-    const mine=(cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.created_by||'')===String(currentUser?.id||'' )).sort((a,b)=>String(b.entry_date||'').localeCompare(String(a.entry_date||''))||String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,12);const pending=mine.filter(e=>String(e.approval_status||'APPROVED').toUpperCase()==='PENDING_MANAGER');const pb=document.getElementById('v38AccPendingBadge');if(pb){pb.textContent=pending.length+' PENDING';pb.className='v38-status '+(pending.length?'pending':'approved');}
-    let ph='<table class="v38-table"><tr><th>Date</th><th>PV No.</th><th>Code Head</th><th>To Whom Paid</th><th>Amount</th><th>Status</th></tr>';mine.forEach(e=>{const st=String(e.approval_status||'APPROVED').toUpperCase();ph+=`<tr><td>${escx(e.entry_date)}</td><td>${escx(e.voucher_number)}</td><td>${escx(e.code_head||'')}</td><td>${escx(jsonx(e.source_details).to_whom_paid||e.party||'')}</td><td>${money8x(e.amount)}</td><td>${st==='PENDING_MANAGER'?'<span class="v38-status pending">PENDING MANAGER</span>':'<span class="v38-status approved">APPROVED</span>'}</td></tr>`});ph+='</table>';const pt=document.getElementById('v38AccPendingTable');if(pt)pt.innerHTML=mine.length?ph:'<div class="empty">No payment submissions yet.</div>';
-    const dt=document.getElementById('v38AccDayCaption');if(dt)dt.textContent=`${today()} • ${d.closed?'CLOSED':'OPEN'}`;const db=document.getElementById('v38AccDayTable');if(db)db.innerHTML=`<table class="v38-table"><tr><th>B/F Cash</th><th>B/F Bank</th><th>Total Receipts</th><th>Total Approved Payments</th><th>C/F Cash</th><th>C/F Bank</th></tr><tr><td>${money8x(d.bfCash)}</td><td>${money8x(d.bfBank)}</td><td>${money8x(d.rc+d.rb)}</td><td>${money8x(d.pc+d.pb)}</td><td>${money8x(d.cfCash)}</td><td>${money8x(d.cfBank)}</td></tr></table>`;
+    const t=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money8x(v)};t('v55AccCash',b.cash);t('v55AccBank',b.bank);t('v55AccReceipts',d.rc+d.rb);t('v55AccPayments',d.pc+d.pb);
+    const heads=Object.keys(d.cfHeads||{});let h='<table class="v55-table"><tr><th>Code Head</th><th>B/F</th><th>Receipt / Allotment</th><th>Approved Payments</th><th>Balance</th></tr>';heads.forEach(x=>h+=`<tr><td><b>${escx(x)}</b></td><td>${money8x(d.bfHeads[x])}</td><td>${money8x(d.headReceipts[x])}</td><td>${money8x(d.headPayments[x])}</td><td><b>${money8x(d.cfHeads[x])}</b></td></tr>`);h+='</table>';const ht=document.getElementById('v55AccHeadTable');if(ht)ht.innerHTML=h;
+    const mine=(cashbookEntries||[]).filter(e=>e.entry_type==='PAYMENT'&&String(e.created_by||'')===String(currentUser?.id||'' )).sort((a,b)=>String(b.entry_date||'').localeCompare(String(a.entry_date||''))||String(b.created_at||'').localeCompare(String(a.created_at||''))).slice(0,12);const pending=mine.filter(e=>String(e.approval_status||'APPROVED').toUpperCase()==='PENDING_MANAGER');const pb=document.getElementById('v55AccPendingBadge');if(pb){pb.textContent=pending.length+' PENDING';pb.className='v55-status '+(pending.length?'pending':'approved');}
+    let ph='<table class="v55-table"><tr><th>Date</th><th>PV No.</th><th>Code Head</th><th>To Whom Paid</th><th>Amount</th><th>Status</th></tr>';mine.forEach(e=>{const st=String(e.approval_status||'APPROVED').toUpperCase();ph+=`<tr><td>${escx(e.entry_date)}</td><td>${escx(e.voucher_number)}</td><td>${escx(e.code_head||'')}</td><td>${escx(jsonx(e.source_details).to_whom_paid||e.party||'')}</td><td>${money8x(e.amount)}</td><td>${st==='PENDING_MANAGER'?'<span class="v55-status pending">PENDING MANAGER</span>':'<span class="v55-status approved">APPROVED</span>'}</td></tr>`});ph+='</table>';const pt=document.getElementById('v55AccPendingTable');if(pt)pt.innerHTML=mine.length?ph:'<div class="empty">No payment submissions yet.</div>';
+    const dt=document.getElementById('v55AccDayCaption');if(dt)dt.textContent=`${today()} • ${d.closed?'CLOSED':'OPEN'}`;const db=document.getElementById('v55AccDayTable');if(db)db.innerHTML=`<table class="v55-table"><tr><th>B/F Cash</th><th>B/F Bank</th><th>Total Receipts</th><th>Total Approved Payments</th><th>C/F Cash</th><th>C/F Bank</th></tr><tr><td>${money8x(d.bfCash)}</td><td>${money8x(d.bfBank)}</td><td>${money8x(d.rc+d.rb)}</td><td>${money8x(d.pc+d.pb)}</td><td>${money8x(d.cfCash)}</td><td>${money8x(d.cfBank)}</td></tr></table>`;
   }
 
-  function applyRoleDashboardV38(){
+  function applyRoleDashboardV55(){
     const role=normRole();
     const ids=['dashFinanceCard','dashMessingCard','dashIncRVCard','dashIncIVCard','dashPOLCard','dashCashBookCard','dashDayCloseCard','dashInventoryCard','dashAnalyticsCard','dashReportsCard'];ids.forEach(id=>document.getElementById(id)?.classList.remove('role-dash-hidden'));
     const show=(id,val)=>document.getElementById(id)?.classList.toggle('role-dash-hidden',!val);
@@ -4452,40 +4454,28 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(role==='ACCOUNTS')renderAccountsRoleDashboard();
   }
 
-  const oldApply=window.applyRoleUI;window.applyRoleUI=function(){try{if(typeof oldApply==='function')oldApply()}catch(e){console.warn(e)}applyRoleDashboardV38()};
-  const oldRender=window.renderDashboard;window.renderDashboard=function(){try{if(typeof oldRender==='function')oldRender()}catch(e){console.warn(e)}applyRoleDashboardV38();if(normRole()==='ACCOUNTS')renderAccountsRoleDashboard()};
-  const oldRefresh=window.refreshAll;window.refreshAll=async function(){const r=await oldRefresh();applyRoleDashboardV38();if(normRole()==='ACCOUNTS')renderAccountsRoleDashboard();renderPendingApprovalsV38();return r};
+  const oldApply=window.applyRoleUI;window.applyRoleUI=function(){try{if(typeof oldApply==='function')oldApply()}catch(e){console.warn(e)}applyRoleDashboardV55()};
+  const oldRender=window.renderDashboard;window.renderDashboard=function(){try{if(typeof oldRender==='function')oldRender()}catch(e){console.warn(e)}applyRoleDashboardV55();if(normRole()==='ACCOUNTS')renderAccountsRoleDashboard()};
+  const oldRefresh=window.refreshAll;window.refreshAll=async function(){const r=await oldRefresh();applyRoleDashboardV55();if(normRole()==='ACCOUNTS')renderAccountsRoleDashboard();renderPendingApprovalsV55();return r};
 
   // Accounts payment submit -> manager approval queue.
-  window.loadCashSources=loadSourcesV38;window.paymentHeadChanged=loadSourcesV38;window.fillCashSource=fillSourceV38;window.updatePaymentBalancePreview=updateBalanceV38;
+  window.loadCashSources=loadSourcesV55;window.paymentHeadChanged=loadSourcesV55;window.fillCashSource=fillSourceV55;window.updatePaymentBalancePreview=updateBalanceV55;
   const oldSaveCashbook=window.saveCashbook;
-  window.saveCashbook=async function(){if(typeof cashType!=='undefined'&&cashType==='PAYMENT')return savePaymentApprovalV38();return oldSaveCashbook?oldSaveCashbook():null};
+  window.saveCashbook=async function(){if(typeof cashType!=='undefined'&&cashType==='PAYMENT')return savePaymentApprovalV55();return oldSaveCashbook?oldSaveCashbook():null};
 
   // Replace the cashbook renderer so the approval state is visible and manager has an approval queue.
   window.renderCashbook=function(){try{renderCashbookApprovalAware()}catch(e){console.warn('cashbook render',e)} };
 
-  document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{applyRoleDashboardV38();renderPendingApprovalsV38()},250)});
-  setTimeout(()=>{try{applyRoleDashboardV38();renderPendingApprovalsV38()}catch(e){}},600);
+  document.addEventListener('DOMContentLoaded',()=>{setTimeout(()=>{applyRoleDashboardV55();renderPendingApprovalsV55()},250)});
+  setTimeout(()=>{try{applyRoleDashboardV55();renderPendingApprovalsV55()}catch(e){}},600);
 })();
-</script>
 
 
-
-
-
-
-
-
-
-
-
-
-
-<script id="ims-v54-authoritative-camp-source-repair">
+/* ===== NCC IMS V56 UNIFIED ALL-ROLE LAYER: legacy compatibility segment 13 ===== */
 (function(){
   const U=v=>String(v??'').trim().toUpperCase(), N=v=>Number(v)||0;
   const P=()=>((typeof profile!=='undefined'&&profile)?profile:(window.profile||null));
-  const R=()=>U(P()?.role), allowed=()=>['ACCOUNTS','MANAGER','ADMIN'].includes(R()), isA=()=>R()==='ACCOUNTS';
+  const R=()=>U(P()?.role), allowed=()=>['ACCOUNTS','MANAGER','ADMIN','Q_SEC'].includes(R()), financeAllowed=()=>['ACCOUNTS','MANAGER','ADMIN'].includes(R()), isA=()=>R()==='ACCOUNTS', isQ=()=>R()==='Q_SEC';
   const moneyV=v=>typeof money==='function'?money(v):'₹'+N(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
   const escV=v=>typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const approved=e=>U(e?.approval_status||'APPROVED')==='APPROVED';
@@ -4498,30 +4488,31 @@ window.addEventListener('DOMContentLoaded',()=>{
   async function loadContext(id=null){
     if(!allowed())return false;
     try{
-      const x=await rpc('get_ims_camp_context_v54',{p_camp_id:id||null});
+      const x=await rpc('get_ims_camp_context_v56',{p_camp_id:id||null});
       window.camps=Array.isArray(x?.camps)?x.camps:[]; window.activeCamp=x?.active_camp||null;
       if(typeof camps!=='undefined') camps=window.camps;
       if(typeof activeCamp!=='undefined') activeCamp=window.activeCamp;
       if(typeof populateCampTop==='function')populateCampTop();
       if(!window.activeCamp?.id) note('No camp is available for this user.',false);
       return !!window.activeCamp?.id;
-    }catch(e){console.error('V54 camp context',e);note('Camp access error: '+(e?.message||e),false);return false}
+    }catch(e){console.error('V55 camp context',e);note('Camp access error: '+(e?.message||e),false);return false}
   }
 
   async function loadData(){
     if(!window.activeCamp?.id)return false;
     const cid=window.activeCamp.id;
     try{
-      const x=await rpc('get_ims_accounts_data_v54',{p_camp_id:cid});
+      const x=await rpc('get_ims_accounts_data_v56',{p_camp_id:cid});
       const inv=Array.isArray(x?.inventory)?x.inventory:[], hs=Array.isArray(x?.stock_in_invoices)?x.stock_in_invoices:[], rows=Array.isArray(x?.stock_in_items)?x.stock_in_items:[];
       hs.forEach(h=>h.stock_in_items=rows.filter(r=>String(r.invoice_id)===String(h.id)));
       window.items=inv;window.inInvoices=hs;window.polEntries=Array.isArray(x?.pol_entries)?x.pol_entries:[];window.incidentals=Array.isArray(x?.incidental_vouchers)?x.incidental_vouchers:[];window.cashbookEntries=Array.isArray(x?.cashbook_entries)?x.cashbook_entries:[];window.cashbookClosures=Array.isArray(x?.cashbook_closures)?x.cashbook_closures:[];window.polVehicles=Array.isArray(x?.pol_vehicles)?x.pol_vehicles:[];
       if(typeof items!=='undefined')items=window.items;if(typeof inInvoices!=='undefined')inInvoices=window.inInvoices;if(typeof polEntries!=='undefined')polEntries=window.polEntries;if(typeof incidentals!=='undefined')incidentals=window.incidentals;if(typeof cashbookEntries!=='undefined')cashbookEntries=window.cashbookEntries;if(typeof cashbookClosures!=='undefined')cashbookClosures=window.cashbookClosures;if(typeof polVehicles!=='undefined')polVehicles=window.polVehicles;
       return true;
-    }catch(e){console.error('V54 account data',e);note('Account data load error: '+(e?.message||e),false);return false}
+    }catch(e){console.error('V55 account data',e);note('Account data load error: '+(e?.message||e),false);return false}
   }
 
   async function loadSources(){
+    if(!financeAllowed())return;
     if(typeof cashType!=='undefined'&&cashType!=='PAYMENT')return;
     const H=head(document.getElementById('cashPaymentCodeHead')?.value||'');
     const type=H==='MESSING'?'MESSING_RV':H==='INC'?'INCIDENTAL_RV':H==='POL'?'POL_DRAWN':'';
@@ -4532,16 +4523,16 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(!window.activeCamp?.id){sel.innerHTML='<option value="">Select an active camp first</option>';note('Select an active camp first.',false);return}
     sel.innerHTML='<option value="">Loading unpaid vouchers...</option>';
     try{
-      const list=await rpc('get_ims_payment_sources_v54',{p_camp_id:window.activeCamp.id,p_source_type:type});
-      const rows=Array.isArray(list)?list:[];window.__V54_SOURCE_CACHE__={[type]:rows,...(window.__V54_SOURCE_CACHE__||{})};
+      const list=await rpc('get_ims_payment_sources_v56',{p_camp_id:window.activeCamp.id,p_source_type:type});
+      const rows=Array.isArray(list)?list:[];window.__V55_SOURCE_CACHE__={[type]:rows,...(window.__V55_SOURCE_CACHE__||{})};
       sel.innerHTML='<option value="">Select source invoice / voucher</option>'+rows.map(x=>`<option value="${escV(x.id)}">${escV(x.label)}</option>`).join('');
       if(!rows.length)sel.innerHTML='<option value="">No unpaid voucher available</option>';
       note(rows.length?`${rows.length} unpaid ${H} source voucher(s) loaded.`:'No unpaid voucher available.',true);
-    }catch(e){console.error('V54 source',e);sel.innerHTML='<option value="">Source load error</option>';note('Payment source load error: '+(e?.message||e),false)}
+    }catch(e){console.error('V55 source',e);sel.innerHTML='<option value="">Source load error</option>';note('Payment source load error: '+(e?.message||e),false)}
   }
 
   function fillSource(){
-    const type=document.getElementById('cashSourceType')?.value||'',id=document.getElementById('cashSource')?.value||'',x=(window.__V54_SOURCE_CACHE__?.[type]||[]).find(a=>String(a.id)===String(id));
+    const type=document.getElementById('cashSourceType')?.value||'',id=document.getElementById('cashSource')?.value||'',x=(window.__V55_SOURCE_CACHE__?.[type]||[]).find(a=>String(a.id)===String(id));
     if(!x){['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(i=>setV(i,''));document.getElementById('cashSourceDetails')?.classList.add('hidden');return}
     setV('cashInvoice',x.reference_no||'');setV('cashPaymentParty',x.party||'');setV('cashPaymentAccount',x.on_account||'');setV('cashPaymentAmount',N(x.amount).toFixed(2));setV('cashSourceDate',x.entry_date||'');setV('cashSourceParty',x.party||'');setV('cashSourceTotal',N(x.amount).toFixed(2));
     const b=document.getElementById('cashSourceItemsBody');if(b)b.innerHTML=(x.items||[]).map(i=>`<tr><td>${escV(i.item_name||i.name||'Item')}</td><td>${escV(i.unit||'')}</td><td>${i.quantity??i.qty??''}</td><td>${moneyV(i.rate)}</td><td>${moneyV(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
@@ -4549,10 +4540,11 @@ window.addEventListener('DOMContentLoaded',()=>{
   }
 
   async function updateBalance(){
+    if(!financeAllowed())return;
     const d=document.getElementById('payDate')?.value||today(),mode=U(document.getElementById('cashPaymentMode')?.value||'CASH'),H=head(document.getElementById('cashPaymentCodeHead')?.value||''),amt=N(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,''));
     let cash=0,bank=0,headBal=0;
     (window.cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(d)).forEach(e=>{const a=N(e.amount);if(e.entry_type==='RECEIPT'){if(U(e.mode)==='BANK')bank+=a;else cash+=a}else if(e.entry_type==='PAYMENT'&&approved(e)){if(U(e.mode)==='BANK')bank-=a;else cash-=a}else if(e.entry_type==='CASH_DRAWN'){cash+=a;bank-=a}});
-    if(window.activeCamp?.id&&H){try{const all=await rpc('get_ims_head_balances_v54',{p_camp_id:window.activeCamp.id,p_as_of_date:d});headBal=N(all?.[H]?.balance)}catch(e){console.warn('V54 head balance',e)}}
+    if(window.activeCamp?.id&&H){try{const all=await rpc('get_ims_head_balances_v56',{p_camp_id:window.activeCamp.id,p_as_of_date:d});headBal=N(all?.[H]?.balance)}catch(e){console.warn('V55 head balance',e)}}
     setT('payCashCurrent',cash);setT('payBankCurrent',bank);setT('payHeadCurrent',headBal);setT('payCashBankAfter',mode==='BANK'?bank-amt:cash-amt);setT('payBankAfter',bank-(mode==='BANK'?amt:0));setT('payHeadAfter',headBal-amt);
   }
 
@@ -4560,26 +4552,27 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(!allowed())return false;
     const ok=await loadContext(window.activeCamp?.id||null);if(!ok)return false;
     await loadData();
-    try{populateCampTop()}catch(_){} try{renderDashboard()}catch(_){} try{renderCashbook()}catch(_){} try{renderReports()}catch(_){}
-    if(typeof cashType!=='undefined'&&cashType==='PAYMENT')await loadSources();
-    await updateBalance();
+    try{populateCampTop()}catch(_){} try{renderDashboard()}catch(_){}
+    if(financeAllowed()){try{renderCashbook()}catch(_){} try{renderReports()}catch(_){} if(typeof cashType!=='undefined'&&cashType==='PAYMENT')await loadSources(); await updateBalance();}
+    return true;
     return true;
   }
 
-  async function switchCampV54(id){
+  async function switchCampV55(id){
     if(!id||!allowed())return;
     const ok=await loadContext(id);if(!ok)return;
     if(typeof profile!=='undefined'&&profile)profile.current_camp_id=id;
-    await loadData();try{populateCampTop()}catch(_){}try{renderDashboard()}catch(_){}try{renderCashbook()}catch(_){}try{renderReports()}catch(_){}if(typeof cashType!=='undefined'&&cashType==='PAYMENT')await loadSources();await updateBalance();
+    await loadData();try{populateCampTop()}catch(_){}try{renderDashboard()}catch(_){}if(financeAllowed()){try{renderCashbook()}catch(_){}try{renderReports()}catch(_){}if(typeof cashType!=='undefined'&&cashType==='PAYMENT')await loadSources();await updateBalance();}
   }
 
-  window.loadCashSources=loadSources;window.paymentHeadChanged=loadSources;window.fillCashSource=fillSource;window.updatePaymentBalancePreview=updateBalance;window.availablePaymentSources=type=>window.__V54_SOURCE_CACHE__?.[type]||[];window.paymentSources=type=>window.__V54_SOURCE_CACHE__?.[type]||[];window.refreshAll=refresh;window.switchCamp=switchCampV54;
-  const oldLoad=window.loadApp;if(typeof oldLoad==='function'&&!oldLoad.__v54){const w=async function(){await oldLoad();if(allowed())await refresh()};w.__v54=true;window.loadApp=w}
-  document.getElementById('campSelectTop')?.addEventListener('change',e=>switchCampV54(e.target.value));
+  window.loadCashSources=loadSources;window.paymentHeadChanged=loadSources;window.fillCashSource=fillSource;window.updatePaymentBalancePreview=updateBalance;window.availablePaymentSources=type=>window.__V55_SOURCE_CACHE__?.[type]||[];window.paymentSources=type=>window.__V55_SOURCE_CACHE__?.[type]||[];window.refreshAll=refresh;window.switchCamp=switchCampV55;
+  const oldLoad=window.loadApp;if(typeof oldLoad==='function'&&!oldLoad.__v55){const w=async function(){await oldLoad();if(allowed())await refresh()};w.__v55=true;window.loadApp=w}
+  document.getElementById('campSelectTop')?.addEventListener('change',e=>switchCampV55(e.target.value));
   document.getElementById('cashPaymentCodeHead')?.addEventListener('change',loadSources);document.getElementById('cashSource')?.addEventListener('change',fillSource);
   ['cashPaymentAmount','cashPaymentMode','payDate'].forEach(id=>document.getElementById(id)?.addEventListener(id==='cashPaymentAmount'?'input':'change',updateBalance));
   window.addEventListener('load',()=>setTimeout(()=>{if(allowed())refresh()},700));
 })();
+
 </script>
 </body>
 </html>
