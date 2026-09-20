@@ -2406,107 +2406,7 @@ function printMessingReport(){
   generateMessingReport();
   const el=document.getElementById('reportsContent'); if(!el)return;
   const w=window.open('','_blank'); if(!w){alert('Please allow pop-ups for Print / PDF.');return;}
-  w.document.write('<!doctype html><html><head><title>NCC Camp Messing Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:20px}h1,h2,h3{text-align:center}.meta{text-align:center;margin-bottom:15px;color:#444}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #555;padding:6px}th{background:#eee;text-align:left}.num{text-align:right}</style></head><body><h1>NCC CAMP MESSING</h1><h2>'+esc((activeCamp?.camp_code||'')+' - '+(activeCamp?.camp_name||''))+'</h2><div class="meta">'+esc(messingReportType==='DAY'?'Day-wise Purchase / Issue Summary':messingReportType==='ITEM'?'Item-wise Purchase / Balance Report':'Statement of Item Received / Issued')+'</div>'+el.innerHTML+'\n
-<script id="ims-v68-data-ui-runtime">
-(function(){
-'use strict';
-const N=v=>Number(v)||0, U=v=>String(v??'').trim().toUpperCase();
-const E=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-const M=v=>{try{return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(N(v))}catch(e){return '₹'+N(v).toFixed(2)}};
-const Q=v=>N(v).toFixed(2);
-function arr(name){try{return Array.isArray(window[name])?window[name]:[]}catch(e){return[]}}
-function camp(){try{return window.activeCamp||null}catch(e){return null}}
-function role(){try{return U(window.profile?.role)}catch(e){return ''}}
-function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
-function esc(v){return E(v)}
-function itemsFor(x){return Array.isArray(x?.stock_in_items)?x.stock_in_items:[]}
-function outItemsFor(x){return Array.isArray(x?.stock_out_items)?x.stock_out_items:[]}
-function itemName(id){const x=arr('items').find(i=>String(i.id)===String(id));return x?.name||'Item'}
-function itemUnit(id){const x=arr('items').find(i=>String(i.id)===String(id));return x?.unit||''}
-function itemLines(rows,kind){return rows.slice(0,4).map(r=>{const name=kind==='in'?itemName(r.item_id):(itemName(r.item_id)||r.item_name||'Item');const qty=N(r.quantity??r.qty);return `${E(name)} × ${Q(qty)} ${E(r.unit||itemUnit(r.item_id)||'')}`}).join(' • ')}
-function latest(a,dateKey){return a.slice().sort((x,y)=>String(y?.[dateKey]||'').localeCompare(String(x?.[dateKey]||''))).slice(0,5)}
-function balance(i){return N(i?.opening_stock)+N(i?.stock_in_qty)-N(i?.stock_out_qty)}
-function moduleEmpty(msg){return `<div class="ims-empty">${E(msg)}</div>`}
-function moduleCard(cls,title,tag,value,lines){return `<div class="ims-card ims-module-card ${cls}"><div class="ims-module-head"><h3>${E(title)}</h3><span class="ims-module-tag">${E(tag)}</span></div><div class="ims-module-value">${value}</div><div class="ims-list">${lines}</div></div>`}
-function line(label,value){return `<div class="ims-row"><span>${E(label)}</span><b>${E(value)}</b></div>`}
-function dash(){
- const c=camp(), inv=arr('items'), ins=arr('inInvoices'), outs=arr('outVouchers'), rv=arr('incidentals').filter(x=>U(x.voucher_type)==='RV'), iv=arr('incidentals').filter(x=>U(x.voucher_type)==='IV'), veh=arr('polVehicles'), pe=arr('polEntries'), diary=arr('carDiaryEntries'), det=arr('polDetachmentEntries'), cb=arr('cashbookEntries');
- const root=document.getElementById('nccNewDashboard'); if(!root)return;
- if(!c){root.innerHTML=moduleEmpty('No active camp is selected. Select a camp from the top bar to load live details.');return}
- const purchase=ins.reduce((s,x)=>s+itemsFor(x).reduce((a,r)=>a+N(r.amount||N(r.quantity)*N(r.rate)),0),0), issue=outs.reduce((s,x)=>s+outItemsFor(x).reduce((a,r)=>a+N(r.amount||N(r.quantity)*N(r.rate)),0),0);
- const inQty=ins.reduce((s,x)=>s+itemsFor(x).reduce((a,r)=>a+N(r.quantity),0),0), outQty=outs.reduce((s,x)=>s+outItemsFor(x).reduce((a,r)=>a+N(r.quantity),0),0);
- const rvAmt=rv.reduce((s,x)=>s+N(x.amount),0), ivAmt=iv.reduce((s,x)=>s+N(x.amount),0), polLit=pe.reduce((s,x)=>s+N(x.litres),0), consumed=diary.reduce((s,x)=>s+N(x.pol_consumed),0);
- let cash=0,bank=0; try{if(typeof currentSourceBalance==='function'){cash=currentSourceBalance('CASH');bank=currentSourceBalance('BANK')}}catch(e){}
- const low=inv.filter(i=>balance(i)<=N(i.reorder_level));
- const totalBudget=N(c.total_budget)||N(c.messing_budget)+N(c.incidental_budget)+N(c.pol_budget);
- const health=window.__imsLoadHealth||{}; const errors=Object.keys(health).filter(k=>health[k]);
- const r=role();
- const insLatest=latest(ins,'invoice_date'), rvLatest=latest(rv,'voucher_date'), peLatest=latest(pe,'entry_date'), vehLatest=veh.slice(0,6);
- const invRows=inv.slice(0,8).map(i=>`<tr><td><b>${E(i.ledger_page_no||'')}</b></td><td>${E(i.name||'')}</td><td>${E(i.unit||'')}</td><td>${Q(balance(i))}</td><td>${N(i.reorder_level)<=balance(i)?'<span class="status ok">OK</span>':'<span class="status low">LOW</span>'}</td></tr>`).join('');
- const polRows=vehLatest.map(v=>{let st={tank:N(v.pol_balance),currentKm:N(v.km_reading)};try{if(typeof polCurrentState==='function')st=polCurrentState(v.id)||st}catch(e){}return `<tr><td><b>${E(v.vehicle_no||'')}</b></td><td>${E(v.vehicle_type||'')}</td><td>${E(v.driver_name||'')}</td><td>${Q(st.currentKm)} km</td><td>${Q(st.tank)} L</td><td>${Q(v.kpl)} KPL</td></tr>`}).join('');
- root.innerHTML=`<div class="ims-dashboard">
-  <div class="ims-dash-hero"><div><div class="ims-dash-title">${E(c.camp_name||'NCC Camp')}</div><div class="ims-dash-meta">${E(c.station||'')} • ${E(c.from_date||'—')} to ${E(c.to_date||'—')} • ${E(c.total_strength||0)} personnel • ${E(role()||'VIEWER')}</div></div><div class="ims-dash-badge">ACTIVE CAMP • ${E(c.camp_code||'')}</div></div>
-  <div class="ims-kpis">
-   <div class="ims-kpi"><span class="label">Camp Budget</span><b>${M(totalBudget)}</b><small>Messing ${M(c.messing_budget)} • Incidental ${M(c.incidental_budget)} • POL ${M(c.pol_budget)}</small></div>
-   <div class="ims-kpi blue"><span class="label">Messing Purchase</span><b>${M(purchase)}</b><small>${Q(inQty)} total purchased quantity • ${ins.length} invoices</small></div>
-   <div class="ims-kpi amber"><span class="label">Incidental</span><b>${M(rvAmt+ivAmt)}</b><small>${rv.length} RV • ${iv.length} IV</small></div>
-   <div class="ims-kpi green"><span class="label">POL</span><b>${Q(polLit)} L</b><small>${veh.length} vehicles • ${Q(consumed)} L car-diary consumption</small></div>
-  </div>
-  ${errors.length?`<div class="ims-error"><b>Data loading warning:</b> ${errors.map(k=>E(health[k])).join(' • ')}. The page remains usable, but the affected register may be incomplete.</div>`:''}
-  <div class="ims-grid-3">
-   ${moduleCard('teal','Messing / Purchase','STOCK IN',M(purchase),[line('Invoices',ins.length),line('Stock In Qty',Q(inQty)),line('Stock Out Qty',Q(outQty)),line('Issue Value',M(issue))])}
-   ${moduleCard('amber','Incidental','RV + IV',M(rvAmt+ivAmt),[line('Receipt Vouchers',rv.length),line('Receipt Value',M(rvAmt)),line('Issue Vouchers',iv.length),line('Issue Value',M(ivAmt))])}
-   ${moduleCard('blue','POL / Vehicles','VEHICLE REGISTER',veh.length+' vehicles',[line('POL Drawn',Q(polLit)+' L'),line('Car Diary',diary.length+' entries'),line('Vehicle Detachments',det.length),line('Current Cash',M(cash)+' • Bank '+M(bank))])}
-  </div>
-  <div class="ims-grid-2">
-   <div class="ims-card"><h3>Vehicle Details</h3><div class="sub">Attached vehicles, driver, KM and current tank position.</div><div class="ims-scroll"><table class="ims-mini-table"><thead><tr><th>Vehicle</th><th>Type</th><th>Driver</th><th>KM</th><th>Tank</th><th>KPL</th></tr></thead><tbody>${polRows||`<tr><td colspan="6">No vehicle attachment records.</td></tr>`}</tbody></table></div></div>
-   <div class="ims-card"><h3>Latest Purchase Details</h3><div class="sub">Recent Stock In invoices with supplier and line-item detail.</div><div class="ims-list">${insLatest.map(x=>line(`${x.invoice_number||'Invoice'} • ${x.supplier||'Supplier'}`,M(itemsFor(x).reduce((s,r)=>s+N(r.amount||N(r.quantity)*N(r.rate)),0))+' | '+itemLines(itemsFor(x),'in'))).join('')||moduleEmpty('No purchase invoices loaded.')}</div></div>
-  </div>
-  <div class="ims-grid-2">
-   <div class="ims-card"><h3>Incidental Receipt / Issue Details</h3><div class="sub">Latest RV and IV entries, vendor/unit and value.</div><div class="ims-list">${[...rvLatest.slice(0,3).map(x=>line('RV '+(x.voucher_no||'' )+' • '+(x.party||''),M(x.amount))),...latest(iv,'voucher_date').slice(0,3).map(x=>line('IV '+(x.voucher_no||'' )+' • '+(x.unit||''),M(x.amount)))].join('')||moduleEmpty('No incidental records loaded.')}</div></div>
-   <div class="ims-card"><h3>POL Drawn Details</h3><div class="sub">Latest fuel draws with bunk, invoice, previous and present balance.</div><div class="ims-list">${peLatest.map(x=>line(`${x.vehicle_no||'Vehicle'} • ${x.fuel_type||''}`,`${Q(x.litres)} L • ${x.petrol_bunk||''} • ${x.invoice_number||''} • Present ${Q(x.present_fuel)} L`)).join('')||moduleEmpty('No POL drawn records loaded.')}</div></div>
-  </div>
-  <div class="ims-grid-2">
-   <div class="ims-card"><h3>Inventory Balance</h3><div class="sub">Current stock position from Inventory Master, Stock In and Stock Out.</div><div class="ims-scroll"><table class="ims-mini-table"><thead><tr><th>Ledger</th><th>Item</th><th>Unit</th><th>Balance</th><th>Status</th></tr></thead><tbody>${invRows||`<tr><td colspan="5">No inventory records.</td></tr>`}</tbody></table></div></div>
-   <div class="ims-card"><h3>Camp Strength & Budget</h3><div class="sub">Camp Details values used by the dashboard.</div><div class="ims-data-strip"><div class="ims-data-pill">Officers <b>${N(c.officers)}</b></div><div class="ims-data-pill">PI Staff <b>${N(c.pi_staffs)}</b></div><div class="ims-data-pill">ANOs <b>${N(c.anos)}</b></div><div class="ims-data-pill">Cadets <b>${N(c.cadets)}</b></div><div class="ims-data-pill">Total <b>${N(c.total_strength)}</b></div><div class="ims-data-pill">Days <b>${(()=>{try{return typeof campDays==='function'?campDays(c.from_date,c.to_date):''}catch(e){return''}})()}</b></div></div><div class="ims-list" style="margin-top:12px">${line('Cash in Hand',M(cash))}${line('Cash at Bank',M(bank))}${line('Low Stock Items',String(low.length))}</div></div>
-  </div>
- </div>`;
-}
-window.renderDashboard=dash;
-/* Ensure dashboard gets the two POL datasets that the old refresh cycle omitted. */
-const oldRefresh=window.refreshAll;
-if(typeof oldRefresh==='function'&&!window.__v68RefreshWrapped){
- window.__v68RefreshWrapped=true;
- window.refreshAll=async function(){
-   const result=await oldRefresh.apply(this,arguments);
-   try{if(typeof window.loadCarDiary==='function')await window.loadCarDiary()}catch(e){window.__imsLoadHealth={...(window.__imsLoadHealth||{}),carDiary:'Car Diary could not be loaded: '+(e?.message||e)}}
-   try{if(typeof window.loadPOLDetachments==='function')await window.loadPOLDetachments()}catch(e){window.__imsLoadHealth={...(window.__imsLoadHealth||{}),detachment:'Vehicle Detachment could not be loaded: '+(e?.message||e)}}
-   try{dash()}catch(e){console.error('V68 dashboard',e)}
-   return result;
- };
-}
-/* Improve operational register rows without touching save/edit logic. */
-window.renderInventory=function(){
- const box=document.getElementById('inventoryTable');if(!box)return;const q=(document.getElementById('invSearch')?.value||'').toLowerCase(),u=document.getElementById('unitFilter')?.value||'';const list=arr('items').filter(i=>(String(i.name||'')+' '+String(i.category||'')).toLowerCase().includes(q)&&(!u||i.unit===u));let h='<table><thead><tr><th>Ledger</th><th>Item</th><th>Category</th><th>Unit</th><th>Opening</th><th>Stock In</th><th>Stock Out</th><th>Balance</th><th>Reorder</th><th>Status</th><th>Action</th></tr></thead><tbody>';list.forEach(i=>{const b=balance(i),low=b<=N(i.reorder_level);const act=typeof canWriteInventory==='function'&&canWriteInventory()?`<button class="btn ghost" onclick="openItemModal('${i.id}')">Edit</button> ${typeof canDelete==='function'&&canDelete()?`<button class="btn red" onclick="deleteItem('${i.id}')">Delete</button>`:''}`:'View';h+=`<tr><td><b>${E(i.ledger_page_no||'')}</b></td><td><b>${E(i.name||'')}</b></td><td>${E(i.category||'')}</td><td>${E(i.unit||'')}</td><td>${Q(i.opening_stock)}</td><td>${Q(i.stock_in_qty)}</td><td>${Q(i.stock_out_qty)}</td><td><b>${Q(b)}</b></td><td>${Q(i.reorder_level)}</td><td><span class="status ${low?'low':'ok'}">${low?'LOW':'OK'}</span></td><td>${act}</td></tr>`});h+='</tbody></table>';box.innerHTML=list.length?h:moduleEmpty('No inventory items found for the selected filters.');}
-window.renderStockInList=function(){const box=document.getElementById('inList');if(!box)return;let h='<table><thead><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Items / Details</th><th>Qty</th><th>Total</th><th>Action</th></tr></thead><tbody>';arr('inInvoices').forEach(x=>{const rows=itemsFor(x),total=rows.reduce((s,r)=>s+N(r.amount||N(r.quantity)*N(r.rate)),0),qty=rows.reduce((s,r)=>s+N(r.quantity),0);let act=typeof canTxEdit==='function'&&canTxEdit()?`<button class="btn ghost" onclick="editStockIn('${x.id}')">Edit</button>`:'View';if(typeof canDelete==='function'&&canDelete())act+=` <button class="btn red" onclick="deleteStockIn('${x.id}')">Delete</button>`;h+=`<tr><td><b>${E(x.invoice_number||'')}</b></td><td>${E(x.invoice_date||'')}</td><td>${E(x.supplier||'')}</td><td>${E(itemLines(rows,'in')||'—')}</td><td>${Q(qty)}</td><td><b>${M(total)}</b></td><td>${act}</td></tr>`});h+='</tbody></table>';box.innerHTML=arr('inInvoices').length?h:moduleEmpty('No purchase invoices saved for this active camp.');}
-window.renderStockOutList=function(){const box=document.getElementById('outList');if(!box)return;let h='<table><thead><tr><th>Voucher</th><th>Date</th><th>Issued To</th><th>Items / Details</th><th>Qty</th><th>Total</th><th>Action</th></tr></thead><tbody>';arr('outVouchers').forEach(x=>{const rows=outItemsFor(x),total=rows.reduce((s,r)=>s+N(r.amount||N(r.quantity)*N(r.rate)),0),qty=rows.reduce((s,r)=>s+N(r.quantity),0);let act=typeof canTxEdit==='function'&&canTxEdit()?`<button class="btn ghost" onclick="editStockOut('${x.id}')">Edit</button>`:'View';if(typeof canDelete==='function'&&canDelete())act+=` <button class="btn red" onclick="deleteStockOut('${x.id}')">Delete</button>`;h+=`<tr><td><b>${E(x.voucher_number||'')}</b></td><td>${E(x.voucher_date||'')}</td><td>${E(x.issued_to||'')}</td><td>${E(itemLines(rows,'out')||'—')}</td><td>${Q(qty)}</td><td><b>${M(total)}</b></td><td>${act}</td></tr>`});h+='</tbody></table>';box.innerHTML=arr('outVouchers').length?h:moduleEmpty('No issue vouchers saved for this active camp.');}
-window.renderPOL=function(){
- const vt=document.getElementById('polVehiclesTable'),et=document.getElementById('polEntriesTable');if(!vt||!et)return;const vs=arr('polVehicles'),es=arr('polEntries');
- const vehHtml=vs.length?`<table><thead><tr><th>Vehicle No</th><th>Type</th><th>Unit</th><th>Driver</th><th>Authority</th><th>KM</th><th>KPL</th><th>Tank / POL</th><th>Action</th></tr></thead><tbody>${vs.map(v=>{let st={tank:N(v.pol_balance),currentKm:N(v.km_reading)};try{if(typeof polCurrentState==='function')st=polCurrentState(v.id)||st}catch(e){}return `<tr><td><b>${E(v.vehicle_no||'')}</b></td><td>${E(v.vehicle_type||'')}</td><td>${E(v.unit||'')}</td><td>${E(v.driver_name||'')}</td><td>${E(v.authority_no||'')}</td><td>${Q(st.currentKm)}</td><td>${Q(v.kpl)}</td><td>${Q(st.tank)} L</td><td>${typeof canQsecEntry==='function'&&canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button>`:'View'} ${typeof canDelete==='function'&&canDelete()?`<button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:''}</td></tr>`}).join('')}</tbody></table>`:moduleEmpty('No vehicle attachment records found for this active camp.');vt.innerHTML=vehHtml;
- const entHtml=es.length?`<table><thead><tr><th>Date</th><th>Vehicle</th><th>Fuel</th><th>Invoice</th><th>Petrol Bunk</th><th>Previous</th><th>Drawn</th><th>Present</th><th>Rate</th><th>Total</th><th>Action</th></tr></thead><tbody>${es.map(x=>`<tr><td>${E(x.entry_date||'')}</td><td><b>${E(x.vehicle_no||'')}</b></td><td>${E(x.fuel_type||'')}</td><td>${E(x.invoice_number||'')}</td><td>${E(x.petrol_bunk||'')}</td><td>${Q(x.previous_fuel)} L</td><td>${Q(x.litres)} L</td><td>${Q(x.present_fuel)} L</td><td>${M(x.rate)}</td><td><b>${M(x.total_amount)}</b></td><td>${typeof canQsecEntry==='function'&&canQsecEntry()?`<button class="btn ghost" onclick="editPOLEntry('${x.id}')">Edit</button>`:'View'} ${typeof canDelete==='function'&&canDelete()?`<button class="btn red" onclick="deletePOLEntry('${x.id}')">Delete</button>`:''}</td></tr>`).join('')}</tbody></table>`:moduleEmpty('No POL drawn entries found for this active camp.');et.innerHTML=entHtml;
- const a=document.getElementById('polKpiVehicles');if(a)a.textContent=vs.length;const d=document.getElementById('polKpiDiesel');if(d)d.textContent=vs.filter(v=>U(v.vehicle_type).includes('DIESEL')).length;const p=document.getElementById('polKpiPetrol');if(p)p.textContent=vs.filter(v=>U(v.vehicle_type).includes('PETROL')).length;
- if(typeof loadPOLVehicleSelect==='function')loadPOLVehicleSelect();
-};
-function styleInc(type){const box=document.getElementById(type==='RV'?'incidentalRVTable':'incidentalIVTable');if(!box)return;const rows=arr('incidentals').filter(x=>U(x.voucher_type)===type);let h='<table><thead><tr><th>Voucher</th><th>Date</th><th>Party / Unit</th><th>Invoice / Ref</th><th>Items</th><th>Total</th><th>Mode</th><th>Action</th></tr></thead><tbody>';rows.forEach(x=>{const act=type==='RV'?`<button class="btn ghost" onclick="editIncidentalRV('${x.id}')">Edit</button>`:`<button class="btn ghost" onclick="editIncidentalIV('${x.id}')">Edit</button>`;h+=`<tr><td><b>${E(x.voucher_no||x.crv_no||'')}</b></td><td>${E(x.voucher_date||'')}</td><td>${E(x.party||x.unit||'')}</td><td>${E(x.invoice_number||x.reference_no||'')}</td><td>${E((x.items||[]).slice(0,4).map(i=>`${i.desc||'Item'} × ${N(i.qty)}`).join(' • ')||'—')}</td><td><b>${M(x.amount)}</b></td><td>${E(x.mode||'—')}</td><td>${act} ${typeof canDelete==='function'&&canDelete()?`<button class="btn red" onclick="deleteIncidental('${x.id}')">Delete</button>`:''}</td></tr>`});h+='</tbody></table>';box.innerHTML=rows.length?h:moduleEmpty(`No ${type} records found for this active camp.`)}
-window.renderIncidentalRV=function(){styleInc('RV')};window.renderIncidentalIV=function(){styleInc('IV')};
-/* Hook navigation so tables are re-rendered after every page switch. */
-const oldShow=window.showPage;if(typeof oldShow==='function'&&!window.__v68ShowWrapped){window.__v68ShowWrapped=true;window.showPage=function(){const r=oldShow.apply(this,arguments);setTimeout(()=>{try{dash();window.renderInventory();window.renderStockInList();window.renderStockOutList();window.renderPOL();window.renderIncidentalRV();window.renderIncidentalIV()}catch(e){}},40);return r}}
-function boot(){setTimeout(()=>{try{dash();window.renderInventory();window.renderStockInList();window.renderStockOutList();window.renderPOL();window.renderIncidentalRV();window.renderIncidentalIV()}catch(e){}},700)}
-window.addEventListener('load',boot);document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300));
-})();
-</script>
-
-</body></html>');
+  w.document.write('<!doctype html><html><head><title>NCC Camp Messing Report</title><style>body{font-family:Arial,sans-serif;color:#111;padding:20px}h1,h2,h3{text-align:center}.meta{text-align:center;margin-bottom:15px;color:#444}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #555;padding:6px}th{background:#eee;text-align:left}.num{text-align:right}</style></head><body><h1>NCC CAMP MESSING</h1><h2>'+esc((activeCamp?.camp_code||'')+' - '+(activeCamp?.camp_name||''))+'</h2><div class="meta">'+esc(messingReportType==='DAY'?'Day-wise Purchase / Issue Summary':messingReportType==='ITEM'?'Item-wise Purchase / Balance Report':'Statement of Item Received / Issued')+'</div>'+el.innerHTML+'\n\n</body></html>');
   w.document.close();setTimeout(()=>{w.focus();w.print()},300);
 }
 function renderReports(){
@@ -5770,5 +5670,104 @@ document.documentElement.classList.add('ims-v64-reference-shell');
 })();
 </script>
 
+
+<script id="ims-v68-data-ui-runtime">
+(function(){
+'use strict';
+const N=v=>Number(v)||0, U=v=>String(v??'').trim().toUpperCase();
+const E=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const M=v=>{try{return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',maximumFractionDigits:2}).format(N(v))}catch(e){return '₹'+N(v).toFixed(2)}};
+const Q=v=>N(v).toFixed(2);
+function arr(name){try{return Array.isArray(window[name])?window[name]:[]}catch(e){return[]}}
+function camp(){try{return window.activeCamp||null}catch(e){return null}}
+function role(){try{return U(window.profile?.role)}catch(e){return ''}}
+function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
+function esc(v){return E(v)}
+function itemsFor(x){return Array.isArray(x?.stock_in_items)?x.stock_in_items:[]}
+function outItemsFor(x){return Array.isArray(x?.stock_out_items)?x.stock_out_items:[]}
+function itemName(id){const x=arr('items').find(i=>String(i.id)===String(id));return x?.name||'Item'}
+function itemUnit(id){const x=arr('items').find(i=>String(i.id)===String(id));return x?.unit||''}
+function itemLines(rows,kind){return rows.slice(0,4).map(r=>{const name=kind==='in'?itemName(r.item_id):(itemName(r.item_id)||r.item_name||'Item');const qty=N(r.quantity??r.qty);return `${E(name)} × ${Q(qty)} ${E(r.unit||itemUnit(r.item_id)||'')}`}).join(' • ')}
+function latest(a,dateKey){return a.slice().sort((x,y)=>String(y?.[dateKey]||'').localeCompare(String(x?.[dateKey]||''))).slice(0,5)}
+function balance(i){return N(i?.opening_stock)+N(i?.stock_in_qty)-N(i?.stock_out_qty)}
+function moduleEmpty(msg){return `<div class="ims-empty">${E(msg)}</div>`}
+function moduleCard(cls,title,tag,value,lines){return `<div class="ims-card ims-module-card ${cls}"><div class="ims-module-head"><h3>${E(title)}</h3><span class="ims-module-tag">${E(tag)}</span></div><div class="ims-module-value">${value}</div><div class="ims-list">${lines}</div></div>`}
+function line(label,value){return `<div class="ims-row"><span>${E(label)}</span><b>${E(value)}</b></div>`}
+function dash(){
+ const c=camp(), inv=arr('items'), ins=arr('inInvoices'), outs=arr('outVouchers'), rv=arr('incidentals').filter(x=>U(x.voucher_type)==='RV'), iv=arr('incidentals').filter(x=>U(x.voucher_type)==='IV'), veh=arr('polVehicles'), pe=arr('polEntries'), diary=arr('carDiaryEntries'), det=arr('polDetachmentEntries'), cb=arr('cashbookEntries');
+ const root=document.getElementById('nccNewDashboard'); if(!root)return;
+ if(!c){root.innerHTML=moduleEmpty('No active camp is selected. Select a camp from the top bar to load live details.');return}
+ const purchase=ins.reduce((s,x)=>s+itemsFor(x).reduce((a,r)=>a+N(r.amount||N(r.quantity)*N(r.rate)),0),0), issue=outs.reduce((s,x)=>s+outItemsFor(x).reduce((a,r)=>a+N(r.amount||N(r.quantity)*N(r.rate)),0),0);
+ const inQty=ins.reduce((s,x)=>s+itemsFor(x).reduce((a,r)=>a+N(r.quantity),0),0), outQty=outs.reduce((s,x)=>s+outItemsFor(x).reduce((a,r)=>a+N(r.quantity),0),0);
+ const rvAmt=rv.reduce((s,x)=>s+N(x.amount),0), ivAmt=iv.reduce((s,x)=>s+N(x.amount),0), polLit=pe.reduce((s,x)=>s+N(x.litres),0), consumed=diary.reduce((s,x)=>s+N(x.pol_consumed),0);
+ let cash=0,bank=0; try{if(typeof currentSourceBalance==='function'){cash=currentSourceBalance('CASH');bank=currentSourceBalance('BANK')}}catch(e){}
+ const low=inv.filter(i=>balance(i)<=N(i.reorder_level));
+ const totalBudget=N(c.total_budget)||N(c.messing_budget)+N(c.incidental_budget)+N(c.pol_budget);
+ const health=window.__imsLoadHealth||{}; const errors=Object.keys(health).filter(k=>health[k]);
+ const r=role();
+ const insLatest=latest(ins,'invoice_date'), rvLatest=latest(rv,'voucher_date'), peLatest=latest(pe,'entry_date'), vehLatest=veh.slice(0,6);
+ const invRows=inv.slice(0,8).map(i=>`<tr><td><b>${E(i.ledger_page_no||'')}</b></td><td>${E(i.name||'')}</td><td>${E(i.unit||'')}</td><td>${Q(balance(i))}</td><td>${N(i.reorder_level)<=balance(i)?'<span class="status ok">OK</span>':'<span class="status low">LOW</span>'}</td></tr>`).join('');
+ const polRows=vehLatest.map(v=>{let st={tank:N(v.pol_balance),currentKm:N(v.km_reading)};try{if(typeof polCurrentState==='function')st=polCurrentState(v.id)||st}catch(e){}return `<tr><td><b>${E(v.vehicle_no||'')}</b></td><td>${E(v.vehicle_type||'')}</td><td>${E(v.driver_name||'')}</td><td>${Q(st.currentKm)} km</td><td>${Q(st.tank)} L</td><td>${Q(v.kpl)} KPL</td></tr>`}).join('');
+ root.innerHTML=`<div class="ims-dashboard">
+  <div class="ims-dash-hero"><div><div class="ims-dash-title">${E(c.camp_name||'NCC Camp')}</div><div class="ims-dash-meta">${E(c.station||'')} • ${E(c.from_date||'—')} to ${E(c.to_date||'—')} • ${E(c.total_strength||0)} personnel • ${E(role()||'VIEWER')}</div></div><div class="ims-dash-badge">ACTIVE CAMP • ${E(c.camp_code||'')}</div></div>
+  <div class="ims-kpis">
+   <div class="ims-kpi"><span class="label">Camp Budget</span><b>${M(totalBudget)}</b><small>Messing ${M(c.messing_budget)} • Incidental ${M(c.incidental_budget)} • POL ${M(c.pol_budget)}</small></div>
+   <div class="ims-kpi blue"><span class="label">Messing Purchase</span><b>${M(purchase)}</b><small>${Q(inQty)} total purchased quantity • ${ins.length} invoices</small></div>
+   <div class="ims-kpi amber"><span class="label">Incidental</span><b>${M(rvAmt+ivAmt)}</b><small>${rv.length} RV • ${iv.length} IV</small></div>
+   <div class="ims-kpi green"><span class="label">POL</span><b>${Q(polLit)} L</b><small>${veh.length} vehicles • ${Q(consumed)} L car-diary consumption</small></div>
+  </div>
+  ${errors.length?`<div class="ims-error"><b>Data loading warning:</b> ${errors.map(k=>E(health[k])).join(' • ')}. The page remains usable, but the affected register may be incomplete.</div>`:''}
+  <div class="ims-grid-3">
+   ${moduleCard('teal','Messing / Purchase','STOCK IN',M(purchase),[line('Invoices',ins.length),line('Stock In Qty',Q(inQty)),line('Stock Out Qty',Q(outQty)),line('Issue Value',M(issue))])}
+   ${moduleCard('amber','Incidental','RV + IV',M(rvAmt+ivAmt),[line('Receipt Vouchers',rv.length),line('Receipt Value',M(rvAmt)),line('Issue Vouchers',iv.length),line('Issue Value',M(ivAmt))])}
+   ${moduleCard('blue','POL / Vehicles','VEHICLE REGISTER',veh.length+' vehicles',[line('POL Drawn',Q(polLit)+' L'),line('Car Diary',diary.length+' entries'),line('Vehicle Detachments',det.length),line('Current Cash',M(cash)+' • Bank '+M(bank))])}
+  </div>
+  <div class="ims-grid-2">
+   <div class="ims-card"><h3>Vehicle Details</h3><div class="sub">Attached vehicles, driver, KM and current tank position.</div><div class="ims-scroll"><table class="ims-mini-table"><thead><tr><th>Vehicle</th><th>Type</th><th>Driver</th><th>KM</th><th>Tank</th><th>KPL</th></tr></thead><tbody>${polRows||`<tr><td colspan="6">No vehicle attachment records.</td></tr>`}</tbody></table></div></div>
+   <div class="ims-card"><h3>Latest Purchase Details</h3><div class="sub">Recent Stock In invoices with supplier and line-item detail.</div><div class="ims-list">${insLatest.map(x=>line(`${x.invoice_number||'Invoice'} • ${x.supplier||'Supplier'}`,M(itemsFor(x).reduce((s,r)=>s+N(r.amount||N(r.quantity)*N(r.rate)),0))+' | '+itemLines(itemsFor(x),'in'))).join('')||moduleEmpty('No purchase invoices loaded.')}</div></div>
+  </div>
+  <div class="ims-grid-2">
+   <div class="ims-card"><h3>Incidental Receipt / Issue Details</h3><div class="sub">Latest RV and IV entries, vendor/unit and value.</div><div class="ims-list">${[...rvLatest.slice(0,3).map(x=>line('RV '+(x.voucher_no||'' )+' • '+(x.party||''),M(x.amount))),...latest(iv,'voucher_date').slice(0,3).map(x=>line('IV '+(x.voucher_no||'' )+' • '+(x.unit||''),M(x.amount)))].join('')||moduleEmpty('No incidental records loaded.')}</div></div>
+   <div class="ims-card"><h3>POL Drawn Details</h3><div class="sub">Latest fuel draws with bunk, invoice, previous and present balance.</div><div class="ims-list">${peLatest.map(x=>line(`${x.vehicle_no||'Vehicle'} • ${x.fuel_type||''}`,`${Q(x.litres)} L • ${x.petrol_bunk||''} • ${x.invoice_number||''} • Present ${Q(x.present_fuel)} L`)).join('')||moduleEmpty('No POL drawn records loaded.')}</div></div>
+  </div>
+  <div class="ims-grid-2">
+   <div class="ims-card"><h3>Inventory Balance</h3><div class="sub">Current stock position from Inventory Master, Stock In and Stock Out.</div><div class="ims-scroll"><table class="ims-mini-table"><thead><tr><th>Ledger</th><th>Item</th><th>Unit</th><th>Balance</th><th>Status</th></tr></thead><tbody>${invRows||`<tr><td colspan="5">No inventory records.</td></tr>`}</tbody></table></div></div>
+   <div class="ims-card"><h3>Camp Strength & Budget</h3><div class="sub">Camp Details values used by the dashboard.</div><div class="ims-data-strip"><div class="ims-data-pill">Officers <b>${N(c.officers)}</b></div><div class="ims-data-pill">PI Staff <b>${N(c.pi_staffs)}</b></div><div class="ims-data-pill">ANOs <b>${N(c.anos)}</b></div><div class="ims-data-pill">Cadets <b>${N(c.cadets)}</b></div><div class="ims-data-pill">Total <b>${N(c.total_strength)}</b></div><div class="ims-data-pill">Days <b>${(()=>{try{return typeof campDays==='function'?campDays(c.from_date,c.to_date):''}catch(e){return''}})()}</b></div></div><div class="ims-list" style="margin-top:12px">${line('Cash in Hand',M(cash))}${line('Cash at Bank',M(bank))}${line('Low Stock Items',String(low.length))}</div></div>
+  </div>
+ </div>`;
+}
+window.renderDashboard=dash;
+/* Ensure dashboard gets the two POL datasets that the old refresh cycle omitted. */
+const oldRefresh=window.refreshAll;
+if(typeof oldRefresh==='function'&&!window.__v68RefreshWrapped){
+ window.__v68RefreshWrapped=true;
+ window.refreshAll=async function(){
+   const result=await oldRefresh.apply(this,arguments);
+   try{if(typeof window.loadCarDiary==='function')await window.loadCarDiary()}catch(e){window.__imsLoadHealth={...(window.__imsLoadHealth||{}),carDiary:'Car Diary could not be loaded: '+(e?.message||e)}}
+   try{if(typeof window.loadPOLDetachments==='function')await window.loadPOLDetachments()}catch(e){window.__imsLoadHealth={...(window.__imsLoadHealth||{}),detachment:'Vehicle Detachment could not be loaded: '+(e?.message||e)}}
+   try{dash()}catch(e){console.error('V68 dashboard',e)}
+   return result;
+ };
+}
+/* Improve operational register rows without touching save/edit logic. */
+window.renderInventory=function(){
+ const box=document.getElementById('inventoryTable');if(!box)return;const q=(document.getElementById('invSearch')?.value||'').toLowerCase(),u=document.getElementById('unitFilter')?.value||'';const list=arr('items').filter(i=>(String(i.name||'')+' '+String(i.category||'')).toLowerCase().includes(q)&&(!u||i.unit===u));let h='<table><thead><tr><th>Ledger</th><th>Item</th><th>Category</th><th>Unit</th><th>Opening</th><th>Stock In</th><th>Stock Out</th><th>Balance</th><th>Reorder</th><th>Status</th><th>Action</th></tr></thead><tbody>';list.forEach(i=>{const b=balance(i),low=b<=N(i.reorder_level);const act=typeof canWriteInventory==='function'&&canWriteInventory()?`<button class="btn ghost" onclick="openItemModal('${i.id}')">Edit</button> ${typeof canDelete==='function'&&canDelete()?`<button class="btn red" onclick="deleteItem('${i.id}')">Delete</button>`:''}`:'View';h+=`<tr><td><b>${E(i.ledger_page_no||'')}</b></td><td><b>${E(i.name||'')}</b></td><td>${E(i.category||'')}</td><td>${E(i.unit||'')}</td><td>${Q(i.opening_stock)}</td><td>${Q(i.stock_in_qty)}</td><td>${Q(i.stock_out_qty)}</td><td><b>${Q(b)}</b></td><td>${Q(i.reorder_level)}</td><td><span class="status ${low?'low':'ok'}">${low?'LOW':'OK'}</span></td><td>${act}</td></tr>`});h+='</tbody></table>';box.innerHTML=list.length?h:moduleEmpty('No inventory items found for the selected filters.');}
+window.renderStockInList=function(){const box=document.getElementById('inList');if(!box)return;let h='<table><thead><tr><th>Invoice</th><th>Date</th><th>Supplier</th><th>Items / Details</th><th>Qty</th><th>Total</th><th>Action</th></tr></thead><tbody>';arr('inInvoices').forEach(x=>{const rows=itemsFor(x),total=rows.reduce((s,r)=>s+N(r.amount||N(r.quantity)*N(r.rate)),0),qty=rows.reduce((s,r)=>s+N(r.quantity),0);let act=typeof canTxEdit==='function'&&canTxEdit()?`<button class="btn ghost" onclick="editStockIn('${x.id}')">Edit</button>`:'View';if(typeof canDelete==='function'&&canDelete())act+=` <button class="btn red" onclick="deleteStockIn('${x.id}')">Delete</button>`;h+=`<tr><td><b>${E(x.invoice_number||'')}</b></td><td>${E(x.invoice_date||'')}</td><td>${E(x.supplier||'')}</td><td>${E(itemLines(rows,'in')||'—')}</td><td>${Q(qty)}</td><td><b>${M(total)}</b></td><td>${act}</td></tr>`});h+='</tbody></table>';box.innerHTML=arr('inInvoices').length?h:moduleEmpty('No purchase invoices saved for this active camp.');}
+window.renderStockOutList=function(){const box=document.getElementById('outList');if(!box)return;let h='<table><thead><tr><th>Voucher</th><th>Date</th><th>Issued To</th><th>Items / Details</th><th>Qty</th><th>Total</th><th>Action</th></tr></thead><tbody>';arr('outVouchers').forEach(x=>{const rows=outItemsFor(x),total=rows.reduce((s,r)=>s+N(r.amount||N(r.quantity)*N(r.rate)),0),qty=rows.reduce((s,r)=>s+N(r.quantity),0);let act=typeof canTxEdit==='function'&&canTxEdit()?`<button class="btn ghost" onclick="editStockOut('${x.id}')">Edit</button>`:'View';if(typeof canDelete==='function'&&canDelete())act+=` <button class="btn red" onclick="deleteStockOut('${x.id}')">Delete</button>`;h+=`<tr><td><b>${E(x.voucher_number||'')}</b></td><td>${E(x.voucher_date||'')}</td><td>${E(x.issued_to||'')}</td><td>${E(itemLines(rows,'out')||'—')}</td><td>${Q(qty)}</td><td><b>${M(total)}</b></td><td>${act}</td></tr>`});h+='</tbody></table>';box.innerHTML=arr('outVouchers').length?h:moduleEmpty('No issue vouchers saved for this active camp.');}
+window.renderPOL=function(){
+ const vt=document.getElementById('polVehiclesTable'),et=document.getElementById('polEntriesTable');if(!vt||!et)return;const vs=arr('polVehicles'),es=arr('polEntries');
+ const vehHtml=vs.length?`<table><thead><tr><th>Vehicle No</th><th>Type</th><th>Unit</th><th>Driver</th><th>Authority</th><th>KM</th><th>KPL</th><th>Tank / POL</th><th>Action</th></tr></thead><tbody>${vs.map(v=>{let st={tank:N(v.pol_balance),currentKm:N(v.km_reading)};try{if(typeof polCurrentState==='function')st=polCurrentState(v.id)||st}catch(e){}return `<tr><td><b>${E(v.vehicle_no||'')}</b></td><td>${E(v.vehicle_type||'')}</td><td>${E(v.unit||'')}</td><td>${E(v.driver_name||'')}</td><td>${E(v.authority_no||'')}</td><td>${Q(st.currentKm)}</td><td>${Q(v.kpl)}</td><td>${Q(st.tank)} L</td><td>${typeof canQsecEntry==='function'&&canQsecEntry()?`<button class="btn ghost" onclick="editPOLVehicle('${v.id}')">Edit</button>`:'View'} ${typeof canDelete==='function'&&canDelete()?`<button class="btn red" onclick="deletePOLVehicle('${v.id}')">Delete</button>`:''}</td></tr>`}).join('')}</tbody></table>`:moduleEmpty('No vehicle attachment records found for this active camp.');vt.innerHTML=vehHtml;
+ const entHtml=es.length?`<table><thead><tr><th>Date</th><th>Vehicle</th><th>Fuel</th><th>Invoice</th><th>Petrol Bunk</th><th>Previous</th><th>Drawn</th><th>Present</th><th>Rate</th><th>Total</th><th>Action</th></tr></thead><tbody>${es.map(x=>`<tr><td>${E(x.entry_date||'')}</td><td><b>${E(x.vehicle_no||'')}</b></td><td>${E(x.fuel_type||'')}</td><td>${E(x.invoice_number||'')}</td><td>${E(x.petrol_bunk||'')}</td><td>${Q(x.previous_fuel)} L</td><td>${Q(x.litres)} L</td><td>${Q(x.present_fuel)} L</td><td>${M(x.rate)}</td><td><b>${M(x.total_amount)}</b></td><td>${typeof canQsecEntry==='function'&&canQsecEntry()?`<button class="btn ghost" onclick="editPOLEntry('${x.id}')">Edit</button>`:'View'} ${typeof canDelete==='function'&&canDelete()?`<button class="btn red" onclick="deletePOLEntry('${x.id}')">Delete</button>`:''}</td></tr>`).join('')}</tbody></table>`:moduleEmpty('No POL drawn entries found for this active camp.');et.innerHTML=entHtml;
+ const a=document.getElementById('polKpiVehicles');if(a)a.textContent=vs.length;const d=document.getElementById('polKpiDiesel');if(d)d.textContent=vs.filter(v=>U(v.vehicle_type).includes('DIESEL')).length;const p=document.getElementById('polKpiPetrol');if(p)p.textContent=vs.filter(v=>U(v.vehicle_type).includes('PETROL')).length;
+ if(typeof loadPOLVehicleSelect==='function')loadPOLVehicleSelect();
+};
+function styleInc(type){const box=document.getElementById(type==='RV'?'incidentalRVTable':'incidentalIVTable');if(!box)return;const rows=arr('incidentals').filter(x=>U(x.voucher_type)===type);let h='<table><thead><tr><th>Voucher</th><th>Date</th><th>Party / Unit</th><th>Invoice / Ref</th><th>Items</th><th>Total</th><th>Mode</th><th>Action</th></tr></thead><tbody>';rows.forEach(x=>{const act=type==='RV'?`<button class="btn ghost" onclick="editIncidentalRV('${x.id}')">Edit</button>`:`<button class="btn ghost" onclick="editIncidentalIV('${x.id}')">Edit</button>`;h+=`<tr><td><b>${E(x.voucher_no||x.crv_no||'')}</b></td><td>${E(x.voucher_date||'')}</td><td>${E(x.party||x.unit||'')}</td><td>${E(x.invoice_number||x.reference_no||'')}</td><td>${E((x.items||[]).slice(0,4).map(i=>`${i.desc||'Item'} × ${N(i.qty)}`).join(' • ')||'—')}</td><td><b>${M(x.amount)}</b></td><td>${E(x.mode||'—')}</td><td>${act} ${typeof canDelete==='function'&&canDelete()?`<button class="btn red" onclick="deleteIncidental('${x.id}')">Delete</button>`:''}</td></tr>`});h+='</tbody></table>';box.innerHTML=rows.length?h:moduleEmpty(`No ${type} records found for this active camp.`)}
+window.renderIncidentalRV=function(){styleInc('RV')};window.renderIncidentalIV=function(){styleInc('IV')};
+/* Hook navigation so tables are re-rendered after every page switch. */
+const oldShow=window.showPage;if(typeof oldShow==='function'&&!window.__v68ShowWrapped){window.__v68ShowWrapped=true;window.showPage=function(){const r=oldShow.apply(this,arguments);setTimeout(()=>{try{dash();window.renderInventory();window.renderStockInList();window.renderStockOutList();window.renderPOL();window.renderIncidentalRV();window.renderIncidentalIV()}catch(e){}},40);return r}}
+function boot(){setTimeout(()=>{try{dash();window.renderInventory();window.renderStockInList();window.renderStockOutList();window.renderPOL();window.renderIncidentalRV();window.renderIncidentalIV()}catch(e){}},700)}
+window.addEventListener('load',boot);document.addEventListener('DOMContentLoaded',()=>setTimeout(boot,300));
+})();
+</script>
 </body>
 </html>
