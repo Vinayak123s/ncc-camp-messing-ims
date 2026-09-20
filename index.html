@@ -4690,5 +4690,155 @@ window.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('load',()=>setTimeout(()=>{if(canUse())refresh51()},1200));
 })();
 </script>
+<script id="ims-v53-final-camp-source-repair">
+(function(){
+  /* V53 final repair:
+     - Manager/Admin use the application's existing client data for source lists; no V51 source RPC dependency.
+     - Accounts get camp, data, source and head-balance through small dedicated RPCs.
+     - Active camp is selected independently of profile RLS/current_camp_id.
+     - Only APPROVED payments reduce source/head/cash/bank balances.
+  */
+  const U53=v=>String(v??'').trim().toUpperCase();
+  const N53=v=>Number(v)||0;
+  const P53=()=>((typeof profile!=='undefined'&&profile)?profile:(window.profile||null));
+  const R53=()=>U53(P53()?.role);
+  const isA53=()=>R53()==='ACCOUNTS';
+  const can53=()=>['ACCOUNTS','MANAGER','ADMIN'].includes(R53());
+  const money53=v=>typeof money==='function'?money(v):'₹'+N53(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const esc53=v=>typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const approved53=e=>U53(e?.approval_status||'APPROVED')==='APPROVED';
+  const setV53=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v??''};
+  const setT53=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=money53(v)};
+  const notice53=(t,ok=false)=>{const e=document.getElementById('paymentMsg');if(e){e.textContent=t;e.className='msg '+(ok?'ok':'err')}};
+  async function rpc53(name,args){if(!sb)throw new Error('Supabase client is not initialized');const r=await sb.rpc(name,args);if(r.error)throw r.error;return r.data}
+  function head53(v){const k=U53(v).replace(/\s+/g,' ');return ({MESSING:'MESSING',INC:'INC',INCIDENTAL:'INC',POL:'POL','RANK PAY':'RANK PAY','TA CADETS':'TA CADETS','TA/DA CIV':'TA/DA CIV STAFF','TA/DA CIV STAFF':'TA/DA CIV STAFF','TA DA CIV STAFF':'TA/DA CIV STAFF',RENT:'RENT',OTHER:'OTHERS',OTHERS:'OTHERS'})[k]||k}
+  function allocations53(e){let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}}const o={MESSING:0,INC:0,POL:0,'RANK PAY':0,'TA CADETS':0,'TA/DA CIV STAFF':0,RENT:0,OTHERS:0};Object.entries(a||{}).forEach(([k,v])=>{const h=head53(k);if(h in o)o[h]+=N53(v)});return o}
+
+  async function loadCamp53(requestedId=null){
+    if(!can53())return false;
+    try{
+      const x=await rpc53('get_accounts_camps_v53',{p_camp_id:requestedId||null});
+      window.camps=Array.isArray(x?.camps)?x.camps:[];
+      window.activeCamp=x?.active_camp||null;
+      if(typeof camps!=='undefined')camps=window.camps;
+      if(typeof activeCamp!=='undefined')activeCamp=window.activeCamp;
+      if(typeof populateCampTop==='function')populateCampTop();
+      return !!window.activeCamp;
+    }catch(e){
+      console.error('V53 camp RPC',e);
+      // Manager/Admin can still use the normal client-side camp list.
+      if(!isA53()){
+        try{
+          const r=await sb.from('camps').select('*').order('from_date',{ascending:false}).order('created_at',{ascending:false});
+          if(!r.error){window.camps=r.data||[];if(typeof camps!=='undefined')camps=window.camps;const id=requestedId||P53()?.current_camp_id;window.activeCamp=(window.camps.find(c=>c.id===id)||window.camps[0]||null);if(typeof activeCamp!=='undefined')activeCamp=window.activeCamp;if(typeof populateCampTop==='function')populateCampTop();return !!window.activeCamp}
+        }catch(_){}
+      }
+      notice53('Camp load error: '+(e?.message||e),false);
+      return false;
+    }
+  }
+
+  async function loadData53(){
+    if(!window.activeCamp?.id)return false;
+    const cid=window.activeCamp.id;
+    if(isA53()){
+      try{
+        const x=await rpc53('get_accounts_data_v53',{p_camp_id:cid});
+        const inv=Array.isArray(x?.inventory)?x.inventory:[];
+        const hs=Array.isArray(x?.stock_in_invoices)?x.stock_in_invoices:[];
+        const rows=Array.isArray(x?.stock_in_items)?x.stock_in_items:[];
+        hs.forEach(h=>h.stock_in_items=rows.filter(r=>String(r.invoice_id)===String(h.id)));
+        window.items=inv;window.inInvoices=hs;window.polEntries=Array.isArray(x?.pol_entries)?x.pol_entries:[];window.incidentals=Array.isArray(x?.incidental_vouchers)?x.incidental_vouchers:[];window.cashbookEntries=Array.isArray(x?.cashbook_entries)?x.cashbook_entries:[];window.cashbookClosures=Array.isArray(x?.cashbook_closures)?x.cashbook_closures:[];
+        if(typeof items!=='undefined')items=window.items;if(typeof inInvoices!=='undefined')inInvoices=window.inInvoices;if(typeof polEntries!=='undefined')polEntries=window.polEntries;if(typeof incidentals!=='undefined')incidentals=window.incidentals;if(typeof cashbookEntries!=='undefined')cashbookEntries=window.cashbookEntries;if(typeof cashbookClosures!=='undefined')cashbookClosures=window.cashbookClosures;
+        return true;
+      }catch(e){console.error('V53 data RPC',e);notice53('Accounts data load error: '+(e?.message||e),false);return false}
+    }
+    // Manager/Admin: use the application's normal tables directly.
+    try{
+      const [a,b,pv,iv,cb,cc]=await Promise.all([
+        sb.from('inventory_items').select('*').eq('camp_id',cid).order('ledger_page_no'),
+        sb.from('stock_in_invoices').select('*,stock_in_items(*)').eq('camp_id',cid).order('invoice_date',{ascending:false}).order('created_at',{ascending:false}),
+        sb.from('pol_drawn_entries').select('*').eq('camp_id',cid).order('entry_date',{ascending:false}).order('created_at',{ascending:false}),
+        sb.from('incidental_vouchers').select('*').eq('camp_id',cid).order('voucher_date',{ascending:false}).order('created_at',{ascending:false}),
+        sb.from('cashbook_entries').select('*').eq('camp_id',cid).order('entry_date',{ascending:false}).order('created_at',{ascending:false}),
+        sb.from('cashbook_day_closures').select('*').eq('camp_id',cid).order('close_date',{ascending:false})
+      ]);
+      const err=[a,b,pv,iv,cb,cc].find(r=>r.error);if(err?.error)throw err.error;
+      window.items=a.data||[];window.inInvoices=b.data||[];window.polEntries=pv.data||[];window.incidentals=iv.data||[];window.cashbookEntries=cb.data||[];window.cashbookClosures=cc.data||[];
+      if(typeof items!=='undefined')items=window.items;if(typeof inInvoices!=='undefined')inInvoices=window.inInvoices;if(typeof polEntries!=='undefined')polEntries=window.polEntries;if(typeof incidentals!=='undefined')incidentals=window.incidentals;if(typeof cashbookEntries!=='undefined')cashbookEntries=window.cashbookEntries;if(typeof cashbookClosures!=='undefined')cashbookClosures=window.cashbookClosures;
+      return true;
+    }catch(e){console.error('V53 manager data',e);notice53('Data load error: '+(e?.message||e),false);return false}
+  }
+
+  function localSources53(type){
+    const t=U53(type), cb=window.cashbookEntries||[];
+    const paid=(source,id)=>cb.filter(e=>e.entry_type==='PAYMENT'&&U53(e.source_type)===source&&String(e.source_id)===String(id)&&approved53(e)).reduce((s,e)=>s+N53(e.amount),0);
+    if(t==='MESSING_RV')return (window.inInvoices||[]).map(x=>{const its=(x.stock_in_items||[]).map(r=>{const q=N53(r.quantity),rate=N53(r.rate),amt=r.amount!=null?N53(r.amount):q*rate;const it=(window.items||[]).find(i=>String(i.id)===String(r.item_id));return{name:it?.name||r.item_name||'Item',unit:it?.unit||r.unit||'',qty:q,rate,amount:amt}});const gross=its.reduce((s,i)=>s+i.amount,0),rem=Math.max(0,gross-paid('MESSING_RV',x.id));return{id:x.id,reference_no:x.invoice_number||'',entry_date:x.invoice_date||'',party:x.supplier||'',amount:rem,on_account:'MESSING',items:its,label:`${x.invoice_number||''} | ${x.invoice_date||''} | ${x.supplier||''} | Balance ${money53(rem)}`}}).filter(x=>x.amount>0.005);
+    if(t==='INCIDENTAL_RV')return (window.incidentals||[]).filter(x=>U53(x.voucher_type)==='RV').map(x=>{const rem=Math.max(0,N53(x.amount)-paid('INCIDENTAL_RV',x.id));return{id:x.id,reference_no:x.invoice_number||x.voucher_no||'',entry_date:x.voucher_date||'',party:x.party||'',amount:rem,on_account:'INC',items:Array.isArray(x.items)?x.items:[],label:`${x.invoice_number||x.voucher_no||''} | ${x.voucher_no||''} | ${x.party||''} | Balance ${money53(rem)}`}}).filter(x=>x.amount>0.005);
+    if(t==='POL_DRAWN')return (window.polEntries||[]).map(x=>{const total=N53(x.total_amount)||N53(x.litres)*N53(x.rate),rem=Math.max(0,total-paid('POL_DRAWN',x.id));return{id:x.id,reference_no:x.invoice_number||'',entry_date:x.entry_date||'',party:x.petrol_bunk||'',amount:rem,on_account:'POL',items:[{name:`${x.fuel_type||''} - ${x.vehicle_no||''}`.trim(),unit:'Ltr',qty:N53(x.litres),rate:N53(x.rate),amount:total}],label:`${x.invoice_number||''} | ${x.entry_date||''} | ${x.petrol_bunk||''} | Balance ${money53(rem)}`}}).filter(x=>x.amount>0.005);
+    return [];
+  }
+
+  async function loadSources53(){
+    if(typeof cashType!=='undefined'&&cashType!=='PAYMENT')return;
+    const H=head53(document.getElementById('cashPaymentCodeHead')?.value||'');
+    const type=H==='MESSING'?'MESSING_RV':H==='INC'?'INCIDENTAL_RV':H==='POL'?'POL_DRAWN':'';
+    const tw=document.getElementById('cashSourceTypeWrap'),sw=document.getElementById('cashSourceWrap'),st=document.getElementById('cashSourceType'),sel=document.getElementById('cashSource');
+    if(!tw||!sw||!st||!sel)return;
+    if(!type){tw.classList.add('hidden');sw.classList.add('hidden');return}
+    tw.classList.remove('hidden');sw.classList.remove('hidden');st.value=type;
+    let list=[];
+    if(isA53()){
+      if(!window.activeCamp?.id){sel.innerHTML='<option value="">Select an active camp first</option>';notice53('Select an active camp first.',false);return}
+      sel.innerHTML='<option value="">Loading unpaid vouchers...</option>';
+      try{const data=await rpc53('get_accounts_payment_sources_v53',{p_camp_id:window.activeCamp.id,p_source_type:type});list=Array.isArray(data)?data:[]}catch(e){console.error('V53 source RPC',e);sel.innerHTML='<option value="">Source load error</option>';notice53('Payment source load error: '+(e?.message||e),false);return}
+    }else list=localSources53(type);
+    window.__V53_SOURCE_CACHE__={[type]:list,...(window.__V53_SOURCE_CACHE__||{})};
+    sel.innerHTML='<option value="">Select source invoice / voucher</option>'+list.map(x=>`<option value="${esc53(x.id)}">${esc53(x.label)}</option>`).join('');
+    if(!list.length)sel.innerHTML='<option value="">No unpaid voucher available</option>';
+  }
+
+  function fillSource53(){
+    const type=document.getElementById('cashSourceType')?.value||'',id=document.getElementById('cashSource')?.value||'',list=window.__V53_SOURCE_CACHE__?.[type]||[],x=list.find(a=>String(a.id)===String(id));
+    if(!x){['cashInvoice','cashPaymentParty','cashPaymentAccount','cashPaymentAmount','cashSourceDate','cashSourceParty','cashSourceTotal'].forEach(i=>setV53(i,''));document.getElementById('cashSourceDetails')?.classList.add('hidden');return}
+    setV53('cashInvoice',x.reference_no||x.ref||'');setV53('cashPaymentParty',x.party||'');setV53('cashPaymentAccount',x.on_account||'');setV53('cashPaymentAmount',N53(x.amount).toFixed(2));setV53('cashSourceDate',x.entry_date||x.date||'');setV53('cashSourceParty',x.party||'');setV53('cashSourceTotal',N53(x.amount).toFixed(2));
+    const body=document.getElementById('cashSourceItemsBody');if(body)body.innerHTML=(x.items||[]).map(i=>`<tr><td>${esc53(i.item_name||i.name||'Item')}</td><td>${esc53(i.unit||'')}</td><td>${i.quantity??i.qty??''}</td><td>${money53(i.rate)}</td><td>${money53(i.amount)}</td></tr>`).join('')||'<tr><td colspan="5">No item details</td></tr>';
+    document.getElementById('cashSourceDetails')?.classList.remove('hidden');updateBalance53();
+  }
+
+  function cashBank53(date){let cash=0,bank=0;(window.cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date||today())).forEach(e=>{const a=N53(e.amount);if(e.entry_type==='RECEIPT'){if(U53(e.mode)==='BANK')bank+=a;else cash+=a}else if(e.entry_type==='PAYMENT'&&approved53(e)){if(U53(e.mode)==='BANK')bank-=a;else cash-=a}else if(e.entry_type==='CASH_DRAWN'){cash+=a;bank-=a}});return{cash,bank}}
+  function localHead53(H,date){const h=head53(H);let t=0;(window.cashbookEntries||[]).filter(e=>String(e.entry_date||'')<=String(date||today())).forEach(e=>{if(e.entry_type==='RECEIPT')t+=N53(allocations53(e)[h]);else if(e.entry_type==='PAYMENT'&&approved53(e)&&head53(e.code_head)===h)t-=N53(e.amount)});return Math.max(0,t)}
+  async function updateBalance53(){const d=document.getElementById('payDate')?.value||today(),mode=U53(document.getElementById('cashPaymentMode')?.value||'CASH'),H=head53(document.getElementById('cashPaymentCodeHead')?.value||''),amt=N53(String(document.getElementById('cashPaymentAmount')?.value||'').replace(/[^0-9.]/g,'')),b=cashBank53(d);let hb=localHead53(H,d);if(isA53()&&window.activeCamp?.id&&H){try{const x=await rpc53('get_accounts_head_balance_v53',{p_camp_id:window.activeCamp.id,p_head:H,p_as_of_date:d});hb=N53(x)}catch(e){console.warn('V53 head RPC',e)}}setT53('payCashCurrent',b.cash);setT53('payBankCurrent',b.bank);setT53('payHeadCurrent',hb);setT53('payCashBankAfter',mode==='BANK'?b.bank-amt:b.cash-amt);setT53('payBankAfter',b.bank-(mode==='BANK'?amt:0));setT53('payHeadAfter',hb-amt)}
+
+  async function refresh53(){
+    if(!can53())return false;
+    let ok=await loadCamp53(window.activeCamp?.id||null);
+    if(!ok&&!isA53())ok=await loadCamp53(null);
+    if(!ok)return false;
+    await loadData53();
+    try{populateCampTop()}catch(_){}
+    try{renderDashboard()}catch(e){console.warn(e)}try{renderCashbook()}catch(e){console.warn(e)}try{renderReports()}catch(e){console.warn(e)}
+    if(typeof cashType!=='undefined'&&cashType==='PAYMENT')await loadSources53();
+    await updateBalance53();
+    return true;
+  }
+
+  async function switch53(id){if(!id||!can53())return;const ok=await loadCamp53(id);if(!ok)return;await loadData53();if(typeof profile!=='undefined'&&profile)profile.current_camp_id=id;try{populateCampTop()}catch(_){}try{renderDashboard()}catch(_){}try{renderCashbook()}catch(_){}try{renderReports()}catch(_){}if(typeof cashType!=='undefined'&&cashType==='PAYMENT')await loadSources53();await updateBalance53()}
+
+  window.loadCashSources=loadSources53;
+  window.paymentHeadChanged=loadSources53;
+  window.fillCashSource=fillSource53;
+  window.updatePaymentBalancePreview=updateBalance53;
+  window.availablePaymentSources=type=>window.__V53_SOURCE_CACHE__?.[type]||[];
+  window.paymentSources=type=>window.__V53_SOURCE_CACHE__?.[type]||[];
+  window.refreshAll=refresh53;
+  window.switchCamp=switch53;
+  const priorLoad=window.loadApp;
+  if(typeof priorLoad==='function'&&!priorLoad.__v53){const wrapped=async function(){await priorLoad();if(can53())await refresh53()};wrapped.__v53=true;window.loadApp=wrapped}
+  ['cashPaymentCodeHead','cashSource'].forEach(id=>document.getElementById(id)?.addEventListener('change',id==='cashSource'?fillSource53:loadSources53));
+  ['cashPaymentAmount','cashPaymentMode','payDate'].forEach(id=>document.getElementById(id)?.addEventListener(id==='cashPaymentAmount'?'input':'change',updateBalance53));
+  window.addEventListener('load',()=>setTimeout(()=>{if(can53())refresh53()},900));
+})();
+</script>
 </body>
 </html>
