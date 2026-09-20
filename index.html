@@ -246,6 +246,215 @@ footer{padding:18px 0;text-align:center;color:#62778c;font-size:11px}
 @media(max-width:650px){.all-report-filters{grid-template-columns:1fr}.all-report-summary{grid-template-columns:1fr}}
 </style>
 
+
+<style id="ims-v64-reference-style">
+/* =========================================================
+   V64 — NCC CAMP MESSING IMS REFERENCE-STYLE PROJECT SHELL
+   Visual redesign only. Existing application logic preserved.
+   ========================================================= */
+:root{
+  --v64-teal:#11b5a4;
+  --v64-teal2:#0b9fc3;
+  --v64-blue:#1677c8;
+  --v64-navy:#263b87;
+  --v64-orange:#f6ad3b;
+  --v64-bg:#eef3f7;
+  --v64-card:#ffffff;
+  --v64-text:#3d4148;
+  --v64-muted:#7d8792;
+  --v64-border:#e2e7ec;
+  --v64-shadow:0 10px 28px rgba(30,48,66,.10);
+}
+html,body{background:var(--v64-bg)!important;color:var(--v64-text)!important}
+body{font-family:Inter,Segoe UI,Arial,sans-serif!important}
+.app{background:var(--v64-bg)!important;min-height:100vh}
+.topbar{
+  height:58px!important;background:#fff!important;color:var(--v64-text)!important;
+  border-bottom:1px solid var(--v64-border)!important;box-shadow:0 2px 12px rgba(0,0,0,.05)!important;
+}
+.topbar .brand{color:#26313b!important;font-weight:900!important}
+.camp-top{background:#fff!important;color:#5b6570!important}
+.camp-top span{color:#8a949f!important}
+.camp-top select,.topbar select{
+  background:#fff!important;color:#36414b!important;border:1px solid #d9e0e6!important;
+}
+.top-right{color:#68737d!important}
+.avatar{background:linear-gradient(135deg,var(--v64-teal),var(--v64-blue))!important;color:#fff!important}
+
+/* Reference-style left navigation */
+.sidebar{
+  width:255px!important;top:0!important;bottom:0!important;
+  background:linear-gradient(180deg,#12b7a7 0%,#109fbe 43%,#1977c8 100%)!important;
+  border:0!important;color:#fff!important;box-shadow:8px 0 28px rgba(24,76,110,.12)!important;
+  padding:18px 12px 14px!important;
+}
+.side-brand{
+  padding:10px 12px 22px!important;border:0!important;color:#fff!important;
+}
+.side-brand .nc,.v62-logo{
+  background:#fff!important;color:var(--v64-teal)!important;border-radius:16px!important;
+  box-shadow:0 8px 18px rgba(0,0,0,.10)!important;
+}
+.side-name{color:#fff!important;font-weight:900!important;letter-spacing:.3px}
+.hamb{
+  color:#fff!important;background:rgba(255,255,255,.12)!important;border:0!important;
+  border-radius:10px!important;width:42px!important;height:38px!important;
+}
+.nav{
+  color:#fff!important;background:transparent!important;border:0!important;
+  border-radius:12px!important;margin:4px 0!important;padding:12px 13px!important;
+  font-weight:700!important;
+}
+.nav:hover{background:rgba(255,255,255,.14)!important}
+.nav.active{
+  background:rgba(255,255,255,.20)!important;box-shadow:0 7px 18px rgba(0,0,0,.08)!important;
+}
+.nav .ni{color:#fff!important}
+.subnav{background:rgba(0,0,0,.08)!important;border-radius:12px!important;padding:5px!important}
+.side-footer{border-top:1px solid rgba(255,255,255,.20)!important}
+.nav.logout{background:#fff!important;color:#1296b0!important;justify-content:center!important}
+.nav.logout .ni{color:#1296b0!important}
+
+/* Main project workspace */
+main{
+  background:var(--v64-bg)!important;
+  padding:24px 28px 36px!important;
+}
+.page{max-width:1500px!important;margin:0 auto!important}
+.section-head{
+  background:#fff!important;border:1px solid var(--v64-border)!important;
+  border-radius:18px!important;padding:18px 20px!important;box-shadow:var(--v64-shadow)!important;
+}
+.section-head h1{color:#303842!important}
+.panel,.formbox{
+  background:var(--v64-card)!important;color:var(--v64-text)!important;
+  border:1px solid var(--v64-border)!important;border-radius:18px!important;
+  box-shadow:var(--v64-shadow)!important;
+}
+.panel{padding:18px!important}
+.field label,label{color:#69747f!important}
+input,select,textarea{
+  background:#fff!important;color:#3e4852!important;border:1px solid #dce3e8!important;
+  border-radius:9px!important;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:#14a9b4!important;box-shadow:0 0 0 3px rgba(20,169,180,.10)!important;
+}
+.btn{
+  border:0!important;border-radius:10px!important;background:linear-gradient(135deg,var(--v64-teal),#0e9db7)!important;
+  box-shadow:0 6px 14px rgba(14,157,183,.18)!important;
+}
+.btn.dark{background:#283b87!important}
+.btn.green{background:#18a36b!important}
+.btn.ghost{background:#f5f8fa!important;color:#44505b!important;border:1px solid #dce3e8!important}
+table{background:#fff!important;color:#414a53!important}
+th{background:#f1f5f8!important;color:#66717b!important}
+td{border-color:#e6ebef!important}
+
+/* Dashboard: make the generated V62 content fit the reference shell */
+#dashboard{padding:0!important}
+#nccNewDashboard{width:100%!important}
+#nccNewDashboard .v62-layout{display:block!important;background:transparent!important;min-height:0!important}
+#nccNewDashboard .v62-side{display:none!important}
+#nccNewDashboard .v62-main{width:100%!important;max-width:none!important;padding:0!important;background:transparent!important}
+#nccNewDashboard .v62-top{
+  display:grid!important;grid-template-columns:280px 1fr!important;gap:18px!important;
+  margin:0 0 18px!important;background:transparent!important;
+}
+#nccNewDashboard .v62-profile,#nccNewDashboard .v62-company{
+  background:#fff!important;border:1px solid var(--v64-border)!important;
+  border-radius:20px!important;box-shadow:var(--v64-shadow)!important;color:var(--v64-text)!important;
+}
+#nccNewDashboard .v62-profile{padding:20px!important}
+#nccNewDashboard .v62-user{display:flex!important;align-items:center!important;gap:13px!important}
+#nccNewDashboard .v62-avatar{
+  background:linear-gradient(135deg,var(--v64-teal),var(--v64-blue))!important;
+  color:#fff!important;border-radius:50%!important;
+}
+#nccNewDashboard .v62-profile h2,#nccNewDashboard .v62-company h2{color:#39414a!important}
+#nccNewDashboard .v62-profile small,#nccNewDashboard .v62-sub{
+  color:#8a949e!important;letter-spacing:.02em!important
+}
+#nccNewDashboard .v62-profile-foot{
+  border-top:1px solid #edf0f3!important;color:#6f7983!important;margin-top:18px!important;padding-top:14px!important;
+}
+#nccNewDashboard .v62-company{padding:20px!important}
+#nccNewDashboard .v62-company-head{
+  display:flex!important;justify-content:space-between!important;align-items:flex-start!important;
+}
+#nccNewDashboard .v62-camp-badge{
+  background:linear-gradient(135deg,var(--v64-teal),var(--v64-blue))!important;color:#fff!important;
+  border-radius:12px!important;padding:10px 13px!important;
+}
+#nccNewDashboard .v62-kpis{margin-top:18px!important}
+#nccNewDashboard .v62-kpi{
+  color:#fff!important;border:0!important;border-radius:15px!important;box-shadow:0 8px 18px rgba(0,0,0,.08)!important;
+}
+#nccNewDashboard .v62-kpi:nth-child(1){background:linear-gradient(135deg,#f7ae3d,#f59e0b)!important}
+#nccNewDashboard .v62-kpi:nth-child(2){background:linear-gradient(135deg,#33469a,#26347e)!important}
+#nccNewDashboard .v62-kpi:nth-child(3){background:linear-gradient(135deg,#2585c8,#166db0)!important}
+#nccNewDashboard .v62-kpi:nth-child(4){background:linear-gradient(135deg,#18b39e,#0f9487)!important}
+#nccNewDashboard .v62-kpi span,#nccNewDashboard .v62-kpi b{color:#fff!important}
+
+#nccNewDashboard .v62-grid{
+  display:grid!important;grid-template-columns:2fr 1fr!important;gap:18px!important;
+}
+#nccNewDashboard .v62-card{
+  background:#fff!important;color:var(--v64-text)!important;
+  border:1px solid var(--v64-border)!important;border-radius:20px!important;
+  box-shadow:var(--v64-shadow)!important;padding:20px!important;
+}
+#nccNewDashboard .v62-card h3{color:#3d444c!important}
+#nccNewDashboard .v62-full{grid-column:1/-1!important}
+#nccNewDashboard .v62-chart{
+  background:#f8fafb!important;border-radius:14px!important;padding:10px!important;
+  min-height:220px!important;
+}
+#nccNewDashboard .v62-donut-wrap{background:#fff!important}
+#nccNewDashboard .v62-donut{
+  box-shadow:inset 0 0 0 14px #fff!important;border:10px solid #fff!important;
+}
+#nccNewDashboard .v62-op{
+  background:#f7fafc!important;border:1px solid #e4e9ee!important;border-radius:14px!important;
+}
+#nccNewDashboard .v62-head-item{
+  background:#f7fafc!important;border:1px solid #e4e9ee!important;border-radius:12px!important;
+}
+#nccNewDashboard .v62-table{background:#fff!important}
+#nccNewDashboard .v62-table th{background:#f3f6f8!important}
+#nccNewDashboard .v62-bars .v62-bar{background:#eaf0f4!important}
+#nccNewDashboard .v62-bars .v62-bar i{background:linear-gradient(90deg,var(--v64-teal),var(--v64-blue))!important}
+
+/* Login follows the same visual language */
+.login-shell{background:linear-gradient(135deg,#e8f4f5,#dceef8,#eef3f7)!important}
+.login-card{
+  background:#fff!important;color:#3d444c!important;border:1px solid #e1e6eb!important;
+  border-radius:24px!important;box-shadow:0 20px 55px rgba(35,65,85,.16)!important;
+}
+.login-logo{background:linear-gradient(135deg,var(--v64-teal),var(--v64-blue))!important;color:#fff!important}
+.login-title{color:#313941!important}
+.login-sub,.dev{color:#7d8792!important}
+.primary-login{background:linear-gradient(135deg,var(--v64-teal),var(--v64-blue))!important;border-radius:10px!important}
+.login-card input{background:#f8fafc!important}
+
+/* Responsive */
+@media(max-width:1050px){
+  .sidebar{width:220px!important}
+  main{padding:20px!important}
+  #nccNewDashboard .v62-top{grid-template-columns:1fr!important}
+  #nccNewDashboard .v62-grid{grid-template-columns:1fr!important}
+}
+@media(max-width:760px){
+  .sidebar{width:74px!important;padding:12px 8px!important}
+  .side-name,.nl,.group-arrow{display:none!important}
+  .nav{justify-content:center!important;padding:12px 8px!important}
+  main{padding:14px!important}
+  .topbar .brand{font-size:12px!important}
+  .camp-top{display:none!important}
+  #nccNewDashboard .v62-kpis{grid-template-columns:1fr 1fr!important}
+}
+</style>
+
 </head>
 <body>
 
@@ -4714,5 +4923,11 @@ window.renderDashboard=render62;
   bind63();document.addEventListener('DOMContentLoaded',()=>{bind63();setTimeout(()=>{if((typeof cashType!=='undefined'?cashType:'')==='PAYMENT')load63()},300)});setTimeout(bind63,200);setTimeout(bind63,900);
 })();
 </script>
+
+<script id="ims-v64-reference-runtime">
+/* V64 reference-style shell: visual-only runtime marker. */
+document.documentElement.classList.add('ims-v64-reference-shell');
+</script>
+
 </body>
 </html>
