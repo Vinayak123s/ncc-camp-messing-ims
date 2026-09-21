@@ -6949,5 +6949,335 @@ setTimeout(()=>{try{window.renderDashboard?.();window.renderDayClose?.();window.
 })();
 </script>
 
+
+<style id="v79-final-css">
+/* V79: readable accounting forms and auto-number fields */
+#cashbook .balance-card,#cashbook .daybox{background:#f4f8fb!important;color:#17324d!important;border:1px solid #bfd2df!important}
+#cashbook .balance-card span,#cashbook .daybox span{color:#49677e!important;font-weight:800!important}
+#cashbook .balance-card b,#cashbook .daybox b{color:#12344d!important;font-weight:900!important}
+.v79-sydr{margin-top:12px;padding:12px;border:1px solid #c8d8e2;border-radius:9px;background:#f7fbfd}
+.v79-sydr h4{margin:0 0 8px;color:#12344d;font-weight:900}
+.v79-sydr .form-grid{margin-top:8px}
+.v79-sydr input{font-weight:700}
+.v79-auto{background:#eef7fb!important;color:#12344d!important;font-weight:900!important}
+</style>
+<script>
+/* ===== V79 FINAL: numbering, stock isolation, SY DR, accounting cash book ===== */
+(function(){
+'use strict';
+const DB=()=>((typeof sb!=='undefined'&&sb)||window.sb||null);
+const CAMP=()=>((typeof activeCamp!=='undefined'&&activeCamp)||window.activeCamp||null);
+const NUM=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
+const TXT=v=>String(v??'').trim();
+const ESC=v=>TXT(v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const MONEY=v=>'₹'+NUM(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const TDAY=()=>new Date().toISOString().slice(0,10);
+const setMsg79=(id,t,ok=false)=>{const e=document.getElementById(id);if(e){e.textContent=t;e.style.display='block';e.style.color=ok?'#11643b':'#9b1c1c';e.style.background=ok?'#edf9f2':'#fff2f2';e.style.border='1px solid '+(ok?'#9bd8b6':'#efb5b5')}};
+
+/* ---------- voucher numbering: derive ONLY from saved records ---------- */
+function lastSeqFromSaved(type){
+  const rows=(window.incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()===type);
+  let max=0;
+  rows.forEach(x=>{
+    const s=TXT(x.voucher_no||x.crv_no||'');
+    const m=s.match(/(\d+)\s*$/);
+    if(m)max=Math.max(max,parseInt(m[1],10));
+  });
+  return max;
+}
+function samplePrefix(type){
+  const rows=(window.incidentals||[]).filter(x=>String(x.voucher_type||'').toUpperCase()===type);
+  const sample=rows.map(x=>TXT(x.voucher_no||x.crv_no||'')).find(Boolean);
+  if(sample){
+    return sample.replace(/\d+\s*$/,'');
+  }
+  return type==='RV'?'CRV/39KAR/26-27/CAMP/':'CIV/39KAR/26-27/EXP/';
+}
+function nextSavedIncNo(type){
+  const n=lastSeqFromSaved(type)+1;
+  return samplePrefix(type)+String(n).padStart(3,'0');
+}
+window.nextCRVNo=async function(){
+  const e=document.getElementById('rvCrv');if(!e||document.getElementById('rvCrv')===document.activeElement)return;
+  e.value=nextSavedIncNo('RV');
+};
+window.nextCIVNo=async function(){
+  const e=document.getElementById('ivNoAuto');if(!e)return;
+  e.value=nextSavedIncNo('IV');
+};
+window.nextIncNo=function(type,id){const e=document.getElementById(id);if(e)e.value=nextSavedIncNo(type);};
+
+/* Do not consume a number merely by clicking CLEAR/NEW. The number changes only
+   after a corresponding voucher has actually been saved. */
+function bindIncNumbering79(){
+  const rv=document.getElementById('rvCrv'),iv=document.getElementById('ivNoAuto');
+  if(rv&&!TXT(rv.value)&&!window.rvEditingId)rv.value=nextSavedIncNo('RV');
+  if(iv&&!TXT(iv.value)&&!window.ivEditingId)iv.value=nextSavedIncNo('IV');
+}
+window.__V79_BIND_NUM__=bindIncNumbering79;
+
+/* ---------- PV number: one sequence from saved cash-book payment/cash-drawn entries ---------- */
+function nextPVNo79(){
+  const rows=window.cashbookEntries||[];
+  let max=0;
+  rows.forEach(x=>{
+    const s=TXT(x.voucher_number||'');
+    const m=s.match(/^PV[-\s]?0*(\d+)$/i);
+    if(m)max=Math.max(max,parseInt(m[1],10));
+  });
+  return 'PV-'+String(max+1).padStart(2,'0');
+}
+window.nextPVNo79=nextPVNo79;
+function bindPV79(){
+  const p=document.getElementById('payVoucherNo'),c=document.getElementById('cdNo');
+  if(p){p.readOnly=true;p.classList.add('v79-auto');p.value=nextPVNo79()}
+  if(c){c.readOnly=true;c.classList.add('v79-auto');c.value=nextPVNo79();const lab=c.closest('.field')?.querySelector('label');if(lab)lab.textContent='PV No. (Auto)'}
+}
+window.__V79_BIND_PV__=bindPV79;
+
+/* ---------- Stock In: exact visible rows, resilient update without .single() ---------- */
+window.saveStockIn=async function(){
+  if(typeof canTxEdit==='function'&&!canTxEdit())return;
+  const db=DB(),camp=CAMP();if(!db||!camp)return setMsg79('inMsg','Select an active camp first.');
+  const id=TXT(document.getElementById('editInId')?.value),invoice=TXT(document.getElementById('inInvoice')?.value),date=document.getElementById('inDate')?.value||'',supplier=TXT(document.getElementById('inSupplier')?.value);
+  if(!invoice||!date)return setMsg79('inMsg','Invoice number and date are required.');
+  const rows=[...document.querySelectorAll('#inRows .item-row')].map(r=>({item_id:r.querySelector('.in-item')?.value||'',quantity:NUM(r.querySelector('.in-qty')?.value),rate:NUM(r.querySelector('.in-rate')?.value)})).filter(x=>x.item_id&&x.quantity>0);
+  if(!rows.length)return setMsg79('inMsg','Select at least one item and enter quantity.');
+  try{
+    let hid=id;
+    if(id){
+      let q=await db.from('stock_in_invoices').update({invoice_number:invoice,invoice_date:date,supplier}).eq('id',id).select('id');
+      if(q.error||!q.data?.length){
+        q=await db.from('stock_in_invoices').update({invoice_number:invoice,invoice_date:date,supplier}).eq('id',id).select('id');
+      }
+      if(q.error)throw q.error;
+      if(!q.data?.length)throw new Error('Invoice could not be updated. The selected invoice was not found or is not editable.');
+      const d=await db.from('stock_in_items').delete().eq('invoice_id',id);if(d.error)throw d.error;
+    }else{
+      const q=await db.from('stock_in_invoices').insert({camp_id:camp.id,invoice_number:invoice,invoice_date:date,supplier}).select('id');
+      if(q.error)throw q.error;if(!q.data?.length)throw new Error('Invoice header was not created.');
+      hid=q.data[0].id;
+    }
+    const child=rows.map(r=>({invoice_id:hid,item_id:r.item_id,quantity:r.quantity,rate:r.rate,amount:r.quantity*r.rate}));
+    const ins=await db.from('stock_in_items').insert(child).select('id,invoice_id,item_id,quantity,rate,amount');
+    if(ins.error)throw ins.error;
+    if((ins.data||[]).length!==child.length)throw new Error(`Only ${(ins.data||[]).length} of ${child.length} selected item rows were saved.`);
+    setMsg79('inMsg',`Purchase saved correctly — ${child.length} selected item${child.length>1?'s':''} only.`,true);
+    if(typeof resetStockInForm==='function')resetStockInForm();
+    if(typeof refreshAll==='function')await refreshAll();
+  }catch(e){setMsg79('inMsg','Purchase save failed: '+(e.message||e));}
+};
+
+/* ---------- Stock Out: exact visible rows ---------- */
+window.saveStockOut=async function(){
+  if(typeof canTxEdit==='function'&&!canTxEdit())return;
+  const db=DB(),camp=CAMP();if(!db||!camp)return setMsg79('outMsg','Select an active camp first.');
+  const id=TXT(document.getElementById('editOutId')?.value),voucher=TXT(document.getElementById('outVoucher')?.value),date=document.getElementById('outDate')?.value||'',issued=TXT(document.getElementById('outIssuedTo')?.value);
+  if(!date)return setMsg79('outMsg','Date is required.');
+  const rows=[...document.querySelectorAll('#outRows .item-row')].map(r=>({item_id:r.querySelector('.out-item')?.value||'',quantity:NUM(r.querySelector('.out-qty')?.value)})).filter(x=>x.item_id&&x.quantity>0);
+  if(!rows.length)return setMsg79('outMsg','Select at least one item and enter quantity.');
+  try{
+    let hid=id;
+    if(id){
+      let q=await db.from('stock_out_vouchers').update({voucher_number:voucher,voucher_date:date,issued_to:issued}).eq('id',id).select('id');
+      if(q.error)throw q.error;if(!q.data?.length)throw new Error('Issue voucher could not be updated.');
+      const d=await db.from('stock_out_items').delete().eq('voucher_id',id);if(d.error)throw d.error;
+    }else{
+      const q=await db.from('stock_out_vouchers').insert({camp_id:camp.id,voucher_number:voucher,voucher_date:date,issued_to:issued}).select('id');
+      if(q.error)throw q.error;if(!q.data?.length)throw new Error('Issue voucher header was not created.');
+      hid=q.data[0].id;
+    }
+    const child=rows.map(r=>{const it=(window.items||[]).find(x=>String(x.id)===String(r.item_id));const rate=NUM(it?.avg_rate);return{voucher_id:hid,item_id:r.item_id,quantity:r.quantity,rate,amount:r.quantity*rate}});
+    const ins=await db.from('stock_out_items').insert(child).select('id,voucher_id,item_id,quantity,rate,amount');
+    if(ins.error)throw ins.error;if((ins.data||[]).length!==child.length)throw new Error(`Only ${(ins.data||[]).length} of ${child.length} selected issue rows were saved.`);
+    setMsg79('outMsg',`Issue saved correctly — ${child.length} selected item${child.length>1?'s':''} only.`,true);
+    if(typeof resetStockOutForm==='function')resetStockOutForm();
+    if(typeof refreshAll==='function')await refreshAll();
+  }catch(e){setMsg79('outMsg','Issue save failed: '+(e.message||e));}
+};
+
+/* ---------- SY DR / Sanction pending asset ---------- */
+function ensureSYDRFields79(){
+  const wrap=document.getElementById('cashReceiptFormWrap');if(!wrap||document.getElementById('v79SyDr'))return;
+  const actions=wrap.querySelector('.actions');
+  const box=document.createElement('div');box.id='v79SyDr';box.className='v79-sydr';
+  box.innerHTML=`<h4>SY DR / SANCTION PENDING</h4>
+    <div class="kpi-note">Enter sanctioned strength and the sanctioned amount still pending for receipt. After the receipt is distributed by code head, the remaining amount is carried as SY DR (asset).</div>
+    <div class="form-grid">
+      <div class="field"><label>No. of Cadets</label><input id="syDrCadets" type="number" min="0" step="1"></div>
+      <div class="field"><label>No. of ANOs</label><input id="syDrAnos" type="number" min="0" step="1"></div>
+      <div class="field"><label>Sanction Received / Due</label><input id="syDrSanction" type="number" min="0" step="0.01"></div>
+      <div class="field"><label>Amount Distributed</label><input id="syDrDistributed" class="v79-auto" readonly value="₹0.00"></div>
+      <div class="field"><label>SY DR Pending Balance</label><input id="syDrPending" class="v79-auto" readonly value="₹0.00"></div>
+    </div>`;
+  if(actions)wrap.insertBefore(box,actions);else wrap.appendChild(box);
+  const c=CAMP();if(c){document.getElementById('syDrCadets').value=NUM(c.cadets);document.getElementById('syDrAnos').value=NUM(c.anos)}
+  document.getElementById('syDrSanction').addEventListener('input',updateSYDR79);
+}
+function updateSYDR79(){
+  const sanction=NUM(document.getElementById('syDrSanction')?.value);
+  const dist=Object.values(typeof receiptAllocationValues==='function'?receiptAllocationValues():{}).reduce((s,v)=>s+NUM(v),0);
+  const d=document.getElementById('syDrDistributed'),p=document.getElementById('syDrPending');if(d)d.value=MONEY(dist);if(p)p.value=MONEY(Math.max(0,sanction-dist));
+}
+function syDrMeta79(){
+  return {cadets:NUM(document.getElementById('syDrCadets')?.value),anos:NUM(document.getElementById('syDrAnos')?.value),sanction:NUM(document.getElementById('syDrSanction')?.value),distributed:Object.values(typeof receiptAllocationValues==='function'?receiptAllocationValues():{}).reduce((s,v)=>s+NUM(v),0),pending:NUM(String(document.getElementById('syDrPending')?.value||'').replace(/[^0-9.]/g,''))};
+}
+window.updateSYDR79=updateSYDR79;
+
+/* Save receipt and preserve SY DR metadata in source_details without changing cash received. */
+const oldSaveCashbook79=window.saveCashbook;
+window.saveCashbook=async function(){
+  if(typeof cashType!=='undefined'&&cashType==='RECEIPT'){
+    ensureSYDRFields79();
+    const result=await oldSaveCashbook79.apply(this,arguments);
+    return result;
+  }
+  return oldSaveCashbook79.apply(this,arguments);
+};
+
+/* Patch distribution save: after successful distribution, store SY DR metadata on the receipt. */
+const oldSaveReceiptAllocation79=window.saveReceiptAllocation;
+window.saveReceiptAllocation=async function(){
+  const entryId=(typeof pendingReceiptAllocationId!=='undefined')?pendingReceiptAllocationId:null;
+  const meta=syDrMeta79();
+  const result=await oldSaveReceiptAllocation79.apply(this,arguments);
+  if(entryId){
+    try{
+      const db=DB();const e=await db.from('cashbook_entries').select('source_details').eq('id',entryId).maybeSingle();
+      if(!e.error&&e.data){
+        let sd=e.data.source_details;if(typeof sd==='string'){try{sd=JSON.parse(sd)}catch(_){sd={}}}
+        sd=(sd&&typeof sd==='object')?sd:{};sd.sy_dr=meta;
+        await db.from('cashbook_entries').update({source_details:sd}).eq('id',entryId);
+      }
+    }catch(_){}
+  }
+  return result;
+};
+
+/* ---------- PV auto generation ---------- */
+window.preparePV79=function(){
+  const p=document.getElementById('payVoucherNo'),c=document.getElementById('cdNo');
+  if(p&&!TXT(p.value))p.value=nextPVNo79();
+  if(c&&!TXT(c.value))c.value=nextPVNo79();
+};
+const oldClearCB79=window.clearCashbookForm;
+if(typeof oldClearCB79==='function')window.clearCashbookForm=function(){oldClearCB79.apply(this,arguments);setTimeout(bindPV79,20)};
+const oldClearCD79=window.clearCashDrawn;
+if(typeof oldClearCD79==='function')window.clearCashDrawn=function(){oldClearCD79.apply(this,arguments);setTimeout(bindPV79,20)};
+
+/* Cash Drawn uses PV-xx, shown as a payment-side bank debit in the report. */
+window.saveCashDrawn=async function(){
+  if(!canAccountsEntry())return setMsg79('cashDrawnMsg','Only ACCOUNTS/ADMIN can save Cash Drawn.');
+  const db=DB(),camp=CAMP();if(!db||!camp)return setMsg79('cashDrawnMsg','Select an active camp first.');
+  const date=document.getElementById('cdDate')?.value||TDAY(),no=nextPVNo79(),ref=TXT(document.getElementById('cdCheque')?.value),amount=NUM(document.getElementById('cdAmount')?.value),purpose=TXT(document.getElementById('cdPurpose')?.value);
+  if(amount<=0)return setMsg79('cashDrawnMsg','Enter a valid amount.');
+  let r=await db.rpc('save_cash_drawn_entry',{p_voucher_number:no,p_entry_date:date,p_reference_no:ref||null,p_amount:amount,p_narration:purpose||null});
+  if(r.error){
+    r=await db.from('cashbook_entries').insert({camp_id:camp.id,entry_type:'CASH_DRAWN',voucher_number:no,entry_date:date,source_type:'CASH_DRAWN',source_id:null,reference_no:ref||null,party:'CASH DRAWN FROM BANK',amount,mode:'BANK',code_head:null,narration:purpose||null,head_allocations:{},source_details:{on_account:'CASH DRAWN FROM BANK',to_whom_paid:'CASH DRAWN',cash_drawn:true},created_by:(typeof currentUser!=='undefined'&&currentUser?.id)||null});
+  }
+  if(r.error)return setMsg79('cashDrawnMsg',r.error.message);
+  setMsg79('cashDrawnMsg',`Cash Drawn saved as ${no}.`,true);
+  if(typeof clearCashDrawn==='function')clearCashDrawn();
+  await (typeof refreshAll==='function'?refreshAll():Promise.resolve());
+};
+
+/* ---------- Receipt/payment report: sorted and split by accounting head ---------- */
+function numVoucher79(s){
+  const m=TXT(s).match(/(\d+)\s*$/);return m?parseInt(m[1],10):0;
+}
+function sortEntries79(a,b){
+  const d=String(a.entry_date||'').localeCompare(String(b.entry_date||''));
+  return d||numVoucher79(a.voucher_number)-numVoucher79(b.voucher_number)||TXT(a.voucher_number).localeCompare(TXT(b.voucher_number));
+}
+function alloc79(e){
+  let a=e?.head_allocations;
+  if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}}
+  return a&&typeof a==='object'?a:{};
+}
+function allocLines79(e){
+  const a=alloc79(e),out=[];
+  Object.entries(a).forEach(([k,v])=>{if(NUM(v)>0)out.push([k,NUM(v)])});
+  return out;
+}
+function sourceDetails79(e){
+  let d=e?.source_details;if(typeof d==='string'){try{d=JSON.parse(d)}catch(_){d={}}}
+  return d&&typeof d==='object'?d:{};
+}
+function cashbookRows79(date){
+  const all=(window.cashbookEntries||[]).filter(e=>e.entry_date===date).slice().sort(sortEntries79);
+  const receipts=[],payments=[];
+  all.forEach(e=>{
+    if(e.entry_type==='RECEIPT'){
+      const lines=allocLines79(e);
+      if(lines.length)lines.forEach(([head,amt])=>receipts.push({e,head,headAmount:amt}));
+      else receipts.push({e,head:'',headAmount:NUM(e.amount)});
+    }else if(e.entry_type==='PAYMENT'){
+      payments.push({e,head:e.code_head||'',headAmount:NUM(e.amount)});
+    }else if(e.entry_type==='CASH_DRAWN'){
+      payments.push({e,head:'BANK → CASH / CASH DRAWN',headAmount:NUM(e.amount),draw:true});
+    }
+  });
+  return {receipts,payments};
+}
+function syDrTotal79(){
+  return (window.cashbookEntries||[]).reduce((s,e)=>{const d=sourceDetails79(e),m=d.sy_dr;return s+NUM(m?.pending)},0);
+}
+
+/* ---------- Cash book printable preview ---------- */
+window.printDayCashbook=function(){
+  const d=document.getElementById('cashDayDate')?.value||TDAY(),camp=CAMP()||{},s=typeof calculateDay==='function'?calculateDay(d):null;
+  if(!s)return alert('Prepare the selected day first.');
+  const rp=cashbookRows79(d),cols=['Messing','INC','POL','Rank Pay','TA Cadets','TA/DA Civ','Rent','Others'];
+  const receiptRows=rp.receipts.map(x=>{const e=x.e;return `<tr><td>${ESC(e.entry_date)}</td><td>${ESC(e.voucher_number)}</td><td>${ESC(e.party||'')}</td><td>${ESC(e.reference_no||'')}</td><td class="num">${e.mode==='CASH'?MONEY(x.headAmount):''}</td><td class="num">${e.mode==='BANK'?MONEY(x.headAmount):''}</td><td>${ESC(x.head)}</td></tr>`}).join('')||`<tr><td colspan="7">No receipts for selected day.</td></tr>`;
+  const paymentRows=rp.payments.map(x=>{const e=x.e,d=sourceDetails79(e);return `<tr><td>${ESC(e.entry_date)}</td><td>${ESC(e.voucher_number)}</td><td>${ESC(d.to_whom_paid||e.party||'')}</td><td>${ESC(d.on_account||e.reference_no||e.code_head||'')}</td><td class="num">${e.mode==='CASH'&&!x.draw?MONEY(x.headAmount):''}</td><td class="num">${(e.mode==='BANK'||x.draw)?MONEY(x.headAmount):''}</td><td>${ESC(x.head)}</td></tr>`}).join('')||`<tr><td colspan="7">No payments for selected day.</td></tr>`;
+  const heads=cols.map(h=>{
+    const rec=rp.receipts.filter(x=>String(x.head).toUpperCase()===String(h).toUpperCase()).reduce((a,x)=>a+x.headAmount,0);
+    const pay=rp.payments.filter(x=>String(x.head).toUpperCase()===String(h).toUpperCase()).reduce((a,x)=>a+x.headAmount,0);
+    return `<tr><td>${ESC(h)}</td><td class="num">${MONEY(rec)}</td><td class="num">${MONEY(pay)}</td><td class="num">${MONEY(rec-pay)}</td></tr>`;
+  }).join('');
+  const sydr=syDrTotal79();
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Day Cash Book ${ESC(d)}</title>
+  <style>body{font-family:Inter,Segoe UI,Arial,sans-serif;color:#17324d;margin:18px;font-size:11px}h1{font-size:20px;color:#12344d;margin:0}h2{font-size:14px;color:#087f8c;margin:16px 0 7px}table{width:100%;border-collapse:collapse;margin-bottom:12px}th{background:#dceff4;color:#102a43;font-weight:900}th,td{border:1px solid #b7cad7;padding:5px;font-weight:650}td.num{text-align:right}.toolbar{margin:10px 0}.toolbar button{background:#087f8c;color:#fff;border:0;border-radius:6px;padding:8px 12px;font-weight:900;margin-right:6px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.box{border:1px solid #b7cad7;border-radius:8px;padding:10px}.total{font-weight:900;background:#edf6f9}@media print{.toolbar{display:none}}</style></head><body>
+  <div class="toolbar"><button onclick="window.print()">GENERATE CASH BOOK / PRINT PDF</button><button onclick="exportExcel79()">EXPORT EXCEL</button></div>
+  <h1>NCC CAMP MESSING IMS — DAY CASH BOOK</h1><p><b>Camp:</b> ${ESC(camp.camp_name||camp.camp_code||'')} &nbsp; <b>Code:</b> ${ESC(camp.camp_code||'')} &nbsp; <b>Date:</b> ${ESC(d)}</p>
+  <h2>RECEIPTS</h2><table><tr><th>Date</th><th>RV No.</th><th>To Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Code Head</th></tr>${receiptRows}</table>
+  <h2>PAYMENTS</h2><table><tr><th>Date</th><th>PV No.</th><th>To Whom Paid</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Code Head / Particular</th></tr>${paymentRows}</table>
+  <h2>DAY BALANCE</h2><table><tr><th>Particular</th><th>Amount</th></tr><tr><td>Cash B/F</td><td class="num">${MONEY(s.bfCash)}</td></tr><tr><td>Bank B/F</td><td class="num">${MONEY(s.bfBank)}</td></tr><tr><td>Cash Receipts</td><td class="num">${MONEY(s.rc)}</td></tr><tr><td>Bank Receipts</td><td class="num">${MONEY(s.rb)}</td></tr><tr><td>Cash Payments</td><td class="num">${MONEY(s.pc)}</td></tr><tr><td>Bank Payments</td><td class="num">${MONEY(s.pb)}</td></tr><tr><td>Cash Drawn from Bank</td><td class="num">${MONEY(s.draw)}</td></tr><tr class="total"><td>Cash C/F</td><td class="num">${MONEY(s.cfCash)}</td></tr><tr class="total"><td>Bank C/F</td><td class="num">${MONEY(s.cfBank)}</td></tr></table>
+  <h2>CODE HEAD POSITION</h2><table><tr><th>Code Head</th><th>Receipt / Allotment</th><th>Payment / Expenditure</th><th>Closing</th></tr>${heads}</table>
+  <div class="grid"><div class="box"><h2>LIABILITIES</h2><table><tr><th>Liability / Unspent Head</th><th>Amount</th></tr>${cols.map(h=>{const r=rp.receipts.filter(x=>String(x.head).toUpperCase()===String(h).toUpperCase()).reduce((a,x)=>a+x.headAmount,0),p=rp.payments.filter(x=>String(x.head).toUpperCase()===String(h).toUpperCase()).reduce((a,x)=>a+x.headAmount,0);return `<tr><td>${ESC(h)}</td><td class="num">${MONEY(Math.max(0,r-p))}</td></tr>`}).join('')}<tr class="total"><th>Total Head Liabilities</th><th class="num">${MONEY(cols.reduce((a,h)=>{const r=rp.receipts.filter(x=>String(x.head).toUpperCase()===String(h).toUpperCase()).reduce((q,x)=>q+x.headAmount,0),p=rp.payments.filter(x=>String(x.head).toUpperCase()===String(h).toUpperCase()).reduce((q,x)=>q+x.headAmount,0);return a+Math.max(0,r-p)},0))}</th></tr></table></div>
+  <div class="box"><h2>ASSETS</h2><table><tr><th>Asset</th><th>Amount</th></tr><tr><td>Cash in Hand</td><td class="num">${MONEY(s.cfCash)}</td></tr><tr><td>Cash at Bank</td><td class="num">${MONEY(s.cfBank)}</td></tr><tr><td>SY DR — Sanction Pending</td><td class="num">${MONEY(sydr)}</td></tr><tr class="total"><th>Total Assets</th><th class="num">${MONEY(s.cfCash+s.cfBank+sydr)}</th></tr></table></div></div>
+  <p style="margin-top:18px"><b>Prepared by:</b> ____________________ &nbsp;&nbsp; <b>Checked by:</b> ____________________ &nbsp;&nbsp; <b>Approved by:</b> ____________________</p>
+  <script>function exportExcel79(){const html=document.documentElement.outerHTML.replace(/<script[\\s\\S]*?<\\/script>/gi,'');const b=new Blob(['\\ufeff',html],{type:'application/vnd.ms-excel'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Day_Cash_Book_${ESC(d)}.xls';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}<\/script></body></html>`;
+  const w=window.open('','_blank','width=1800,height=1000');if(!w)return alert('Please allow pop-ups for Cash Book.');w.document.open();w.document.write(html);w.document.close();
+};
+
+/* ---------- patch receipt UI and persist SY DR metadata ---------- */
+const oldShowReceipt79=window.showReceiptAllocation;
+if(typeof oldShowReceipt79==='function')window.showReceiptAllocation=function(id,amount){ensureSYDRFields79();oldShowReceipt79.apply(this,arguments);updateSYDR79()};
+function patchReceiptAllocation79(){
+  ensureSYDRFields79();
+  ['allocMessing','allocInc','allocPol','allocRankPay','allocTaCadets','allocTaDaCiv','allocRent','allocOthers'].forEach(id=>document.getElementById(id)?.addEventListener('input',updateSYDR79));
+  updateSYDR79();bindIncNumbering79();bindPV79();
+}
+
+/* Rebind after page navigation / refresh. */
+const oldShowPage79=window.showPage;
+if(typeof oldShowPage79==='function'&&!window.__V79_SHOW__){
+  window.__V79_SHOW__=true;
+  window.showPage=function(){const r=oldShowPage79.apply(this,arguments);setTimeout(patchReceiptAllocation79,60);return r};
+}
+const oldRefresh79=window.refreshAll;
+if(typeof oldRefresh79==='function'&&!window.__V79_REFRESH__){
+  window.__V79_REFRESH__=true;
+  window.refreshAll=async function(){const r=await oldRefresh79.apply(this,arguments);setTimeout(()=>{patchReceiptAllocation79();try{window.renderStockInList?.();window.renderStockOutList?.()}catch(_){ }},60);return r};
+}
+document.addEventListener('click',function(e){
+  const b=e.target.closest?.('button');if(!b)return;
+  const t=TXT(b.textContent).toUpperCase();
+  if(t.includes('NEW INVOICE')||t==='CLEAR')setTimeout(()=>{bindIncNumbering79();bindPV79()},80);
+},true);
+setTimeout(patchReceiptAllocation79,200);
+})();
+</script>
 </body>
 </html>
