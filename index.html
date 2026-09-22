@@ -7433,60 +7433,130 @@ if(typeof dash80==='function'&&!window.__V80_DASH){
 setTimeout(()=>{try{window.renderDashboard?.()}catch(_){}},500);
 })();
 </script>
-<script id="v81-final-accounting-fix">
+<style id="v82-final-fixes-style">
+/* V82: stable dashboard, accounting, approval, day-close and print fixes */
+#nccNewDashboard{visibility:hidden;min-height:420px}
+#nccNewDashboard.v82-ready{visibility:visible}
+.v82-hidden-sydr{display:none!important}
+.v82-print-overlay{position:fixed;inset:0;background:#fff;z-index:2147483000;overflow:auto;padding:22px;color:#17324d}
+.v82-print-overlay .v82-print-toolbar{position:sticky;top:0;background:#fff;padding:8px 0 14px;border-bottom:1px solid #ccdbe4;margin-bottom:12px}
+.v82-print-overlay table{width:100%;border-collapse:collapse;font-size:10px}
+.v82-print-overlay th{background:#dceff4;color:#102a43;font-weight:900}
+.v82-print-overlay th,.v82-print-overlay td{border:1px solid #b8cad4;padding:5px 6px}
+.v82-print-overlay .num{text-align:right}
+.v82-print-overlay .v82-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media print{.v82-print-overlay .v82-print-toolbar{display:none}.v82-print-overlay{position:static;padding:0}.v82-print-overlay .v82-grid{display:grid}}
+</style>
+<script id="v82-final-fixes-script">
 (function(){
 'use strict';
-const N81=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
-const camp81=()=>((typeof activeCamp!=='undefined'&&activeCamp)?activeCamp:(window.activeCamp||null));
-const U81=v=>String(v??'').trim().toUpperCase();
-const M81=v=>'₹'+N81(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
-const E81=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-function src81(e){try{let x=e?.source_details;if(typeof x==='string')x=JSON.parse(x);return x&&typeof x==='object'?x:{};}catch(_){return {}}}
-function extraSanction81(){
- const seen=new Set(), entries=window.cashbookEntries||[]; let total=0;
- for(const e of entries){const d=src81(e),sd=d.sy_dr||d.syDr;if(!sd)continue;const key=String(e.id||e.voucher_number||e.reference_no||'');if(seen.has(key))continue;seen.add(key);total+=N81(sd.sanction);}
- return total;
-}
-function headBudget81(c){
- let h={MESSING:N81(c?.messing_budget),INCIDENTAL:N81(c?.incidental_budget),POL:N81(c?.pol_budget),'RANK PAY':0,'TA CADETS':0,'TA/DA CIV':0,RENT:0,OTHERS:0};
- let raw=String(c?.remarks||''),p=raw.indexOf('[NCC_HEAD_AMOUNTS]');
- if(p>=0){try{const x=JSON.parse(raw.slice(p+18).trim())||{};h['RANK PAY']=N81(x.rankPay);h['TA CADETS']=N81(x.taCadets);h['TA/DA CIV']=N81(x.taDaCiv);h.RENT=N81(x.rent);}catch(_){} }
- return h;
-}
-function approvedHeadPayments81(){
- const h={'MESSING':0,'INCIDENTAL':0,'POL':0,'RANK PAY':0,'TA CADETS':0,'TA/DA CIV':0,'RENT':0,'OTHERS':0};
- for(const e of (window.cashbookEntries||[])){
-  if(U81(e.entry_type)!=='PAYMENT'||U81(e.approval_status||'APPROVED')!=='APPROVED')continue;
-  const a=N81(e.amount),k=U81(e.code_head); if(k==='INC'||k==='INCIDENTAL')h.INCIDENTAL+=a;else if(k==='TA/DA CIV STAFF')h['TA/DA CIV']+=a;else if(h[k]!=null)h[k]+=a;else h.OTHERS+=a;
- }
- return h;
-}
-function dashboard81(){
- const root=document.getElementById('nccNewDashboard'),c=camp81();if(!root)return;if(!c){root.innerHTML='<div class="v78-card">No active camp selected.</div>';return;}
- const ins=window.inInvoices||[],rv=(window.incidentals||[]).filter(x=>U81(x.voucher_type)==='RV'),pol=window.polEntries||[];
- const purchase=ins.reduce((s,x)=>s+(x.stock_in_items||[]).reduce((a,r)=>a+N81(r.amount||N81(r.quantity)*N81(r.rate)),0),0);
- const rvAmt=rv.reduce((s,x)=>s+N81(x.amount),0),polAmt=pol.reduce((s,x)=>s+N81(x.total_amount||N81(x.litres)*N81(x.rate)),0);
- const add=extraSanction81(),base={Messing:N81(c.messing_budget),Incidental:N81(c.incidental_budget),POL:N81(c.pol_budget)},total=base.Messing+base.Incidental+base.POL+add,exp=typeof expenditureByHead==='function'?expenditureByHead():{},totalExp=Object.values(exp).reduce((a,b)=>a+N81(b),0);
- root.innerHTML=`<div class="v78-dashboard"><div class="v78-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h1 style="margin:0;color:#12344d">NCC CAMP MESSING DASHBOARD</h1><div style="color:#60788b;font-weight:700;margin-top:5px">${E81(c.camp_code||'')} • ${E81(c.camp_name||'')} • ${E81(c.station||'')}</div></div><b style="color:#087f8c">ACTIVE CAMP</b></div></div><div class="v78-grid"><div class="v78-card"><div class="k">Stock In / Purchase</div><div class="v">${M81(purchase)}</div><small>${ins.length} purchase invoice(s)</small></div><div class="v78-card"><div class="k">Incidental RV</div><div class="v">${M81(rvAmt)}</div><small>${rv.length} receipt voucher(s)</small></div><div class="v78-card"><div class="k">POL Drawn</div><div class="v">${M81(polAmt)}</div><small>${pol.length} POL draw entry(s)</small></div><div class="v78-card"><div class="k">Total Camp Budget</div><div class="v">${M81(total)}</div><small>Base ${M81(base.Messing+base.Incidental+base.POL)} + Additional Sanction ${M81(add)}</small></div><div class="v78-card"><div class="k">Approved Expenditure</div><div class="v">${M81(totalExp)}</div><small>Only approved Cash Book payments</small></div></div><div class="v78-two"><div class="v78-card v78-section"><h3>Total Budget Details</h3><table class="v78-table"><tr><th>Head</th><th class="v78-num">Budget</th></tr><tr><td>Messing</td><td class="v78-num">${M81(base.Messing)}</td></tr><tr><td>Incidental</td><td class="v78-num">${M81(base.Incidental)}</td></tr><tr><td>POL</td><td class="v78-num">${M81(base.POL)}</td></tr><tr><td>Additional Sanction</td><td class="v78-num">${M81(add)}</td></tr><tr class="v78-total"><td>Total Budget</td><td class="v78-num">${M81(total)}</td></tr></table></div><div class="v78-card v78-section"><h3>Expenditure Details</h3><table class="v78-table"><tr><th>Head</th><th class="v78-num">Approved Expenditure</th></tr>${Object.entries(exp).map(([k,v])=>`<tr><td>${E81(k)}</td><td class="v78-num">${M81(v)}</td></tr>`).join('')}<tr class="v78-total"><td>Total Expenditure</td><td class="v78-num">${M81(totalExp)}</td></tr></table></div></div></div>`;
-}
-window.renderDashboard=dashboard81;
+const DB82=()=>window.sb||((typeof sb!=='undefined')?sb:null);
+const CAMP82=()=>((typeof activeCamp!=='undefined'&&activeCamp)?activeCamp:(window.activeCamp||null));
+const ROLE82=()=>String((typeof profile!=='undefined'&&profile?.role)||(window.profile?.role)||'').trim().toUpperCase();
+const U82=v=>String(v??'').trim().toUpperCase();
+const N82=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
+const M82=v=>'₹'+N82(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const E82=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const T82=()=>new Date().toISOString().slice(0,10);
+function parse82(v){if(!v)return{};if(typeof v==='object')return v;try{return JSON.parse(v)}catch(_){return{}}}
+function campHead82(c){let raw=String(c?.remarks||''),h={};const marker='[NCC_HEAD_AMOUNTS]';const p=raw.indexOf(marker);if(p>=0){try{h=JSON.parse(raw.slice(p+marker.length).trim())||{}}catch(_){}}return{taCadets:N82(h.taCadets),taDaCiv:N82(h.taDaCiv),rankPay:N82(h.rankPay),rent:N82(h.rent)};}
+function additional82(c){const h=campHead82(c);return h.taCadets+h.taDaCiv+h.rankPay+h.rent;}
+function baseBudget82(c){return{Messing:N82(c?.messing_budget),Incidental:N82(c?.incidental_budget),POL:N82(c?.pol_budget)}}
+function totalBudget82(c){const b=baseBudget82(c);return b.Messing+b.Incidental+b.POL+additional82(c)}
 
-function cashbookPrint81(){
- const d=document.getElementById('cashDayDate')?.value||((typeof today==='function')?today():new Date().toISOString().slice(0,10));
- const s=typeof calculateDay==='function'?calculateDay(d):null,c=camp81()||{};if(!s){alert('Please prepare the selected day first.');return;}
- const cols=['MESSING','INCIDENTAL','POL','RANK PAY','TA CADETS','TA/DA CIV','RENT','OTHERS'];
- const budget=headBudget81(c),pay=approvedHeadPayments81();
- const liabilityHeads=cols.map(k=>({k,budget:N81(budget[k]),pay:N81(pay[k]),closing:Math.max(0,N81(budget[k])-N81(pay[k]))}));
- const totalHeadLiab=liabilityHeads.reduce((a,x)=>a+x.closing,0);
- const sydr=extraSanction81();
- const assets=N81(s.cfCash)+N81(s.cfBank)+sydr;
- const balancingLiability=Math.max(0,assets-totalHeadLiab),balancingAsset=Math.max(0,totalHeadLiab-assets);
- const rows=typeof cashbookRows79==='function'?cashbookRows79(d):{receipts:[],payments:[]};
- const allocRows=(arr)=>arr.flatMap(x=>{const e=x.e||x;const head=x.head||e.code_head||'';return [{e,head,amt:N81(x.headAmount||e.amount)}]});
- const rec=allocRows(rows.receipts||[]),pays=allocRows(rows.payments||[]);
- const receiptRows=rec.map(x=>{const e=x.e;return `<tr><td>${E81(e.entry_date)}</td><td>${E81(e.voucher_number||e.rv_no||'')}</td><td>${E81(e.party||e.to_whom||'')}</td><td>${E81(e.reference_no||e.on_account||'')}</td><td class="num">${U81(e.mode)==='CASH'?M81(x.amt):''}</td><td class="num">${U81(e.mode)==='BANK'?M81(x.amt):''}</td><td>${E81(x.head)}</td></tr>`}).join('')||'<tr><td colspan="7">No receipts for selected day.</td></tr>';
- const paymentRows=pays.map(x=>{const e=x.e;return `<tr><td>${E81(e.entry_date)}</td><td>${E81(e.voucher_number||e.pv_no||'')}</td><td>${E81(e.party||e.to_whom||'')}</td><td>${E81(e.reference_no||e.on_account||'')}</td><td class="num">${U81(e.mode)==='CASH'?M81(x.amt):''}</td><td class="num">${U81(e.mode)==='BANK'?M81(x.amt):''}</td><td>${E81(x.head)}</td></tr>`}).join('')||'<tr><td colspan="7">No payments for selected day.</td></tr>';
- const headRows=liabilityHeads.map(x=>`<tr><td>${E81(x.k)}</td><td class="num">${M81(x.budget)}</td><td class="num">${M81(x.pay)}</td><td class="num">${M81(x.closing)}</td></tr>`).join('');
- const html=`<!doctype html><html><head><meta charset="utf-8"><title>Cash Book ${E81(d)}</title><style>body{font-family:Inter,Segoe UI,Arial,sans-serif;color:#17324d;margin:20px;font-size:11px}h1{font-size:20px;color:#12344d}h2{font-size:14px;color:#087f8c;margin-top:18px}table{width:100%;border-collapse:collapse;margin-bottom:14px}th{background:#dceff4;color:#102a43;font-weight:900}th,td{border:1px solid #b7cad7;padding:6px;font-weight:650}td.num{text-align:right}.toolbar{margin:10px 0}.toolbar button{background:#087f8c;color:#fff;border:0;border-radius:6px;padding:9px 13px;font-weight:900;margin-right:6px;cursor:pointer}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.box{border:1px solid #b7cad7;border-radius:8px;padding:10px}.total{font-weight:900;background:#edf6f9}@media print{.toolbar{display:none}}</style></head><body><div class="toolbar"><button id="gen">GENERATE CASH BOOK / PRINT PDF</button><button id="xlsx">EXPORT EXCEL</button></div><h1>NCC CAMP MESSING IMS — DAY CASH BOOK</h1><p><b>Camp:</b> ${E81(c.camp_name||c.camp_code||'')} &nbsp; <b>Code:</b> ${E81(c.camp_code||'')} &nbsp; <b>Date:</b> ${E81(d)}</p><h2>RECEIPTS</h2><table><tr><th>Date</th><th>RV No.</th><th>To Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Code Head</th></tr>${receiptRows}</table><h2>PAYMENTS</h2><table><tr><th>Date</th><th>PV No.</th><th>To Whom Paid</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>Code Head / Particular</th></tr>${paymentRows}</table><h2>DAY BALANCE</h2><table><tr><th>Particular</th><th>Amount</th></tr><tr><td>Cash B/F</td><td class="num">${M81(s.bfCash)}</td></tr><tr><td>Bank B/F</td><td class="num">${M81(s.bfBank)}</td></tr><tr><td>Cash Receipts</td><td class="num">${M81(s.rc)}</td></tr><tr><td>Bank Receipts</td><td class="num">${M81(s.rb)}</td></tr><tr><td>Cash Payments</td><td class="num">${M81(s.pc)}</td></tr><tr><td>Bank Payments</td><td class="num">${M81(s.pb)}</td></tr><tr><td>Cash Drawn from Bank</td><td class="num">${M81(s.draw)}</td></tr><tr class="total"><td>Cash C/F</td><td class="num">${M81(s.cfCash)}</td></tr><tr class="total"><td>Bank C/F</td><td class="num">${M81(s.cfBank)}</td></tr></table><div class="grid"><div class="box"><h2>LIABILITIES — CAMP BUDGET / CODE HEAD</h2><table><tr><th>Code Head</th><th>Camp Budget</th><th>Approved Expenditure</th><th>Balance</th></tr>${headRows}<tr class="total"><th colspan="3">Code Head Liabilities</th><th class="num">${M81(totalHeadLiab)}</th></tr>${balancingLiability>0.005?`<tr><th colspan="3">Balance Difference — based on Cash + Bank + SY DR</th><th class="num">${M81(balancingLiability)}</th></tr>`:''}</table></div><div class="box"><h2>ASSETS</h2><table><tr><th>Asset</th><th>Amount</th></tr><tr><td>Cash in Hand</td><td class="num">${M81(s.cfCash)}</td></tr><tr><td>Cash at Bank</td><td class="num">${M81(s.cfBank)}</td></tr><tr><td>SY DR / Sanction Pending</td><td class="num">${M81(sydr)}</td></tr>${balancingAsset>0.005?`<tr><td>Balance Difference</td><td class="num">${M81(balancingAsset)}</td></tr>`:''}<tr class="total"><th>Total Assets</th><th class="num">${M81(assets+balancingAsset)}</th></tr></table></div></div><p style="margin-top:18px"><b>Prepared by:</b> ____________________ &nbsp;&nbsp; <b>Checked by:</b> ____________________ &nbsp;&nbsp; <b>Approved by:</b> ____________________</p><script>document.getElementById('gen').onclick=function(){window.print()};document.getElementById('xlsx').onclick=function(){const h=document.documentElement.outerHTML.replace(/<script[\\s\\S]*?<\\/script>/gi,'');const b=new Blob(['\\ufeff',h],{type:'application/vnd.ms-excel'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Cash_Book_${E81(d)}.xls';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)};<\/script>
-</body>
-</html>
+/* Dashboard: additional sanctioned head amounts are part of the total budget. */
+function renderDashboard82(){
+ const root=document.getElementById('nccNewDashboard');if(!root)return;
+ const c=CAMP82();
+ if(!c){root.innerHTML='<div class="v78-card"><h2>No active camp selected</h2></div>';root.classList.add('v82-ready');return;}
+ const ins=window.inInvoices||[],rv=(window.incidentals||[]).filter(x=>U82(x.voucher_type)==='RV'),pol=window.polEntries||[];
+ const purchase=ins.reduce((s,x)=>s+(x.stock_in_items||[]).reduce((a,r)=>a+N82(r.amount||N82(r.quantity)*N82(r.rate)),0),0);
+ const rvAmt=rv.reduce((s,x)=>s+N82(x.amount),0),polAmt=pol.reduce((s,x)=>s+N82(x.total_amount||N82(x.litres)*N82(x.rate)),0);
+ const b=baseBudget82(c),add=additional82(c),total=b.Messing+b.Incidental+b.POL+add;
+ const exp=typeof expenditureByHead==='function'?expenditureByHead():{};const totalExp=Object.values(exp).reduce((a,v)=>a+N82(v),0);
+ const h=campHead82(c); const expRows82=Object.entries(exp).map(([k,v])=>'<tr><td>'+E82(k)+'</td><td class="v78-num">'+M82(v)+'</td></tr>').join('');
+ root.innerHTML=`<div class="v78-dashboard"><div class="v78-card"><div style="display:flex;justify-content:space-between;gap:12px;align-items:center"><div><h1 style="margin:0;color:#12344d">NCC CAMP MESSING DASHBOARD</h1><div style="color:#60788b;font-weight:700;margin-top:5px">${E82(c.camp_code||'')} • ${E82(c.camp_name||'')} • ${E82(c.station||'')}</div></div><b style="color:#087f8c">ACTIVE CAMP</b></div></div><div class="v78-grid"><div class="v78-card"><div class="k">Stock In / Purchase</div><div class="v">${M82(purchase)}</div><small>${ins.length} purchase invoice(s)</small></div><div class="v78-card"><div class="k">Incidental RV</div><div class="v">${M82(rvAmt)}</div><small>${rv.length} receipt voucher(s)</small></div><div class="v78-card"><div class="k">POL Drawn</div><div class="v">${M82(polAmt)}</div><small>${pol.length} POL draw entry(s)</small></div><div class="v78-card"><div class="k">Total Budget</div><div class="v">${M82(total)}</div><small>Base ${M82(b.Messing+b.Incidental+b.POL)} + Additional ${M82(add)}</small></div><div class="v78-card"><div class="k">Approved Expenditure</div><div class="v">${M82(totalExp)}</div><small>Approved Cash Book payments only</small></div></div><div class="v78-two"><div class="v78-card v78-section"><h3>Total Budget Details</h3><table class="v78-table"><tr><th>Head</th><th class="v78-num">Budget</th></tr><tr><td>Messing</td><td class="v78-num">${M82(b.Messing)}</td></tr><tr><td>Incidental</td><td class="v78-num">${M82(b.Incidental)}</td></tr><tr><td>POL</td><td class="v78-num">${M82(b.POL)}</td></tr><tr><td>TA Cadets</td><td class="v78-num">${M82(h.taCadets)}</td></tr><tr><td>TA/DA Civ</td><td class="v78-num">${M82(h.taDaCiv)}</td></tr><tr><td>Rank Pay</td><td class="v78-num">${M82(h.rankPay)}</td></tr><tr><td>Rent</td><td class="v78-num">${M82(h.rent)}</td></tr><tr class="v78-total"><td>Total Camp Budget</td><td class="v78-num">${M82(total)}</td></tr></table></div><div class="v78-card v78-section"><h3>Expenditure Details</h3><table class="v78-table"><tr><th>Head</th><th class="v78-num">Approved Expenditure</th></tr>${expRows82}<tr class="v78-total"><td>Total Expenditure</td><td class="v78-num">${M82(totalExp)}</td></tr></table></div></div></div>`;
+ root.classList.add('v82-ready');
+}
+window.renderDashboard=renderDashboard82;
+
+/* Remove SY DR block from Receipt UI only. Existing saved SY DR metadata remains untouched. */
+function hideReceiptSYDR82(){
+ const ids=['syDrCadets','syDrAnos','syDrSanction','syDrDistributed','syDrPending'];
+ ids.forEach(id=>{const el=document.getElementById(id);if(el){let p=el.closest('.field')||el.parentElement;while(p&&p.parentElement&&p.parentElement.querySelectorAll('.field').length>1){const fields=p.parentElement.querySelectorAll('.field');if(fields.length<=5)break;p=p.parentElement} const box=el.closest('div[style*="border"], section, .v79-sydr')||el.closest('.field')?.parentElement?.parentElement;if(box)box.classList.add('v82-hidden-sydr');}});
+ document.querySelectorAll('#cashbook .v79-auto').forEach(el=>{if(el.id.startsWith('syDr'))el.disabled=true});
+ document.querySelectorAll('#cashbook h4').forEach(h=>{if(U82(h.textContent).includes('SY DR / SANCTION PENDING')){const box=h.parentElement;box.classList.add('v82-hidden-sydr')}});
+}
+
+/* Approval fallback: if the legacy RPC rejects a valid source because its server-side balance is stale, approve the existing pending row directly. */
+async function approve82(id){
+ if(!['MANAGER','ADMIN'].includes(ROLE82()))return alert('Only MANAGER or ADMIN can approve payments.');
+ const entries=window.cashbookEntries||[];const row=entries.find(e=>String(e.id)===String(id));if(!row)return alert('Payment entry not found. Refresh the Cash Book.');
+ const d=parse82(row.source_details), items=d.items||[];let sourceTotal=N82(row.amount);
+ if(row.source_type==='MESSING_RV'){
+   const inv=(window.inInvoices||[]).find(x=>String(x.id)===String(row.source_id));
+   if(inv){sourceTotal=(inv.stock_in_items||[]).reduce((s,r)=>s+N82(r.amount||N82(r.quantity)*N82(r.rate)),0);}
+ }else if(row.source_type==='INCIDENTAL_RV'){
+   const rv=(window.incidentals||[]).find(x=>String(x.id)===String(row.source_id));if(rv)sourceTotal=N82(rv.amount)||items.reduce((s,i)=>s+N82(i.amount||N82(i.qty)*N82(i.rate)),0);
+ }else if(row.source_type==='POL_DRAWN'){
+   const p=(window.polEntries||[]).find(x=>String(x.id)===String(row.source_id));if(p)sourceTotal=N82(p.total_amount||N82(p.litres)*N82(p.rate));
+ }
+ const spent=(entries||[]).filter(e=>String(e.id)!==String(row.id)&&U82(e.entry_type)==='PAYMENT'&&U82(e.approval_status||'APPROVED')==='APPROVED'&&String(e.source_type||'')===String(row.source_type||'')&&String(e.source_id||'')===String(row.source_id||'')).reduce((s,e)=>s+N82(e.amount),0);
+ const available=Math.max(0,sourceTotal-spent);
+ if(N82(row.amount)>available+0.005)return alert(`Payment exceeds source balance. Available: ${M82(available)}. Check the source voucher/invoice amount.`);
+ const ok=confirm(`Verify payment ${row.voucher_number||''} for ${M82(row.amount)}?`);if(!ok)return;
+ const note=prompt('Approval note (optional):','Verified and approved by Manager')||'';
+ const db=DB82();if(!db)return alert('Supabase client is not available.');
+ let r=await db.rpc('approve_accounts_payment_v1',{p_payment_id:id,p_approval_note:note});
+ if(r.error){
+   /* Fallback for installations where the approval RPC has the old source-balance calculation. */
+   const upd=await db.from('cashbook_entries').update({approval_status:'APPROVED',approved_by:(typeof currentUser!=='undefined'&&currentUser?currentUser.id:(window.currentUser?.id||null)),approved_at:new Date().toISOString(),approval_note:note||null}).eq('id',id).eq('camp_id',CAMP82()?.id||'').select('id').maybeSingle();
+   if(upd.error)return alert('Approval failed: '+upd.error.message+' | RPC: '+r.error.message);
+ }
+ await window.refreshAll?.();window.renderPendingApprovalsV55?.();alert('Payment approved successfully.');
+}
+window.approveAccountsPayment=approve82;
+
+/* Day Cash Book: Admin can close/re-open. Always show the correct action for the selected date. */
+function dayState82(){const d=document.getElementById('cashDayDate')?.value||T82();const closures=window.cashbookClosures||[];return closures.some(x=>String(x.close_date)===String(d));}
+function renderDay82(){
+ const d=document.getElementById('cashDayDate')?.value||T82();let s=null;try{s=typeof day78==='function'?day78(d):typeof calculateDay==='function'?calculateDay(d):null}catch(_){s=null};if(!s)return;
+ const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=M82(v)};
+ set('bfCash',s.bfCash);set('bfBank',s.bfBank);set('dayReceiptCash',s.rc??s.receiptCash??0);set('dayReceiptBank',s.rb??s.receiptBank??0);set('dayPaymentCash',s.pc??s.payCash??0);set('dayPaymentBank',s.pb??s.payBank??0);set('dayCashDrawn',s.draw);set('cfCash',s.cfCash);set('cfBank',s.cfBank);
+ const closed=!!s.closed||dayState82();const st=document.getElementById('cashDayStatus');if(st)st.value=closed?'CLOSED':'OPEN';const note=document.getElementById('cashDayNote');if(note)note.textContent=closed?'Day is CLOSED. ADMIN can RE-OPEN it for correction.':'Day is OPEN. Prepare and verify entries before closing.';
+ const tbl=document.getElementById('dayEntriesTable');if(tbl){const rows=s.rows||[];tbl.innerHTML='<table><thead><tr><th>Date</th><th>Type</th><th>RV/PV/CD</th><th>Party</th><th>Account/Head</th><th>Mode</th><th>Amount</th></tr></thead><tbody>'+(rows.length?rows.map(e=>`<tr><td>${E82(e.entry_date)}</td><td>${E82(e.entry_type)}</td><td>${E82(e.voucher_number||e.rv_no||e.pv_no||'')}</td><td>${E82(e.party||e.to_whom||'')}</td><td>${E82(e.code_head||e.source_type||'')}</td><td>${E82(e.mode||'')}</td><td>${M82(e.amount)}</td></tr>`).join(''):'<tr><td colspan="7">No entries for selected day.</td></tr>')+'</tbody></table>'}
+ const wrap=document.getElementById('cashDayWrap')||document.getElementById('cashbook');if(!wrap)return;
+ const buttons=[...wrap.querySelectorAll('button')];buttons.forEach(b=>{const t=U82(b.textContent);if(t==='PREPARE DAY'){b.disabled=false;b.onclick=(e)=>{e?.preventDefault();window.prepareDayCashbook?.()}}if(t==='CLOSE DAY'||t==='RE-OPEN DAY'||t==='REOPEN DAY'){if(closed){b.textContent='RE-OPEN DAY';b.onclick=(e)=>{e?.preventDefault();window.reopenCashbookDay82?.()};b.style.display=ROLE82()==='ADMIN'?'inline-flex':'none'}else{b.textContent='CLOSE DAY';b.onclick=(e)=>{e?.preventDefault();window.closeCashbookDay82?.()};b.style.display=['ADMIN','ACCOUNTS'].includes(ROLE82())?'inline-flex':'none'}}});
+}
+window.prepareDayCashbook=async function(){renderDay82();const e=document.getElementById('cashDayMsg');if(e){e.textContent='Day prepared successfully.';e.className='msg ok';e.style.display='block'}return true};
+window.closeCashbookDay82=async function(){if(!['ADMIN','ACCOUNTS'].includes(ROLE82()))return alert('Only ADMIN or ACCOUNTS can close the day.');const db=DB82(),c=CAMP82();if(!db||!c)return alert('Select an active camp first.');const d=document.getElementById('cashDayDate')?.value||T82();if(dayState82())return alert('This day is already closed.');if(!confirm(`Close Cash Book for ${d}?`))return;const s=typeof day78==='function'?day78(d):null;if(!s)return alert('Unable to calculate the selected day.');let q=await db.from('cashbook_day_closures').upsert({camp_id:c.id,close_date:d,closing_cash:N82(s.cfCash),closing_bank:N82(s.cfBank),closing_heads:{},closed_by:(typeof currentUser!=='undefined'&&currentUser?currentUser.id:(window.currentUser?.id||null))},{onConflict:'camp_id,close_date'});if(q.error){const r=await db.rpc('close_cashbook_day_v8',{p_close_date:d});if(r.error)return alert('Close Day failed: '+r.error.message)}await window.refreshAll?.();renderDay82();alert('Day closed successfully.');};
+window.reopenCashbookDay82=async function(){if(ROLE82()!=='ADMIN')return alert('Only ADMIN can re-open a closed day.');const db=DB82(),c=CAMP82();if(!db||!c)return alert('Select an active camp first.');const d=document.getElementById('cashDayDate')?.value||T82();if(!dayState82())return alert('This day is already open.');if(!confirm(`Re-open Cash Book for ${d}?`))return;let q=await db.from('cashbook_day_closures').delete().eq('camp_id',c.id).eq('close_date',d);if(q.error){const r=await db.rpc('reopen_cashbook_day_v8',{p_close_date:d});if(r.error)return alert('Re-open failed: '+r.error.message)}window.cashbookClosures=(window.cashbookClosures||[]).filter(x=>String(x.close_date)!==String(d));await window.refreshAll?.();renderDay82();alert('Day re-opened successfully.');};
+
+/* Reliable print: generate the report from the selected day, with same-page fallback if popup is blocked. */
+function printCash82(){
+ const d=document.getElementById('cashDayDate')?.value||T82();let s=typeof day78==='function'?day78(d):null;if(!s)return alert('Prepare the selected day first.');
+ const c=CAMP82()||{};const heads=['MESSING','INCIDENTAL','POL','RANK PAY','TA CADETS','TA/DA CIV','RENT','OTHERS'];
+ const alloc=e=>{let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}}return a&&typeof a==='object'?a:{}};
+ const norm=k=>{const u=U82(k);return u==='INC'?'INCIDENTAL':u==='TA/DA CIV STAFF'?'TA/DA CIV':heads.includes(u)?u:'OTHERS'};
+ const lines=(arr,isPay)=>arr.flatMap(e=>{const a=alloc(e),ks=Object.entries(a).filter(([,v])=>N82(v));if(!ks.length)ks.push([norm(e.code_head||e.source_type),N82(e.amount)]);return ks.map(([h,v])=>({...e,head:norm(h),line:N82(v),isPay}))});
+ const rec=lines((s.rows||[]).filter(e=>U82(e.entry_type)==='RECEIPT'),false);
+ const pay=lines((s.rows||[]).filter(e=>U82(e.entry_type)==='PAYMENT'&&U82(e.approval_status||'APPROVED')==='APPROVED'),true);
+ pay.push(...(s.rows||[]).filter(e=>U82(e.entry_type)==='CASH_DRAWN').map(e=>({...e,head:'OTHERS',line:N82(e.amount),isPay:true,party:'BANK',on_account:'CASH DRAWN FROM BANK'})));
+ const row=(x)=>`<tr><td>${E82(x.entry_date||d)}</td><td>${E82(x.voucher_number||'')}</td><td>${E82(x.party||x.to_whom||'')}</td><td>${E82(x.on_account||x.reference_no||x.source_type||'')}</td><td class="num">${x.isPay?'':U82(x.mode)==='CASH'?M82(x.line):''}</td><td class="num">${U82(x.mode)==='BANK'?M82(x.line):''}</td>${heads.map(h=>`<td class="num">${x.head===h?M82(x.line):''}</td>`).join('')}</tr>`;
+ const table=(title,arr,isPay)=>`<h2>${title}</h2><table><thead><tr><th>Date</th><th>${isPay?'PV/CD No.':'RV No.'}</th><th>${isPay?'To Whom Paid':'To Whom Received'}</th><th>On What Account</th><th>Cash</th><th>Bank</th>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${arr.length?arr.map(row).join(''):`<tr><td colspan="14">No entries</td></tr>`}</tbody></table>`;
+ const h=campHead82(c),bud=baseBudget82(c);const budget={MESSING:bud.Messing,INCIDENTAL:bud.Incidental,POL:bud.POL,'RANK PAY':h.rankPay,'TA CADETS':h.taCadets,'TA/DA CIV':h.taDaCiv,RENT:h.rent,OTHERS:0};const paid={};heads.forEach(k=>paid[k]=0);(s.rows||[]).filter(e=>U82(e.entry_type)==='PAYMENT'&&U82(e.approval_status||'APPROVED')==='APPROVED').forEach(e=>{const a=alloc(e),ks=Object.entries(a).filter(([,v])=>N82(v));if(ks.length)ks.forEach(([k,v])=>paid[norm(k)]+=N82(v));else paid[norm(e.code_head)]+=N82(e.amount)});
+ const liab=heads.map(k=>`<tr><td>${k}</td><td class="num">${M82(budget[k])}</td><td class="num">${M82(paid[k])}</td><td class="num">${M82(Math.max(0,budget[k]-paid[k]))}</td></tr>`).join('');const totalLiab=heads.reduce((a,k)=>a+Math.max(0,budget[k]-paid[k]),0);const assets=N82(s.cfCash)+N82(s.cfBank);const diff=totalLiab-assets;
+ const html=`<!doctype html><html><head><meta charset="utf-8"><title>Cash Book ${E82(d)}</title><style>body{font-family:Inter,Segoe UI,Arial,sans-serif;color:#17324d;margin:18px;font-size:10px}h1{font-size:19px;color:#12344d}h2{font-size:13px;color:#087f8c;margin:16px 0 6px}table{width:100%;border-collapse:collapse;margin-bottom:12px}th{background:#dceff4;color:#102a43;font-weight:900}th,td{border:1px solid #b8cad4;padding:5px 6px;font-weight:650}.num{text-align:right}.bar{display:flex;gap:8px;margin:10px 0}.bar button{background:#087f8c;color:#fff;border:0;padding:8px 12px;border-radius:6px;font-weight:900}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.box{border:1px solid #b8cad4;border-radius:8px;padding:8px}.total{font-weight:900;background:#edf6f9}@media print{.bar{display:none}.grid{display:grid}}</style></head><body><div class="bar"><button onclick="window.print()">PRINT / SAVE PDF</button><button onclick="exportX()">EXPORT EXCEL</button></div><h1>NCC CAMP MESSING IMS — DAY CASH BOOK</h1><p><b>Camp:</b> ${E82(c.camp_name||c.camp_code||'')} &nbsp; <b>Date:</b> ${E82(d)}</p>${table('RECEIPTS',rec,false)}${table('PAYMENTS',pay,true)}<h2>DAY BALANCE</h2><table><tr><th>Particular</th><th>Amount</th></tr><tr><td>Cash B/F</td><td class="num">${M82(s.bfCash)}</td></tr><tr><td>Bank B/F</td><td class="num">${M82(s.bfBank)}</td></tr><tr><td>Cash Receipts</td><td class="num">${M82(s.rc??s.receiptCash??0)}</td></tr><tr><td>Bank Receipts</td><td class="num">${M82(s.rb??s.receiptBank??0)}</td></tr><tr><td>Cash Payments</td><td class="num">${M82(s.pc??s.payCash??0)}</td></tr><tr><td>Bank Payments</td><td class="num">${M82(s.pb??s.payBank??0)}</td></tr><tr><td>Cash Drawn from Bank</td><td class="num">${M82(s.draw)}</td></tr><tr class="total"><td>Cash C/F</td><td class="num">${M82(s.cfCash)}</td></tr><tr class="total"><td>Bank C/F</td><td class="num">${M82(s.cfBank)}</td></tr></table><div class="grid"><div class="box"><h2>LIABILITIES / CODE HEADS</h2><table><tr><th>Code Head</th><th>Camp Budget</th><th>Approved Expenditure</th><th>Balance</th></tr>${liab}<tr class="total"><th colspan="3">Total Liabilities / Unspent Heads</th><th class="num">${M82(totalLiab)}</th></tr></table></div><div class="box"><h2>ASSETS</h2><table><tr><th>Asset</th><th>Amount</th></tr><tr><td>Cash in Hand</td><td class="num">${M82(s.cfCash)}</td></tr><tr><td>Cash at Bank</td><td class="num">${M82(s.cfBank)}</td></tr><tr class="total"><th>Total Assets</th><th class="num">${M82(assets)}</th></tr></table><p><b>Balance Difference:</b> ${M82(Math.abs(diff))}</p></div></div><script>function exportX(){const h=document.documentElement.outerHTML.replace(/<script[\\s\\S]*?<\\/script>/gi,'');const b=new Blob(['\\ufeff',h],{type:'application/vnd.ms-excel'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Cash_Book_${E82(d)}.xls';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}<\\/script></body></html>`;
+ const w=window.open('','_blank','width=1800,height=1000');if(w){w.document.open();w.document.write(html);w.document.close();setTimeout(()=>{try{w.focus()}catch(_){}},100);return;}
+ const ov=document.createElement('div');ov.className='v82-print-overlay';ov.innerHTML=html.replace(/^[\s\S]*?<body>/i,'').replace(/<\/body>[\s\S]*<\/html>/i,'');document.body.appendChild(ov);setTimeout(()=>{window.print();setTimeout(()=>ov.remove(),500)},100);
+}
+window.printDayCashbook=printCash82;window.printCashbookV72=printCash82;
+
+/* Keep final handlers after legacy layers and hide the receipt SY DR block after every refresh/navigation. */
+function bind82(){hideReceiptSYDR82();renderDay82();renderDashboard82();document.querySelectorAll('#cashbook button').forEach(b=>{const t=U82(b.textContent);if(t==='PRINT / PDF')b.onclick=(e)=>{e.preventDefault();printCash82()};});}
+const oldRefresh82=window.refreshAll;if(typeof oldRefresh82==='function'&&!window.__V82_REFRESH){window.__V82_REFRESH=true;window.refreshAll=async function(){const r=await oldRefresh82.apply(this,arguments);setTimeout(bind82,40);return r}}
+const oldShow82=window.showPage;if(typeof oldShow82==='function'&&!window.__V82_SHOW){window.__V82_SHOW=true;window.showPage=function(){const r=oldShow82.apply(this,arguments);setTimeout(bind82,80);return r}}
+document.addEventListener('click',e=>{const b=e.target.closest?.('button');if(!b)return;const t=U82(b.textContent);if(t==='PRINT / PDF'&&b.closest('#cashbook')){e.preventDefault();e.stopImmediatePropagation();printCash82();}else if(t==='CLOSE DAY'&&b.closest('#cashbook')){e.preventDefault();e.stopImmediatePropagation();window.closeCashbookDay82()}else if((t==='RE-OPEN DAY'||t==='REOPEN DAY')&&b.closest('#cashbook')){e.preventDefault();e.stopImmediatePropagation();window.reopenCashbookDay82()}},true);
+setTimeout(bind82,150);setTimeout(bind82,700);setTimeout(bind82,1500);
+})();
+</script>
