@@ -7279,5 +7279,159 @@ document.addEventListener('click',function(e){
 setTimeout(patchReceiptAllocation79,200);
 })();
 </script>
+<script id="v80-final-fixes">
+(function(){
+'use strict';
+const db80=()=>window.sb||((typeof sb!=='undefined')?sb:null);
+const camp80=()=>((typeof activeCamp!=='undefined'&&activeCamp)?activeCamp:(window.activeCamp||null));
+const num80=v=>{const n=Number(v);return Number.isFinite(n)?n:0};
+const esc80=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const msg80=(id,t,ok)=>{const e=document.getElementById(id);if(!e)return;e.textContent=t;e.style.display='block';e.className='msg '+(ok?'ok':'err')};
+
+/* ---------- Stock In / Stock Out: exact child-row persistence ---------- */
+function rows80(selItem,selQty,selRate){
+ return [...document.querySelectorAll('#inRows .item-row')].map(r=>({item_id:r.querySelector(selItem)?.value||'',quantity:num80(r.querySelector(selQty)?.value),rate:num80(r.querySelector(selRate)?.value)})).filter(x=>x.item_id&&x.quantity>0);
+}
+function rowsOut80(){
+ return [...document.querySelectorAll('#outRows .item-row')].map(r=>({item_id:r.querySelector('.out-item')?.value||'',quantity:num80(r.querySelector('.out-qty')?.value)})).filter(x=>x.item_id&&x.quantity>0);
+}
+async function exactChildren80(table,fk,headerId,desired){
+ const db=db80();
+ const q=await db.from(table).select('id,item_id,quantity,rate').eq(fk,headerId);
+ if(q.error)throw q.error;
+ const existing=q.data||[];
+ /* Remove every existing child first. This guarantees that an edited invoice/voucher
+    contains exactly what the user sees on screen. */
+ if(existing.length){
+   const ids=existing.map(x=>x.id).filter(Boolean);
+   if(ids.length){const d=await db.from(table).delete().in('id',ids);if(d.error)throw d.error;}
+ }
+ if(desired.length){
+   /* amount is intentionally omitted: in the current Supabase schema it is a generated
+      column. Supabase calculates it from quantity/rate. */
+   const payload=desired.map(r=>({[fk]:headerId,item_id:r.item_id,quantity:r.quantity,rate:r.rate}));
+   const ins=await db.from(table).insert(payload);
+   if(ins.error)throw ins.error;
+ }
+ const check=await db.from(table).select('id,item_id,quantity,rate').eq(fk,headerId);
+ if(check.error)throw check.error;
+ return (check.data||[]).length;
+}
+async function recalcInv80(){
+ const db=db80(),c=camp80();if(!db||!c)return;
+ const [ii,si,so]=await Promise.all([
+  db.from('inventory_items').select('id').eq('camp_id',c.id),
+  db.from('stock_in_items').select('item_id,quantity,stock_in_invoices!inner(camp_id)').eq('stock_in_invoices.camp_id',c.id),
+  db.from('stock_out_items').select('item_id,quantity,stock_out_vouchers!inner(camp_id)').eq('stock_out_vouchers.camp_id',c.id)
+ ]);
+ if(ii.error)return;
+ const ins={},outs={};(si.data||[]).forEach(r=>ins[r.item_id]=(ins[r.item_id]||0)+num80(r.quantity));(so.data||[]).forEach(r=>outs[r.item_id]=(outs[r.item_id]||0)+num80(r.quantity));
+ await Promise.all((ii.data||[]).map(r=>db.from('inventory_items').update({stock_in_qty:ins[r.id]||0,stock_out_qty:outs[r.id]||0}).eq('id',r.id).eq('camp_id',c.id)));
+}
+window.saveStockIn=async function(){
+ if(typeof canTxEdit==='function'&&!canTxEdit())return;
+ const db=db80(),c=camp80();if(!db||!c)return msg80('inMsg','Select an active camp first.',false);
+ const edit=document.getElementById('editInId')?.value||null,invoice=(document.getElementById('inInvoice')?.value||'').trim(),date=document.getElementById('inDate')?.value||'',supplier=(document.getElementById('inSupplier')?.value||'').trim();
+ if(!invoice||!date)return msg80('inMsg','Invoice number and date are required.',false);
+ const rows=rows80('.in-item','.in-qty','.in-rate');if(!rows.length)return msg80('inMsg','Select at least one item and enter quantity.',false);
+ try{
+  let id=edit;
+  if(edit){
+   const u=await db.from('stock_in_invoices').update({invoice_number:invoice,invoice_date:date,supplier}).eq('id',edit);
+   if(u.error)throw u.error;
+  }else{
+   const u=await db.from('stock_in_invoices').insert({camp_id:c.id,invoice_number:invoice,invoice_date:date,supplier}).select('id').maybeSingle();
+   if(u.error)throw u.error;if(!u.data?.id)throw new Error('Purchase invoice was not created.');id=u.data.id;
+  }
+  const n=await exactChildren80('stock_in_items','invoice_id',id,rows);
+  if(n!==rows.length)throw new Error(`Saved ${n} item rows but ${rows.length} were selected.`);
+  await recalcInv80();msg80('inMsg',`Purchase saved: ${n} selected item row${n===1?'':'s'}.`,true);
+  if(typeof resetStockInForm==='function')resetStockInForm();
+  await (window.refreshAll?window.refreshAll():Promise.resolve());
+ }catch(e){msg80('inMsg','Purchase save failed: '+(e.message||e),false)}
+};
+window.saveStockOut=async function(){
+ if(typeof canTxEdit==='function'&&!canTxEdit())return;
+ const db=db80(),c=camp80();if(!db||!c)return msg80('outMsg','Select an active camp first.',false);
+ const edit=document.getElementById('editOutId')?.value||null,voucher=(document.getElementById('outVoucher')?.value||'').trim(),date=document.getElementById('outDate')?.value||'',issued=(document.getElementById('outIssuedTo')?.value||'').trim();
+ const rows=rowsOut80();if(!date)return msg80('outMsg','Date is required.',false);if(!rows.length)return msg80('outMsg','Select at least one item and enter quantity.',false);
+ try{
+  let id=edit;
+  if(edit){const u=await db.from('stock_out_vouchers').update({voucher_number:voucher,voucher_date:date,issued_to:issued}).eq('id',edit);if(u.error)throw u.error}
+  else{const u=await db.from('stock_out_vouchers').insert({camp_id:c.id,voucher_number:voucher,voucher_date:date,issued_to:issued}).select('id').maybeSingle();if(u.error)throw u.error;if(!u.data?.id)throw new Error('Issue voucher was not created.');id=u.data.id}
+  const desired=rows.map(r=>{const it=(window.items||[]).find(x=>String(x.id)===String(r.item_id));const rate=num80(it?.avg_rate||it?.rate);return{item_id:r.item_id,quantity:r.quantity,rate}});
+  const n=await exactChildren80('stock_out_items','voucher_id',id,desired);if(n!==desired.length)throw new Error(`Saved ${n} issue rows but ${desired.length} were selected.`);
+  await recalcInv80();msg80('outMsg',`Issue voucher saved: ${n} selected item row${n===1?'':'s'}.`,true);if(typeof resetStockOutForm==='function')resetStockOutForm();await (window.refreshAll?window.refreshAll():Promise.resolve());
+ }catch(e){msg80('outMsg','Issue save failed: '+(e.message||e),false)}
+};
+
+/* ---------- Camp Update: additional sanctioned head text boxes ---------- */
+function campHead80(c){
+ let raw=String(c?.remarks||'');let text=raw,heads={};
+ const marker='[NCC_HEAD_AMOUNTS]';const p=raw.indexOf(marker);
+ if(p>=0){text=raw.slice(0,p).trim();try{heads=JSON.parse(raw.slice(p+marker.length).trim())||{}}catch(_){} }
+ return {text,heads:{taCadets:num80(heads.taCadets),taDaCiv:num80(heads.taDaCiv),rankPay:num80(heads.rankPay),rent:num80(heads.rent)}};
+}
+const oldOpenCampUpdate80=window.openCampUpdate;
+if(typeof oldOpenCampUpdate80==='function'&&!window.__V80_CAMP_UI){
+ window.__V80_CAMP_UI=true;
+ window.openCampUpdate=function(id){
+  oldOpenCampUpdate80.apply(this,arguments);
+  setTimeout(()=>{
+   const c=(typeof camps!=='undefined'?camps:[]).find(x=>String(x.id)===String(id))||camp80();if(!c)return;
+   const h=campHead80(c),budget=document.querySelector('#cuGrand')?.closest('.camp-budget-grid');if(!budget||document.getElementById('cuTaCadets'))return;
+   const box=document.createElement('div');box.style.cssText='margin-top:14px;border:1px solid #cbdbe6;border-radius:10px;padding:12px;background:#f7fbfd';
+   box.innerHTML='<h3 style="margin:0 0 10px;color:#12344d">Additional Sanction / Head Amounts</h3><div class="form-grid">'+
+    '<div class="field"><label>TA Cadets</label><input id="cuTaCadets" type="number" min="0" step="0.01" value="'+h.heads.taCadets+'"></div>'+ 
+    '<div class="field"><label>TA/DA Civ</label><input id="cuTaDaCiv" type="number" min="0" step="0.01" value="'+h.heads.taDaCiv+'"></div>'+ 
+    '<div class="field"><label>Rank Pay</label><input id="cuRankPay" type="number" min="0" step="0.01" value="'+h.heads.rankPay+'"></div>'+ 
+    '<div class="field"><label>Rent</label><input id="cuRent" type="number" min="0" step="0.01" value="'+h.heads.rent+'"></div></div>';
+   budget.parentNode.insertBefore(box,budget.nextSibling);
+  },30);
+ };
+}
+const oldSaveCampUpdate80=window.saveCampUpdate;
+if(typeof oldSaveCampUpdate80==='function'&&!window.__V80_CAMP_SAVE){
+ window.__V80_CAMP_SAVE=true;
+ window.saveCampUpdate=async function(id){
+  const db=db80();if(!db)return;
+  const meta={taCadets:num80(document.getElementById('cuTaCadets')?.value),taDaCiv:num80(document.getElementById('cuTaDaCiv')?.value),rankPay:num80(document.getElementById('cuRankPay')?.value),rent:num80(document.getElementById('cuRent')?.value)};
+  const current=(typeof camps!=='undefined'?camps:[]).find(x=>String(x.id)===String(id))||camp80()||{};
+  const base=campHead80(current);
+  const remarks=(base.text?base.text+'\n':'')+'[NCC_HEAD_AMOUNTS]'+JSON.stringify(meta);
+  await oldSaveCampUpdate80.apply(this,arguments);
+  const r=await db.from('camps').update({remarks}).eq('id',id);
+  if(r.error){console.warn('camp head amounts save',r.error);return;}
+  if(typeof camps!=='undefined')camps=camps.map(x=>String(x.id)===String(id)?{...x,remarks}:x);
+  if(typeof activeCamp!=='undefined'&&activeCamp&&String(activeCamp.id)===String(id))activeCamp={...activeCamp,remarks};
+  window.activeCamp=activeCamp;
+  try{await window.refreshAll?.()}catch(_){}
+ };
+}
+
+/* ---------- Automatic refresh when moving between modules ---------- */
+const baseShow80=window.showPage;
+if(typeof baseShow80==='function'&&!window.__V80_AUTO_REFRESH){
+ window.__V80_AUTO_REFRESH=true;
+ window.showPage=function(){
+   const r=baseShow80.apply(this,arguments);
+   const page=arguments[0];
+   setTimeout(async()=>{
+     try{await window.refreshAll?.();}
+     catch(e){console.warn('automatic module refresh',page,e)}
+   },300);
+   return r;
+ };
+}
+
+/* Keep dashboard incidental amount strictly RV-only. */
+const dash80=window.renderDashboard;
+if(typeof dash80==='function'&&!window.__V80_DASH){
+ window.__V80_DASH=true;
+ window.renderDashboard=function(){return dash80.apply(this,arguments)};
+}
+setTimeout(()=>{try{window.renderDashboard?.()}catch(_){}},500);
+})();
+</script>
 </body>
 </html>
