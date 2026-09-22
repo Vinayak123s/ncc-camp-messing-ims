@@ -8393,3 +8393,496 @@ const old=window.showPage;if(typeof old==='function'&&!window.__V87SP){window.__
 })();
 
 </script>
+
+<style id="v88-fixes-css">
+.v88-modal-sheet{font-family:Inter,Segoe UI,Arial,sans-serif;color:#102b43;background:#fff;padding:18px}
+.v88-modal-sheet h1,.v88-modal-sheet h2,.v88-modal-sheet h3{margin:5px 0;text-align:center;color:#102b43}
+.v88-modal-sheet .v88-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.v88-modal-sheet .v88-meta label{font-size:11px;font-weight:800;color:#526b7f;display:block;margin-bottom:3px}
+.v88-modal-sheet input,.v88-modal-sheet textarea,.v88-modal-sheet select{width:100%;box-sizing:border-box;border:1px solid #b8cddd;border-radius:5px;padding:7px;font:600 12px Inter,Segoe UI,Arial}
+.v88-modal-sheet textarea{min-height:55px;resize:vertical}
+.v88-modal-sheet table{width:100%;border-collapse:collapse;margin:12px 0;font-size:11px}
+.v88-modal-sheet th,.v88-modal-sheet td{border:1px solid #7891a5;padding:6px;vertical-align:middle}
+.v88-modal-sheet th{background:#e7f0f5;font-weight:900}
+.v88-modal-sheet .num{text-align:right}
+.v88-modal-sheet .v88-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:12px}
+.v88-modal-sheet .v88-actions button{border:0;border-radius:7px;padding:9px 13px;font-weight:900;cursor:pointer;background:#08aeb1;color:#fff}
+.v88-modal-sheet .v88-actions button.dark{background:#153b56}
+.v88-modal-sheet .v88-actions button.red{background:#c93636}
+.v88-pv-title{font-weight:900;letter-spacing:.3px}
+.v88-pv-camp{font-weight:900;text-decoration:underline;text-align:center;font-size:13px;margin:6px 0}
+.v88-pv-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+.v88-pv-grid>div{min-height:25px}
+.v88-sign{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;margin-top:48px;text-align:center;font-weight:800}
+.v88-sign span{display:block;border-top:1px solid #333;padding-top:7px}
+.v88-source-badge{font-size:10px;font-weight:900;color:#087f83;background:#e8f8f8;border:1px solid #b9e2e1;border-radius:999px;padding:3px 7px}
+@media(max-width:700px){
+ .v88-modal-sheet .v88-meta,.v88-pv-grid{grid-template-columns:1fr}
+ .v88-sign{grid-template-columns:1fr;gap:35px}
+}
+@media print{
+ body>*:not(#modal){display:none!important}
+ #modal{position:static!important;background:#fff!important}
+ #modal .modalbox{box-shadow:none!important;border:0!important;max-width:none!important;width:100%!important;max-height:none!important;overflow:visible!important}
+ #modal .modalhead{display:none!important}
+ .v88-actions{display:none!important}
+ .v88-modal-sheet{padding:0}
+}
+</style>
+<script id="v88-final-module-fixes">
+(function(){
+'use strict';
+const n88=v=>{const x=Number(String(v??'').replace(/[₹,]/g,''));return Number.isFinite(x)?x:0};
+const u88=v=>String(v??'').trim().toUpperCase();
+const e88=v=>typeof esc==='function'?esc(v):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const m88=v=>typeof money==='function'?money(v):'₹'+n88(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const camp88=()=>((typeof activeCamp!=='undefined'&&activeCamp)||window.activeCamp||{});
+const db88=()=>((typeof sb!=='undefined'&&sb)||window.sb||null);
+const role88=()=>u88((typeof profile!=='undefined'&&profile?.role)||window.profile?.role||'VIEWER');
+const canEdit88=()=>['ADMIN','MANAGER','Q_SEC'].includes(role88());
+const canAcc88=()=>['ADMIN','ACCOUNTS'].includes(role88());
+
+/* ---------- 1. Prevent duplicate item selections ---------- */
+function uniqueSelects88(containerId, selector){
+  const box=document.getElementById(containerId);if(!box)return;
+  const sels=[...box.querySelectorAll(selector)];
+  const used=new Set();
+  sels.forEach(sel=>{
+    const val=String(sel.value||'');
+    if(val){
+      if(used.has(val)){ sel.value=''; }
+      else used.add(val);
+    }
+  });
+  const finalUsed=new Set(sels.map(x=>String(x.value||'')).filter(Boolean));
+  sels.forEach(sel=>{
+    [...sel.options].forEach(o=>{
+      const val=String(o.value||'');
+      o.hidden=!!val && finalUsed.has(val) && val!==String(sel.value||'');
+    });
+  });
+}
+function enforceUnique88(){
+  uniqueSelects88('inRows','.in-item');
+  uniqueSelects88('outRows','.out-item');
+  uniqueSelects88('ivItemsInc','.iv-source');
+}
+function observeUnique88(){
+  ['inRows','outRows','ivItemsInc'].forEach(id=>{
+    const box=document.getElementById(id);if(!box||box.dataset.v88obs)return;
+    box.dataset.v88obs='1';
+    new MutationObserver(()=>setTimeout(enforceUnique88,0)).observe(box,{childList:true,subtree:true});
+    box.addEventListener('change',()=>setTimeout(enforceUnique88,0));
+  });
+  setTimeout(enforceUnique88,100);
+}
+
+/* ---------- 2. Stock In / Stock Out exact-save protection ---------- */
+async function exactChildren88(table,fk,headerId,desired){
+  const db=db88();if(!db)throw new Error('Supabase client is not available.');
+  const q=await db.from(table).select('id').eq(fk,headerId);if(q.error)throw q.error;
+  const ids=(q.data||[]).map(x=>x.id).filter(Boolean);
+  if(ids.length){const d=await db.from(table).delete().in('id',ids);if(d.error)throw d.error;}
+  if(desired.length){
+    const payload=desired.map(r=>({[fk]:headerId,item_id:r.item_id,quantity:r.quantity,rate:r.rate}));
+    const ins=await db.from(table).insert(payload);if(ins.error)throw ins.error;
+  }
+  const check=await db.from(table).select('id,item_id,quantity,rate').eq(fk,headerId);
+  if(check.error)throw check.error;
+  return (check.data||[]).length;
+}
+async function recalcInventory88(){
+  const db=db88(),c=camp88();if(!db||!c?.id)return;
+  const [ii,si,so]=await Promise.all([
+    db.from('inventory_items').select('id').eq('camp_id',c.id),
+    db.from('stock_in_items').select('item_id,quantity,stock_in_invoices!inner(camp_id)').eq('stock_in_invoices.camp_id',c.id),
+    db.from('stock_out_items').select('item_id,quantity,stock_out_vouchers!inner(camp_id)').eq('stock_out_vouchers.camp_id',c.id)
+  ]);
+  if(ii.error)return;
+  const ins={},outs={};
+  (si.data||[]).forEach(r=>ins[r.item_id]=(ins[r.item_id]||0)+n88(r.quantity));
+  (so.data||[]).forEach(r=>outs[r.item_id]=(outs[r.item_id]||0)+n88(r.quantity));
+  await Promise.all((ii.data||[]).map(r=>db.from('inventory_items').update({stock_in_qty:ins[r.id]||0,stock_out_qty:outs[r.id]||0}).eq('id',r.id).eq('camp_id',c.id)));
+}
+window.saveStockIn=async function(){
+  if(!canEdit88())return;
+  const db=db88(),c=camp88();if(!db||!c?.id)return setMsg('inMsg','Select an active camp first.');
+  const id=document.getElementById('editInId')?.value||null;
+  const invoice=document.getElementById('inInvoice')?.value.trim()||'',date=document.getElementById('inDate')?.value||'',supplier=document.getElementById('inSupplier')?.value.trim()||'';
+  if(!invoice||!date)return setMsg('inMsg','Invoice number and date are required.');
+  const rows=[...document.querySelectorAll('#inRows .item-row')].map(r=>({item_id:r.querySelector('.in-item')?.value||'',quantity:n88(r.querySelector('.in-qty')?.value),rate:n88(r.querySelector('.in-rate')?.value)})).filter(r=>r.item_id&&r.quantity>0);
+  if(!rows.length)return setMsg('inMsg','Select at least one item and enter quantity.');
+  try{
+    let hid=id;
+    if(id){
+      const q=await db.from('stock_in_invoices').update({invoice_number:invoice,invoice_date:date,supplier}).eq('id',id).eq('camp_id',c.id).select('id').single();
+      if(q.error)throw q.error;
+    }else{
+      const dup=await db.from('stock_in_invoices').select('id').eq('camp_id',c.id).eq('invoice_number',invoice).maybeSingle();
+      if(dup.error)throw dup.error;
+      if(dup.data)return setMsg('inMsg','This invoice number already exists for the active camp. Use Edit instead.');
+      const q=await db.from('stock_in_invoices').insert({camp_id:c.id,invoice_number:invoice,invoice_date:date,supplier}).select('id').single();
+      if(q.error)throw q.error;hid=q.data.id;
+    }
+    const saved=await exactChildren88('stock_in_items','invoice_id',hid,rows);
+    if(saved!==rows.length)throw new Error(`Saved ${saved} rows but ${rows.length} were selected.`);
+    await recalcInventory88();
+    setMsg('inMsg',`Purchase saved correctly — ${saved} selected item row${saved===1?'':'s'}.`,true);
+    resetStockInForm();await window.refreshAll?.();setTimeout(enforceUnique88,100);
+  }catch(err){setMsg('inMsg','Purchase save failed: '+(err?.message||err),false)}
+};
+window.saveStockOut=async function(){
+  if(!canEdit88())return;
+  const db=db88(),c=camp88();if(!db||!c?.id)return setMsg('outMsg','Select an active camp first.');
+  const id=document.getElementById('editOutId')?.value||null;
+  const voucher=document.getElementById('outVoucher')?.value.trim()||'',date=document.getElementById('outDate')?.value||'',issued=document.getElementById('outIssuedTo')?.value.trim()||'';
+  const rows=[...document.querySelectorAll('#outRows .item-row')].map(r=>({item_id:r.querySelector('.out-item')?.value||'',quantity:n88(r.querySelector('.out-qty')?.value)})).filter(r=>r.item_id&&r.quantity>0);
+  if(!date||!rows.length)return setMsg('outMsg',!date?'Date is required.':'Select at least one item and enter quantity.');
+  try{
+    let hid=id;
+    if(id){
+      const q=await db.from('stock_out_vouchers').update({voucher_number:voucher,voucher_date:date,issued_to:issued}).eq('id',id).eq('camp_id',c.id).select('id').single();
+      if(q.error)throw q.error;
+    }else{
+      const dup=await db.from('stock_out_vouchers').select('id').eq('camp_id',c.id).eq('voucher_number',voucher).maybeSingle();
+      if(dup.error)throw dup.error;
+      if(dup.data)return setMsg('outMsg','This issue voucher number already exists for the active camp. Use Edit instead.');
+      const q=await db.from('stock_out_vouchers').insert({camp_id:c.id,voucher_number:voucher,voucher_date:date,issued_to:issued}).select('id').single();
+      if(q.error)throw q.error;hid=q.data.id;
+    }
+    const desired=rows.map(r=>{const it=(window.items||items||[]).find(x=>String(x.id)===String(r.item_id));const rate=n88(it?.avg_rate||it?.rate);return{item_id:r.item_id,quantity:r.quantity,rate};});
+    const saved=await exactChildren88('stock_out_items','voucher_id',hid,desired);
+    if(saved!==desired.length)throw new Error(`Saved ${saved} rows but ${desired.length} were selected.`);
+    await recalcInventory88();
+    setMsg('outMsg',`Issue voucher saved correctly — ${saved} selected item row${saved===1?'':'s'}.`,true);
+    resetStockOutForm();await window.refreshAll?.();setTimeout(enforceUnique88,100);
+  }catch(err){setMsg('outMsg','Issue save failed: '+(err?.message||err),false)}
+};
+
+/* ---------- 3. Excel-format incidental voucher preview ---------- */
+function addDescriptionFields88(){
+  const rv=document.getElementById('rvDesc'),iv=document.getElementById('ivDescInc');
+  if(rv && !rv.dataset.v88visible){
+    rv.dataset.v88visible='1';rv.type='text';rv.removeAttribute('hidden');rv.className='';
+    const wrap=document.createElement('div');wrap.className='field';wrap.style.gridColumn='1/-1';
+    wrap.innerHTML='<label>Description / Particulars for Voucher</label>';
+    rv.parentNode.insertBefore(wrap,rv);wrap.appendChild(rv);
+  }
+  if(iv && !iv.dataset.v88visible){
+    iv.dataset.v88visible='1';iv.type='text';iv.removeAttribute('hidden');iv.className='';
+    const wrap=document.createElement('div');wrap.className='field';wrap.style.gridColumn='1/-1';
+    wrap.innerHTML='<label>Description / Particulars for Voucher</label>';
+    iv.parentNode.insertBefore(wrap,iv);wrap.appendChild(iv);
+  }
+}
+function voucherItems88(r){
+  return Array.isArray(r?.items)?r.items:[];
+}
+function incidentalSheet88(r){
+  const isIV=u88(r?.voucher_type)==='IV',items=voucherItems88(r);
+  const rows=items.length?items.map((x,i)=>`<tr><td>${i+1}</td><td><input value="${e88(x.desc||'')}" /></td><td><input value="${e88(x.unit||'')}" /></td><td><input class="num" value="${e88(n88(x.rate).toFixed(2))}" /></td><td><input class="num" value="${e88(n88(x.qty).toFixed(2))}" /></td><td><input value="${e88(x.page||'')}" /></td><td><input value="${e88(x.remarks||'')}" /></td></tr>`).join(''):`<tr><td>1</td><td><input value=""></td><td><input value=""></td><td><input></td><td><input></td><td><input></td><td><input></td></tr>`;
+  const total=n88(r?.amount)||items.reduce((a,x)=>a+n88(x.qty)*n88(x.rate),0);
+  return `<div class="v88-modal-sheet">
+    <div style="text-align:right;font-size:10px">In lieu of IAFZ-2076</div>
+    <h1>RECEIPT/ISSUE EXPENSE VOUCHER</h1>
+    <div class="v88-pv-grid">
+      <div><b>To be completed by Issuing Officer</b><br>${isIV?'IV No':'IV No'}: <input value="${e88(isIV?r.voucher_no||'':r.voucher_no||'')}"><br>Stn: <input value="${e88(r.station||'')}"><br>Dated: <input value="${e88(r.voucher_date||'')}"><br>Authority: <input value="${e88(r.authority||'')}"></div>
+      <div><b>To be completed by Receiving Officer</b><br>RV No: <input value="${e88(r.crv_no||r.invoice_number||'')}"><br>Unit: <input value="${e88(r.unit||'')}"><br>Stn: <input value="${e88(r.station||'')}"><br>Dated: <input value="${e88(r.voucher_date||'')}"></div>
+    </div>
+    <div class="v88-meta">
+      <div><label>Party / Receiving Unit</label><input value="${e88(r.party||r.unit||'')}"></div>
+      <div><label>Invoice / Reference</label><input value="${e88(r.invoice_number||'')}"></div>
+      <div><label>Description / Particulars</label><input value="${e88(r.description||'')}"></div>
+      <div><label>Code Head</label><input value="${e88(r.code_head||'')}"></div>
+    </div>
+    <table><thead><tr><th>Sl No</th><th>Nomenclature</th><th>A/u</th><th>Rate</th><th>Qty${isIV?'':' '}</th><th>Page No</th><th>Remarks</th></tr></thead><tbody>${rows}</tbody></table>
+    <div style="text-align:right;font-weight:900">TOTAL: ${m88(total)}</div>
+    <div class="v88-meta" style="margin-top:20px">
+      <div><label>Additional description</label><textarea>${e88(r.description||'')}</textarea></div>
+      <div><label>Authority / remarks</label><textarea>${e88(r.authority||'')}</textarea></div>
+    </div>
+    <div class="v88-sign"><span>ISSUED BY</span><span>COLLECTED BY</span><span>RECEIVED BY</span></div>
+    <div class="v88-actions"><button type="button" onclick="window.print()">PRINT / SAVE PDF</button><button type="button" class="dark" onclick="closeModal()">CLOSE</button></div>
+  </div>`;
+}
+window.printIncidental=function(id){
+  const r=(window.incidentals||incidentals||[]).find(x=>String(x.id)===String(id));if(!r)return alert('Voucher not found.');
+  openModal(incidentalSheet88(r));
+};
+window.generateCurrentRV=function(){
+  const id=window.rvEditingId||rvEditingId;const r=(window.incidentals||incidentals||[]).find(x=>String(x.id)===String(id)&&u88(x.voucher_type)==='RV');
+  if(!r)return alert('Save the RV first, then Generate.');
+  openModal(incidentalSheet88(r));
+};
+window.generateCurrentIV=function(){
+  const id=window.ivEditingId||ivEditingId;const r=(window.incidentals||incidentals||[]).find(x=>String(x.id)===String(id)&&u88(x.voucher_type)==='IV');
+  if(!r)return alert('Save the IV first, then Generate.');
+  openModal(incidentalSheet88(r));
+};
+
+/* ---------- 4. Stock-out Issue voucher popup in the supplied Excel layout ---------- */
+function stockOutSheet88(r){
+  const items88=Array.isArray(r?.stock_out_items)?r.stock_out_items:[];
+  const rows=items88.length?items88.map((x,i)=>{
+    const it=(window.items||items||[]).find(a=>String(a.id)===String(x.item_id))||{};
+    const rate=n88(x.rate||it.avg_rate);
+    return `<tr><td>${i+1}</td><td><input value="${e88(it.name||x.item_name||'')}"></td><td><input value="${e88(it.unit||x.unit||'')}"></td><td><input class="num" value="${rate.toFixed(2)}"></td><td><input class="num" value="${n88(x.quantity).toFixed(2)}"></td><td><input value="${e88(it.ledger_page_no||x.page_no||'')}"></td><td><input value=""></td></tr>`;
+  }).join(''):'<tr><td>1</td><td><input></td><td><input></td><td><input></td><td><input></td><td><input></td><td><input></td></tr>';
+  const c=camp88();
+  const total=items88.reduce((a,x)=>a+n88(x.amount||n88(x.quantity)*n88(x.rate)),0);
+  return `<div class="v88-modal-sheet">
+    <div style="text-align:right;font-size:10px">In lieu of IAFZ-2076</div>
+    <h1>RECEIPT/ISSUE EXPENSE VOUCHER</h1>
+    <div class="v88-pv-grid">
+      <div><b>To be completed by Issuing Officer</b><br>IV No: <input value="${e88(r.voucher_number||'')}"><br>Stn: <input value="${e88(c.station||'')}"><br>Dated: <input value="${e88(r.voucher_date||'')}"><br>Authority: <input value="Camp Commandant"></div>
+      <div><b>To be completed by Receiving Officer</b><br>RV No: <input value=""><br>Unit: <input value="${e88(r.issued_to||'')}"><br>Stn: <input value="${e88(c.station||'')}"><br>Dated: <input value="${e88(r.voucher_date||'')}"></div>
+    </div>
+    <table><thead><tr><th>Sl No</th><th>Nomenclature</th><th>A/u</th><th>Rate</th><th>Qty Issued</th><th>Page No</th><th>Remarks</th></tr></thead><tbody>${rows}</tbody></table>
+    <div style="margin-top:8px">Item description: <input value="${e88(items88.length===1?((window.items||items||[]).find(a=>String(a.id)===String(items88[0].item_id))||{}).name:'Multiple items')}"></div>
+    <div class="v88-sign"><span>ISSUED BY</span><span>COLLECTED BY</span><span>RECEIVED BY</span></div>
+    <div class="v88-actions"><button type="button" onclick="window.print()">PRINT / SAVE PDF</button><button type="button" class="dark" onclick="closeModal()">CLOSE</button></div>
+  </div>`;
+}
+window.generateStockOutVoucher88=function(id){
+  const r=(window.outVouchers||outVouchers||[]).find(x=>String(x.id)===String(id));if(!r)return alert('Issue voucher not found.');
+  openModal(stockOutSheet88(r));
+};
+
+/* ---------- 5. Payment Voucher popup from Messing / Incidental / POL ---------- */
+function words88(num){
+  num=Math.floor(n88(num));if(num===0)return'Zero';
+  const ones=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'],tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  const two=x=>x<20?ones[x]:tens[Math.floor(x/10)]+(x%10?' '+ones[x%10]:'');
+  const chunk=(x)=>{let a=[];if(x>=100){a.push(ones[Math.floor(x/100)]+' Hundred');x%=100}if(x)a.push(two(x));return a.join(' ')};
+  let out=[];const cr=Math.floor(num/10000000);num%=10000000;const lk=Math.floor(num/100000);num%=100000;const th=Math.floor(num/1000);num%=1000;if(cr)out.push(chunk(cr)+' Crore');if(lk)out.push(chunk(lk)+' Lakh');if(th)out.push(chunk(th)+' Thousand');if(num)out.push(chunk(num));return out.join(' ');
+}
+function pvItems88(type,id){
+  if(type==='MESSING_RV'){const x=(window.inInvoices||[]).find(a=>String(a.id)===String(id));if(!x)return null;return{party:x.supplier||'',date:x.invoice_date||'',ref:x.invoice_number||'',head:'MESSING',items:(x.stock_in_items||[]).map(r=>{const it=(window.items||[]).find(a=>String(a.id)===String(r.item_id))||{};return{name:it.name||r.item_name||'',unit:it.unit||r.unit||'',rate:n88(r.rate),qty:n88(r.quantity),amount:n88(r.amount||n88(r.rate)*n88(r.quantity)),page:it.ledger_page_no||''}})}}
+  if(type==='INCIDENTAL_RV'){const x=(window.incidentals||[]).find(a=>String(a.id)===String(id)&&u88(a.voucher_type)==='RV');if(!x)return null;return{party:x.party||'',date:x.voucher_date||'',ref:x.invoice_number||x.voucher_no||'',head:'INCIDENTAL',items:(x.items||[]).map(r=>({name:r.desc||'',unit:r.unit||'',rate:n88(r.rate),qty:n88(r.qty),amount:n88(r.amount||n88(r.rate)*n88(r.qty)),page:r.page||''}))}}
+  if(type==='POL_DRAWN'){const x=(window.polEntries||[]).find(a=>String(a.id)===String(id));if(!x)return null;return{party:x.petrol_bunk||'',date:x.entry_date||'',ref:x.invoice_number||'',head:'POL',items:[{name:`${x.fuel_type||''} – ${x.vehicle_no||''}`,unit:'Ltr',rate:n88(x.rate),qty:n88(x.litres),amount:n88(x.total_amount||n88(x.rate)*n88(x.litres)),page:''}]}}
+  return null;
+}
+async function nextPV88(){
+  try{const r=await db88().rpc('next_cashbook_voucher_no',{p_type:'PAYMENT'});if(!r.error&&r.data)return r.data}catch(_){}
+  const nums=(window.cashbookEntries||[]).map(x=>String(x.voucher_number||'')).map(x=>{const m=x.match(/(\d+)$/);return m?Number(m[1]):0});return'PV-'+String(Math.max(0,...nums)+1).padStart(2,'0');
+}
+window.generatePaymentVoucher88=async function(type,id){
+  const d=pvItems88(type,id);if(!d)return alert('Source voucher not found.');
+  const pv=await nextPV88(),c=camp88();
+  const total=d.items.reduce((a,x)=>a+n88(x.amount),0);
+  const rows=d.items.map((x,i)=>`<tr><td>${i+1}</td><td><input value="${e88(x.name)}"></td><td><input value="${e88(x.rate.toFixed(2))}" class="num"></td><td><input value="${e88(x.qty.toFixed(2))}" class="num"></td><td><input value="${e88(x.amount.toFixed(2))}" class="num"></td></tr>`).join('');
+  openModal(`<div class="v88-modal-sheet">
+    <div class="v88-pv-title">PAYMENT VOUCHER</div>
+    <div class="v88-meta"><div><label>PV No.</label><input id="v88PVNo" value="${e88(pv)}"></div><div><label>Date</label><input id="v88PVDate" type="date" value="${e88(d.date||today())}"></div></div>
+    <div class="v88-pv-camp">${e88(c.camp_name||c.camp_code||'NCC CAMP')}<br>${e88(c.station||'')} ${c.from_date?' W.E.F. '+e88(c.from_date):''}${c.to_date?' TO '+e88(c.to_date):''}</div>
+    <div class="v88-meta"><div><label>To Whom Paid</label><input id="v88PVParty" value="${e88(d.party)}"></div><div><label>On What Account</label><input id="v88PVAccount" value="${e88(d.head+' | '+d.ref)}"></div></div>
+    <table><thead><tr><th>Sl</th><th>Items</th><th>Rate</th><th>Qty</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="v88-meta"><div><label>Amount in Words</label><input value="${e88(words88(total)+' Rupees Only')}"></div><div><label>Remarks / Description</label><textarea></textarea></div></div>
+    <h3>PURCHASE COMMITTEE</h3><div class="v88-pv-grid"><textarea>Certified that the item has been purchased at the most competitive rates having regards to prevailing market rates and quality.</textarea><textarea>Committee / sanction remarks</textarea></div>
+    <h3>STOCK CERTIFICATE</h3><textarea>Certified that the items have been received in good condition and in correct quantity and taken to stock on page No. ____________________</textarea>
+    <div style="text-align:right;margin-top:18px">Signature of Camp Quarter Master</div>
+    <h3>PAY ORDER</h3><div>Passed for Rs. <input value="${m88(total)}"> /- Rupees <input value="${e88(words88(total)+' Only')}"></div>
+    <div class="v88-sign"><span>Dy Camp Commandant / Accounts Officer</span><span>Purchase Committee</span><span>Signature of Camp Commandant</span></div>
+    <div class="v88-actions"><button type="button" onclick="window.print()">PRINT / SAVE PDF</button><button type="button" class="dark" onclick="closeModal()">CLOSE</button></div>
+  </div>`);
+};
+
+/* ---------- 6. Add Generate/PV actions to saved registers ---------- */
+function appendBtn88(td,html){
+  if(!td||td.dataset.v88buttons)return;
+  td.dataset.v88buttons='1';td.insertAdjacentHTML('beforeend',' '+html);
+}
+function decorateRegisters88(){
+  const inRows=[...(document.querySelectorAll('#inList tbody tr'))];
+  inRows.forEach(tr=>{const key=tr.cells?.[0]?.textContent?.trim();const x=(window.inInvoices||[]).find(a=>String(a.invoice_number)===key);if(x)appendBtn88(tr.cells[tr.cells.length-1],`<button class="btn green" onclick="generatePaymentVoucher88('MESSING_RV','${e88(x.id)}')">GENERATE PV</button>`);});
+  const outRows=[...(document.querySelectorAll('#outList tbody tr'))];
+  outRows.forEach(tr=>{const key=tr.cells?.[0]?.textContent?.trim();const x=(window.outVouchers||[]).find(a=>String(a.voucher_number)===key);if(x)appendBtn88(tr.cells[tr.cells.length-1],`<button class="btn green" onclick="generateStockOutVoucher88('${e88(x.id)}')">GENERATE IV</button>`);});
+  const rvRows=[...(document.querySelectorAll('#incidentalRVTable tbody tr'))];
+  rvRows.forEach(tr=>{const key=tr.cells?.[0]?.textContent?.trim();const x=(window.incidentals||[]).find(a=>String(a.id)===String((tr.querySelector('[onclick*="editIncidentalRV"]')?.getAttribute('onclick')||'').match(/'([^']+)'/)?.[1]||''));if(x)appendBtn88(tr.cells[tr.cells.length-1],`<button class="btn green" onclick="generatePaymentVoucher88('INCIDENTAL_RV','${e88(x.id)}')">GENERATE PV</button>`);});
+  const polRows=[...(document.querySelectorAll('#polEntriesTable tbody tr'))];
+  polRows.forEach(tr=>{const key=tr.cells?.[3]?.textContent?.trim();const x=(window.polEntries||[]).find(a=>String(a.invoice_number||'')===key);if(x)appendBtn88(tr.cells[tr.cells.length-1],`<button class="btn green" onclick="generatePaymentVoucher88('POL_DRAWN','${e88(x.id)}')">GENERATE PV</button>`);});
+}
+
+/* ---------- 7. Cash Book edit + cash-drawn debit/credit representation ---------- */
+window.__cashEditId88=null;
+function json88(v){if(v&&typeof v==='object')return v;try{return JSON.parse(v||'{}')}catch(_){return{}}}
+function editCashbook88(id){
+  const x=(window.cashbookEntries||[]).find(a=>String(a.id)===String(id));if(!x)return;
+  window.__cashEditId88=id;
+  const d=json88(x.source_details);
+  if(x.entry_type==='RECEIPT'){
+    setCashType('RECEIPT');
+    document.getElementById('cashDate').value=x.entry_date||today();
+    document.getElementById('cashVoucherNo').value=x.voucher_number||'';
+    document.getElementById('cashParty').value=d.to_whom_received||x.party||'';
+    document.getElementById('cashAccountText').value=d.on_account||x.reference_no||'';
+    document.getElementById('cashMode').value=x.mode||'CASH';
+    document.getElementById('cashAmount').value=n88(x.amount);
+    document.getElementById('cashNarration').value=x.narration||'';
+    const b=document.getElementById('cashSaveBtn');if(b)b.textContent='UPDATE RECEIPT';
+  }else if(x.entry_type==='CASH_DRAWN'){
+    setCashType('CASH_DRAWN');
+    document.getElementById('cdDate').value=x.entry_date||today();
+    document.getElementById('cdNo').value=x.voucher_number||'';
+    document.getElementById('cdCheque').value=x.reference_no||'';
+    document.getElementById('cdAmount').value=n88(x.amount);
+    document.getElementById('cdPurpose').value=d.purpose||x.narration||'';
+  }else{
+    setCashType('PAYMENT');
+    document.getElementById('payDate').value=x.entry_date||today();
+    document.getElementById('payVoucherNo').value=x.voucher_number||'';
+    document.getElementById('cashPaymentCodeHead').value=x.code_head||'';
+    window.loadCashSources?.();
+    setTimeout(()=>{
+      document.getElementById('cashSourceType').value=x.source_type||'';
+      window.loadCashSources?.();
+      setTimeout(()=>{document.getElementById('cashSource').value=x.source_id||'';window.fillCashSource?.();},150);
+    },80);
+    document.getElementById('cashInvoice').value=x.reference_no||'';
+    document.getElementById('cashPaymentParty').value=x.party||'';
+    document.getElementById('cashPaymentAmount').value=n88(x.amount);
+    document.getElementById('cashPaymentMode').value=x.mode||'CASH';
+    document.getElementById('cashPaymentNarration').value=x.narration||'';
+    const b=document.querySelector('#cashPaymentFormWrap .actions button.btn');if(b)b.textContent='UPDATE PAYMENT';
+  }
+}
+async function updateCashbook88(){
+  const db=db88(),c=camp88(),id=window.__cashEditId88;if(!db||!c?.id||!id)return false;
+  const x=(window.cashbookEntries||[]).find(a=>String(a.id)===String(id));if(!x)return false;
+  if(x.entry_type==='RECEIPT'){
+    const date=document.getElementById('cashDate').value||today(),voucher=document.getElementById('cashVoucherNo').value.trim(),party=document.getElementById('cashParty').value.trim(),account=document.getElementById('cashAccountText').value.trim(),amount=n88(document.getElementById('cashAmount').value),mode=document.getElementById('cashMode').value||'CASH',narr=document.getElementById('cashNarration').value.trim();
+    if(!voucher||!party||amount<=0){setMsg('cashMsg','Enter valid receipt details.');return true}
+    const q=await db.from('cashbook_entries').update({entry_date:date,voucher_number:voucher,party,reference_no:account||null,amount,mode,narration:narr||null,source_details:{...(json88(x.source_details)),to_whom_received:party,on_account:account||'',source_label:'RECEIPT'}}).eq('id',id).eq('camp_id',c.id);
+    if(q.error){setMsg('cashMsg',q.error.message);return true}
+  }else if(x.entry_type==='CASH_DRAWN'){
+    const date=document.getElementById('cdDate').value||today(),no=document.getElementById('cdNo').value.trim(),ref=document.getElementById('cdCheque').value.trim(),amount=n88(document.getElementById('cdAmount').value),purpose=document.getElementById('cdPurpose').value.trim();
+    const q=await db.from('cashbook_entries').update({entry_date:date,voucher_number:no,reference_no:ref||null,amount,party:'BANK',mode:'BANK',narration:purpose||null,source_details:{source_label:'CASH DRAWN FROM BANK',reference:ref||'',purpose}}).eq('id',id).eq('camp_id',c.id);
+    if(q.error){setMsg('cashDrawnMsg',q.error.message);return true}
+  }else{
+    const date=document.getElementById('payDate').value||today(),voucher=document.getElementById('payVoucherNo').value.trim(),head=u88(document.getElementById('cashPaymentCodeHead').value||''),ref=document.getElementById('cashInvoice').value.trim(),party=document.getElementById('cashPaymentParty').value.trim(),amount=n88(document.getElementById('cashPaymentAmount').value),mode=document.getElementById('cashPaymentMode').value||'CASH',narr=document.getElementById('cashPaymentNarration').value.trim();
+    const q=await db.from('cashbook_entries').update({entry_date:date,voucher_number:voucher,code_head:head,reference_no:ref||null,party:party||null,amount,mode,narration:narr||null}).eq('id',id).eq('camp_id',c.id);
+    if(q.error){setMsg('paymentMsg',q.error.message);return true}
+  }
+  window.__cashEditId88=null;
+  await window.refreshAll?.();
+  return true;
+}
+const oldSaveCashbook88=window.saveCashbook;
+window.saveCashbook=async function(){
+  if(window.__cashEditId88)return updateCashbook88();
+  return oldSaveCashbook88?oldSaveCashbook88.apply(this,arguments):null;
+};
+
+/* Append edit controls to the authoritative Cash Book register. */
+const oldRenderCashbook88=window.renderCashbook;
+window.renderCashbook=function(){
+  try{oldRenderCashbook88?.apply(this,arguments)}catch(_){}
+  setTimeout(()=>{
+    document.querySelectorAll('#cashbookTable tbody tr').forEach(tr=>{
+      const btn=tr.querySelector('[onclick*="deleteCashbook"]');
+      const onclick=btn?.getAttribute('onclick')||'';
+      const id=(onclick.match(/'([^']+)'/)||[])[1];
+      if(id && !tr.dataset.v88edit){
+        tr.dataset.v88edit='1';
+        const td=tr.cells[tr.cells.length-1];
+        if(td)td.insertAdjacentHTML('beforeend',` <button class="btn ghost" onclick="editCashbook88('${e88(id)}')">Edit</button>`);
+      }
+    });
+  },40);
+};
+
+/* ---------- 8. Cash Book print popup: cash drawn appears on both sides ---------- */
+window.printDayCashbook=function(){
+  const d=document.getElementById('cashDayDate')?.value||today();
+  const calc=typeof dayCalc85==='function'?dayCalc85(d):(typeof calculateDay==='function'?calculateDay(d):null);
+  if(!calc)return alert('Unable to calculate the selected day.');
+  const rows=(calc.rows||[]).filter(x=>u88(x.entry_type)!=='PAYMENT'||u88(x.approval_status||'APPROVED')==='APPROVED');
+  const heads=['MESSING','INCIDENTAL','POL','RANK PAY','TA CADETS','TA/DA CIV','RENT','OTHERS'];
+  const rec=[],pay=[];
+  rows.forEach(x=>{
+    if(u88(x.entry_type)==='RECEIPT')rec.push(x);
+    if(u88(x.entry_type)==='PAYMENT')pay.push(x);
+    if(u88(x.entry_type)==='CASH_DRAWN'){
+      const rvNo='RV-CD-'+String(String(x.voucher_number||'CD').replace(/\D/g,'')||'01').padStart(2,'0');
+      rec.push({...x,entry_type:'RECEIPT',voucher_number:rvNo,party:'CASH DRAWN FROM BANK',reference_no:'CASH A/C CREDIT',mode:'CASH',__drawCredit:true});
+      pay.push({...x,voucher_number:x.voucher_number||'CD-01',party:'BANK',reference_no:'BANK A/C DEBIT',__drawDebit:true});
+    }
+  });
+  const alloc=e=>json88(e.head_allocations);
+  const table=(title,arr,isPay)=>`<h2>${title}</h2><table><thead><tr><th>Date</th><th>${isPay?'PV/CD No.':'RV No.'}</th><th>${isPay?'To Whom Paid':'To Whom Received'}</th><th>On What Account</th><th>Cash</th><th>Bank</th>${heads.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${arr.length?arr.map(x=>{
+    const a=alloc(x),head=u88(x.code_head||'');const cash=x.__drawCredit?x.amount:(u88(x.mode)==='CASH'?x.amount:0),bank=x.__drawDebit?x.amount:(u88(x.mode)==='BANK'?x.amount:0);
+    return `<tr><td>${e88(x.entry_date||d)}</td><td>${e88(x.voucher_number||'')}</td><td>${e88(x.party||'')}</td><td>${e88(x.reference_no||x.code_head||x.source_type||'')}</td><td class="num">${cash?m88(cash):''}</td><td class="num">${bank?m88(bank):''}</td>${heads.map(h=>`<td class="num">${a[h]?m88(a[h]):(head===h&&!x.__drawCredit&&!x.__drawDebit?m88(x.amount):'')}</td>`).join('')}</tr>`;
+  }).join(''):`<tr><td colspan="${6+heads.length}">No entries for selected day.</td></tr>`}</tbody></table>`;
+  const totalAssets=n88(calc.cfCash)+n88(calc.cfBank);
+  const liability=heads.map(h=>`<tr><td>${h}</td><td class="num">${m88((calc.receipts?.[h]||0)-(calc.payments?.[h]||0))}</td></tr>`).join('');
+  const html=`<div class="v88-modal-sheet"><h1>NCC CAMP MESSING IMS</h1><h2>DAY CASH BOOK</h2><div class="v88-meta"><div><label>Camp</label><input value="${e88(camp88().camp_name||camp88().camp_code||'')}"></div><div><label>Selected Date</label><input value="${e88(d)}"></div></div>${table('RECEIPTS',rec,false)}${table('PAYMENTS',pay,true)}<h2>BALANCE SHEET</h2><div class="v88-pv-grid"><table><thead><tr><th>LIABILITIES / HEAD</th><th>AMOUNT</th></tr></thead><tbody>${liability}<tr><th>Total Liabilities / Head Position</th><th class="num">${m88(heads.reduce((a,h)=>a+(calc.receipts?.[h]||0)-(calc.payments?.[h]||0),0))}</th></tr></tbody></table><table><thead><tr><th>ASSETS</th><th>AMOUNT</th></tr></thead><tbody><tr><td>Cash in Hand</td><td class="num">${m88(calc.cfCash)}</td></tr><tr><td>Bank Balance</td><td class="num">${m88(calc.cfBank)}</td></tr><tr><th>Total Assets</th><th class="num">${m88(totalAssets)}</th></tr></tbody></table></div><div class="v88-actions"><button type="button" onclick="window.print()">PRINT / SAVE PDF</button><button type="button" class="dark" onclick="closeModal()">CLOSE</button></div></div>`;
+  openModal(html);
+};
+
+/* ---------- 9. Add generate buttons and fix ledger-page reporting ---------- */
+const oldRSI88=window.renderStockInList,oldRSO88=window.renderStockOutList,oldRP88=window.renderPOL;
+if(oldRSI88)window.renderStockInList=function(){oldRSI88.apply(this,arguments);setTimeout(decorateRegisters88,30)};
+if(oldRSO88)window.renderStockOutList=function(){oldRSO88.apply(this,arguments);setTimeout(decorateRegisters88,30)};
+if(oldRP88)window.renderPOL=function(){oldRP88.apply(this,arguments);setTimeout(decorateRegisters88,30)};
+const oldRIRV88=window.renderIncidentalRV,oldRII88=window.renderIncidentalIV;
+if(oldRIRV88)window.renderIncidentalRV=function(){oldRIRV88.apply(this,arguments);setTimeout(decorateRegisters88,30)};
+if(oldRII88)window.renderIncidentalIV=function(){oldRII88.apply(this,arguments);setTimeout(decorateRegisters88,30)};
+
+/* Add a visible ledger page number to the detailed/item/statement Messing report tables. */
+function patchMessingLedger88(){
+  const content=document.getElementById('reportsContent');if(!content)return;
+  content.querySelectorAll('table').forEach(table=>{
+    const head=table.querySelector('tr');if(!head||head.dataset.v88ledger)return;
+    const labels=[...head.children].map(x=>u88(x.textContent));
+    const idx=labels.findIndex(x=>x==='ITEM');
+    if(idx<0)return;
+    head.dataset.v88ledger='1';
+    const th=document.createElement('th');th.textContent='Ledger Page No.';head.insertBefore(th,head.children[idx+1]||null);
+    [...table.querySelectorAll('tr')].slice(1).forEach(tr=>{
+      const itemCell=tr.children[idx];if(!itemCell)return;
+      const name=itemCell.textContent.trim();
+      const item=(window.items||[]).find(x=>u88(x.name)===u88(name));
+      const td=document.createElement('td');td.textContent=item?.ledger_page_no||'';
+      tr.insertBefore(td,tr.children[idx+1]||null);
+    });
+  });
+}
+const oldGMR88=window.generateMessingReport;
+if(oldGMR88)window.generateMessingReport=function(){oldGMR88.apply(this,arguments);setTimeout(patchMessingLedger88,20)};
+
+
+/* V88.1: persist editable incidental description and keep it visible after CLEAR/edit. */
+(function(){
+  const showDesc=()=>{
+    const rv=document.getElementById('rvDesc'),iv=document.getElementById('ivDescInc');
+    [rv,iv].forEach(e=>{if(!e)return; const f=e.closest('.field'); if(f)f.style.display='block'; e.style.display='block'; e.hidden=false;});
+  };
+  const oldClearRV=window.clearIncidentalRV,oldClearIV=window.clearIncidentalIV;
+  if(oldClearRV)window.clearIncidentalRV=async function(){const r=await oldClearRV.apply(this,arguments);setTimeout(showDesc,50);return r};
+  if(oldClearIV)window.clearIncidentalIV=async function(){const r=await oldClearIV.apply(this,arguments);setTimeout(showDesc,50);return r};
+  const oldSaveRV=window.saveIncidentalRV,oldSaveIV=window.saveIncidentalIV;
+  if(oldSaveRV)window.saveIncidentalRV=async function(){
+    const desc=(document.getElementById('rvDesc')?.value||'').trim(), crv=(document.getElementById('rvCrv')?.value||document.getElementById('rvNoAuto')?.value||'').trim();
+    const r=await oldSaveRV.apply(this,arguments);
+    try{const rec=(window.incidentals||[]).find(x=>u88(x.voucher_type)==='RV'&&String(x.crv_no||x.voucher_no)===String(crv));if(rec?.id&&desc){await db88().from('incidental_vouchers').update({description:desc}).eq('id',rec.id).eq('camp_id',camp88().id);await window.refreshAll?.()}}catch(_){}
+    setTimeout(showDesc,50);return r;
+  };
+  if(oldSaveIV)window.saveIncidentalIV=async function(){
+    const desc=(document.getElementById('ivDescInc')?.value||'').trim(), no=(document.getElementById('ivNoAuto')?.value||'').trim();
+    const r=await oldSaveIV.apply(this,arguments);
+    try{const rec=(window.incidentals||[]).find(x=>u88(x.voucher_type)==='IV'&&String(x.voucher_no)===String(no));if(rec?.id&&desc){await db88().from('incidental_vouchers').update({description:desc}).eq('id',rec.id).eq('camp_id',camp88().id);await window.refreshAll?.()}}catch(_){}
+    setTimeout(showDesc,50);return r;
+  };
+  setTimeout(showDesc,400);
+})();
+
+/* ---------- 10. Startup hooks ---------- */
+function boot88(){
+  addDescriptionFields88();observeUnique88();enforceUnique88();setTimeout(decorateRegisters88,150);
+}
+window.addEventListener('load',()=>setTimeout(boot88,250));
+document.addEventListener('DOMContentLoaded',()=>setTimeout(boot88,300));
+})();
+</script>
+
+</body></html>
