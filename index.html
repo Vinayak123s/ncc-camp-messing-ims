@@ -7225,6 +7225,7 @@ function syDrTotal79(){
 
 /* ---------- Cash book printable preview ---------- */
 window.printDayCashbook=function(){
+  if(typeof window.__V85SafePrint==='function')return window.__V85SafePrint();
   const d=document.getElementById('cashDayDate')?.value||TDAY(),camp=CAMP()||{},s=typeof calculateDay==='function'?calculateDay(d):null;
   if(!s)return alert('Prepare the selected day first.');
   const rp=cashbookRows79(d),cols=['Messing','INC','POL','Rank Pay','TA Cadets','TA/DA Civ','Rent','Others'];
@@ -7534,6 +7535,7 @@ window.reopenCashbookDay82=async function(){if(ROLE82()!=='ADMIN')return alert('
 
 /* Reliable print: generate the report from the selected day, with same-page fallback if popup is blocked. */
 function printCash82(){
+ if(typeof window.__V85SafePrint==='function')return window.__V85SafePrint();
  const d=document.getElementById('cashDayDate')?.value||T82();let s=typeof day78==='function'?day78(d):null;if(!s)return alert('Prepare the selected day first.');
  const c=CAMP82()||{};const heads=['MESSING','INCIDENTAL','POL','RANK PAY','TA CADETS','TA/DA CIV','RENT','OTHERS'];
  const alloc=e=>{let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}}return a&&typeof a==='object'?a:{}};
@@ -7652,6 +7654,7 @@ function calcDay83(date){
  return {date:d,rows:rows,bfCash:bfCash,bfBank:bfBank,rc:rc,rb:rb,pc:pc,pb:pb,draw:draw,cfCash:bfCash+rc-pc+draw,cfBank:bfBank+rb-pb-draw};
 }
 function print83(){
+ if(typeof window.__V85SafePrint==='function')return window.__V85SafePrint();
  var d=document.getElementById('cashDayDate')?.value||TODAY(),s=calcDay83(d),c=CAMP()||{};
  var heads=['MESSING','INCIDENTAL','POL','RANK PAY','TA CADETS','TA/DA CIV','RENT','OTHERS'];
  function alloc(e){var a=e&&e.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}}return a&&typeof a==='object'?a:{}}
@@ -8177,3 +8180,179 @@ if(typeof oldShow85==='function'&&!window.__V85SP){
 </script>
 
 </body></html>
+
+<script id="v86-final-cash-pol-fixes">
+(function(){
+'use strict';
+
+/* V86: final deterministic fixes for Cash Book print/date and POL detachment editing. */
+const n86=v=>{const x=Number(String(v??'').replace(/₹|,/g,''));return Number.isFinite(x)?x:0};
+const u86=v=>String(v??'').trim().toUpperCase();
+const camp86=()=>((typeof activeCamp!=='undefined'&&activeCamp)?activeCamp:(window.activeCamp||null));
+const db86=()=>window.sb||((typeof sb!=='undefined')?sb:null);
+const esc86=v=>typeof E85==='function'?E85(v??''):String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const money86=v=>typeof M85==='function'?M85(n86(v)):'₹'+n86(v).toFixed(2);
+
+/* ---------- Cash Book: never require a prior "Prepare" click for printing ---------- */
+function selectedDay86(){
+  const el=document.getElementById('cashDayDate');
+  if(el && el.value) return el.value;
+  return new Date().toISOString().slice(0,10);
+}
+function dayData86(d){
+  try{if(typeof day78==='function'){const x=day78(d);if(x)return x;}}catch(e){console.warn('day78',e)}
+  try{if(typeof dayCalc76==='function'){const x=dayCalc76(d);if(x)return x;}}catch(e){console.warn('dayCalc76',e)}
+  try{if(typeof calc77==='function'){const x=calc77(d);if(x)return x;}}catch(e){console.warn('calc77',e)}
+  try{if(typeof calculateDay==='function'){const x=calculateDay(d);if(x)return x;}}catch(e){console.warn('calculateDay',e)}
+  const all=Array.isArray(window.cashbookEntries)?window.cashbookEntries:[];
+  const rows=all.filter(e=>String(e.entry_date||'')===String(d));
+  let bfCash=0,bfBank=0,rc=0,rb=0,pc=0,pb=0,draw=0;
+  all.filter(e=>String(e.entry_date||'')<String(d)).forEach(e=>{
+    const a=n86(e.amount),t=u86(e.entry_type),m=u86(e.mode),st=u86(e.approval_status||'APPROVED');
+    if(t==='RECEIPT'){if(m==='BANK')bfBank+=a;else bfCash+=a}
+    else if(t==='PAYMENT'&&st==='APPROVED'){if(m==='BANK')bfBank-=a;else bfCash-=a}
+    else if(t==='CASH_DRAWN'){bfCash+=a;bfBank-=a}
+  });
+  rows.forEach(e=>{const a=n86(e.amount),t=u86(e.entry_type),m=u86(e.mode),st=u86(e.approval_status||'APPROVED');if(t==='RECEIPT'){if(m==='BANK')rb+=a;else rc+=a}else if(t==='PAYMENT'&&st==='APPROVED'){if(m==='BANK')pb+=a;else pc+=a}else if(t==='CASH_DRAWN')draw+=a});
+  return {date:d,rows,bfCash,bfBank,rc,rb,pc,pb,draw,cfCash:bfCash+rc-pc+draw,cfBank:bfBank+rb-pb-draw,receipts:{},payments:{},closed:false};
+}
+function alloc86(e){let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}}return a&&typeof a==='object'?a:{};}
+const heads86=['MESSING','INCIDENTAL','POL','RANK PAY','TA CADETS','TA/DA CIV','RENT','OTHERS'];
+function normHead86(k){const x=u86(k);if(x==='INC')return'INCIDENTAL';if(x==='TA/DA CIV STAFF'||x==='TA DA CIV STAFF')return'TA/DA CIV';return heads86.includes(x)?x:'OTHERS'}
+function printCashCore86(){
+  const d=selectedDay86(),s=dayData86(d),c=camp86()||{};
+  const rows=Array.isArray(s.rows)?s.rows:[];
+  const receipt=[],payment=[];
+  rows.forEach(e=>{
+    const t=u86(e.entry_type),st=u86(e.approval_status||'APPROVED');
+    if(t==='RECEIPT'){
+      const a=Object.entries(alloc86(e)).filter(([,v])=>n86(v)>0);
+      (a.length?a:[[e.code_head||e.source_type||'OTHERS',n86(e.amount)]]).forEach(([h,v])=>receipt.push({e,head:normHead86(h),line:n86(v)}));
+    }else if(t==='PAYMENT'&&st==='APPROVED'){
+      const a=Object.entries(alloc86(e)).filter(([,v])=>n86(v)>0);
+      (a.length?a:[[e.code_head||e.source_type||'OTHERS',n86(e.amount)]]).forEach(([h,v])=>payment.push({e,head:normHead86(h),line:n86(v)}));
+    }else if(t==='CASH_DRAWN') payment.push({e,head:'OTHERS',line:n86(e.amount),draw:true});
+  });
+  const tr=x=>{const e=x.e,party=e.party||e.to_whom||e.supplier||(x.draw?'BANK':'');const acct=e.on_account||e.reference_no||e.source_type||(x.draw?'CASH DRAWN FROM BANK':'');const cash=u86(e.mode)==='CASH'&&!x.draw?x.line:0;const bank=(u86(e.mode)==='BANK'||x.draw)?x.line:0;return `<tr><td>${esc86(e.entry_date||d)}</td><td>${esc86(e.voucher_number||e.rv_no||e.pv_no||'')}</td><td>${esc86(party)}</td><td>${esc86(acct)}</td><td class="num">${cash?money86(cash):''}</td><td class="num">${bank?money86(bank):''}</td>${heads86.map(h=>`<td class="num">${x.head===h?money86(x.line):''}</td>`).join('')}</tr>`};
+  const table=(title,arr,pay)=>`<h2>${title}</h2><table><thead><tr><th>Date</th><th>${pay?'PV/CD No.':'RV No.'}</th><th>${pay?'To Whom Paid':'To Whom Received'}</th><th>On What Account</th><th>Cash</th><th>Bank</th>${heads86.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${arr.length?arr.map(tr).join(''):`<tr><td colspan="14">No entries for selected date.</td></tr>`}</tbody></table>`;
+  const headRows=heads86.map(h=>`<tr><td>${h}</td><td class="num">${money86(s.receipts?.[h]||0)}</td><td class="num">${money86(s.payments?.[h]||0)}</td><td class="num">${money86((s.receipts?.[h]||0)-(s.payments?.[h]||0))}</td></tr>`).join('');
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Cash Book ${esc86(d)}</title><style>body{font-family:Inter,Segoe UI,Arial,sans-serif;color:#17324d;margin:18px;font-size:10px}h1{font-size:19px;color:#12344d}h2{font-size:13px;color:#087f8c;margin:16px 0 6px}table{width:100%;border-collapse:collapse;margin-bottom:12px}th{background:#dceff4;color:#102a43;font-weight:900}th,td{border:1px solid #b8cad7;padding:5px;font-weight:650}.num{text-align:right}.toolbar{display:flex;gap:8px;margin:10px 0}.toolbar button{background:#087f8c;color:#fff;border:0;border-radius:6px;padding:8px 12px;font-weight:900}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.box{border:1px solid #b8cad7;border-radius:8px;padding:10px}.tot{font-weight:900;background:#edf6f9}@media print{.toolbar{display:none}}</style></head><body><div class="toolbar"><button onclick="window.print()">PRINT / SAVE PDF</button><button onclick="exportX86()">EXPORT EXCEL</button></div><h1>NCC CAMP MESSING IMS — DAY CASH BOOK</h1><p><b>Camp:</b> ${esc86(c.camp_name||c.camp_code||'')} &nbsp; <b>Date:</b> ${esc86(d)}</p>${table('RECEIPTS',receipt,false)}${table('PAYMENTS',payment,true)}<h2>DAY BALANCE</h2><table><tr><th>Particular</th><th>Amount</th></tr><tr><td>Cash B/F</td><td class="num">${money86(s.bfCash)}</td></tr><tr><td>Bank B/F</td><td class="num">${money86(s.bfBank)}</td></tr><tr><td>Cash Receipts</td><td class="num">${money86(s.rc||s.receiptCash||0)}</td></tr><tr><td>Bank Receipts</td><td class="num">${money86(s.rb||s.receiptBank||0)}</td></tr><tr><td>Cash Payments</td><td class="num">${money86(s.pc||s.payCash||0)}</td></tr><tr><td>Bank Payments</td><td class="num">${money86(s.pb||s.payBank||0)}</td></tr><tr><td>Cash Drawn from Bank</td><td class="num">${money86(s.draw)}</td></tr><tr class="tot"><th>Cash C/F</th><th class="num">${money86(s.cfCash)}</th></tr><tr class="tot"><th>Bank C/F</th><th class="num">${money86(s.cfBank)}</th></tr></table><h2>CODE HEAD POSITION</h2><table><tr><th>Code Head</th><th>Receipts</th><th>Approved Expenditure</th><th>Closing</th></tr>${headRows}</table><div class="grid"><div class="box"><h2>LIABILITIES</h2><table><tr><th>Liability / Unspent Head</th><th>Amount</th></tr>${heads86.map(h=>`<tr><td>${h}</td><td class="num">${money86(Math.max(0,(s.receipts?.[h]||0)-(s.payments?.[h]||0)))}</td></tr>`).join('')}</table></div><div class="box"><h2>ASSETS</h2><table><tr><th>Asset</th><th>Amount</th></tr><tr><td>Cash in Hand</td><td class="num">${money86(s.cfCash)}</td></tr><tr><td>Cash at Bank</td><td class="num">${money86(s.cfBank)}</td></tr><tr class="tot"><th>Total Assets</th><th class="num">${money86(n86(s.cfCash)+n86(s.cfBank))}</th></tr></table></div></div><script>function exportX86(){const h=document.documentElement.outerHTML.replace(/<script[\\s\\S]*?<\\/script>/gi,'');const b=new Blob(['\\ufeff',h],{type:'application/vnd.ms-excel'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Cash_Book_${esc86(d)}.xls';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}<\\/script></body></html>`;
+  const w=window.open('','_blank','width=1800,height=1000');
+  if(w){w.document.open();w.document.write(html);w.document.close();setTimeout(()=>{try{w.focus()}catch(_){}},100);return;}
+  /* Popup blocked: use an in-page printable overlay rather than an alert. */
+  let ov=document.getElementById('v86CashPrintFallback');if(!ov){ov=document.createElement('div');ov.id='v86CashPrintFallback';ov.style.cssText='position:fixed;inset:0;z-index:100000;background:#fff;overflow:auto;padding:20px';document.body.appendChild(ov)}
+  const bi=html.indexOf('<body>'), ei=html.lastIndexOf('</body>'); const body86=bi>=0?html.slice(bi+6,ei>=0?ei:html.length):html; ov.innerHTML=body86+'<div style="position:fixed;top:8px;right:12px"><button onclick="window.print()" style="padding:10px 16px;background:#087f8c;color:#fff;border:0;border-radius:6px;font-weight:800">PRINT / SAVE PDF</button><button onclick="document.getElementById(\'v86CashPrintFallback\').remove()" style="padding:10px 16px">CLOSE</button></div>';
+};
+window.__V85SafePrint=printCashCore86;
+
+/* Patch legacy print functions so older capture listeners cannot display the stale alert. */
+try{
+  const oldLegacy=window.printDayCashbook;
+  window.printDayCashbook=function(){return window.__V85SafePrint()};
+  window.printCashbookV72=window.__V85SafePrint;
+  window.forcePrint=window.__V85SafePrint;
+  /* If a legacy listener calls the old lexical print83/printCash82, their first guard below is patched in source as well. */
+}catch(_){window.printDayCashbook=window.__V85SafePrint}
+
+/* ---------- Cash Book payment source list: only unpaid balance remains selectable ---------- */
+function approvedPaid86(type,id){return (Array.isArray(window.cashbookEntries)?window.cashbookEntries:[]).filter(e=>u86(e.entry_type)==='PAYMENT'&&u86(e.source_type)===u86(type)&&String(e.source_id||'')===String(id)&&u86(e.approval_status||'APPROVED')==='APPROVED').reduce((s,e)=>s+n86(e.amount),0)}
+function unpaidSources86(type){
+  const ins=Array.isArray(window.inInvoices)?window.inInvoices:[],inc=Array.isArray(window.incidentals)?window.incidentals:[],pol=Array.isArray(window.polEntries)?window.polEntries:[];
+  if(type==='MESSING_RV')return ins.map(x=>{const items=Array.isArray(x.stock_in_items)?x.stock_in_items:[];const gross=items.reduce((s,r)=>s+n86(r.amount||n86(r.quantity)*n86(r.rate)),0);const rem=Math.max(0,gross-approvedPaid86(type,x.id));return{id:x.id,amount:rem,ref:x.invoice_number||'',party:x.supplier||'',date:x.invoice_date||'',onAccount:'MESSING',items}}).filter(x=>x.amount>0.005);
+  if(type==='INCIDENTAL_RV')return inc.filter(x=>u86(x.voucher_type)==='RV').map(x=>{const gross=n86(x.amount)||((x.items||[]).reduce((s,r)=>s+n86(r.amount||n86(r.qty)*n86(r.rate)),0));const rem=Math.max(0,gross-approvedPaid86(type,x.id));return{id:x.id,amount:rem,ref:x.voucher_no||x.crv_no||x.invoice_number||'',party:x.party||x.vendor||'',date:x.voucher_date||'',onAccount:'INC',items:x.items||[]}}).filter(x=>x.amount>0.005);
+  if(type==='POL_DRAWN')return pol.map(x=>{const gross=n86(x.total_amount)||n86(x.litres)*n86(x.rate);const rem=Math.max(0,gross-approvedPaid86(type,x.id));return{id:x.id,amount:rem,ref:x.invoice_number||'',party:x.petrol_bunk||'',date:x.entry_date||'',onAccount:'POL',items:[{name:`${x.fuel_type||''} ${x.vehicle_no||''}`,unit:'Ltr',qty:n86(x.litres),rate:n86(x.rate),amount:gross}]}}).filter(x=>x.amount>0.005);
+  return [];
+}
+window.availablePaymentSources=unpaidSources86;
+window.loadCashSources=function(){
+  const head=u86(document.getElementById('cashPaymentCodeHead')?.value||'');
+  const type=head==='MESSING'?'MESSING_RV':head==='INC'?'INCIDENTAL_RV':head==='POL'?'POL_DRAWN':'';
+  const sel=document.getElementById('cashSource');if(!sel)return;
+  const st=document.getElementById('cashSourceType');if(st)st.value=type;
+  if(!type){sel.innerHTML='<option value="">Select source invoice / voucher</option>';return;}
+  const list=unpaidSources86(type);
+  sel.innerHTML='<option value="">Select unpaid source invoice / voucher</option>'+list.map(x=>`<option value="${esc86(x.id)}">${esc86(x.ref)} | ${esc86(x.date)} | ${esc86(x.party)} | Balance ${esc86(money86(x.amount))}</option>`).join('');
+  if(!list.length)sel.innerHTML='<option value="">No unpaid voucher available</option>';
+};
+window.paymentHeadChanged=window.loadCashSources;
+window.fillCashSource=function(){const type=document.getElementById('cashSourceType')?.value||'',id=document.getElementById('cashSource')?.value||'',x=unpaidSources86(type).find(a=>String(a.id)===String(id));if(!x)return;[['cashInvoice',x.ref],['cashPaymentParty',x.party],['cashPaymentAccount',x.onAccount],['cashPaymentAmount',x.amount.toFixed(2)],['cashSourceDate',x.date],['cashSourceParty',x.party],['cashSourceTotal',x.amount.toFixed(2)]].forEach(([id,v])=>{const e=document.getElementById(id);if(e)e.value=v});try{window.updatePaymentBalancePreview?.()}catch(_){} };
+
+/* ---------- POL Detachment edit/update ---------- */
+function detEditInput86(){let e=document.getElementById('detEditId');if(!e){e=document.createElement('input');e.type='hidden';e.id='detEditId';const f=document.getElementById('detVehSelect')?.closest('.panel')||document.getElementById('polDetachSection');if(f)f.appendChild(e)}return e}
+window.editVehicleDetachment=function(id){
+  const row=(window.polDetachmentEntries||window.vehicleDetachments||[]).find(x=>String(x.id)===String(id));
+  if(!row)return alert('Vehicle detachment record not found.');
+  detEditInput86().value=row.id||'';
+  const sel=document.getElementById('detVehSelect');if(sel){sel.value=row.vehicle_id||'';}
+  const to=document.getElementById('detAttachedTo');if(to)to.value=row.attached_to||'';
+  try{window.loadVehicleDetachment?.()}catch(_){}
+  const b=document.querySelector('#polDetachSection button[onclick="saveVehicleDetachment()"]');if(b)b.textContent='UPDATE DETACHMENT';
+  document.getElementById('polDetachSection')?.scrollIntoView({behavior:'smooth',block:'start'});
+};
+const oldSaveDet86=window.saveVehicleDetachment;
+window.saveVehicleDetachment=async function(){
+  const edit=detEditInput86().value||'';
+  if(!edit){return oldSaveDet86?oldSaveDet86.apply(this,arguments):alert('Save function unavailable.')}
+  const role=u86((typeof profile!=='undefined'&&profile?.role)||(window.profile?.role||''));if(!['ADMIN','MANAGER','Q_SEC'].includes(role))return alert('Only ADMIN, MANAGER or Q SEC can update Vehicle Detachment.');
+  const db=db86(),c=camp86();if(!db||!c)return alert('Supabase connection or active camp is not available.');
+  const vid=document.getElementById('detVehSelect')?.value||'',to=document.getElementById('detAttachedTo')?.value||'';if(!vid||!to)return alert('Select vehicle and Attached To date.');
+  const v=(window.polVehicles||[]).find(x=>String(x.id)===String(vid));if(!v)return alert('Vehicle not found.');
+  const num=id=>n86(document.getElementById(id)?.value);const payload={vehicle_id:v.id,vehicle_type:v.vehicle_type||'',vehicle_no:v.vehicle_no||'',unit:v.unit||'',attached_from:v.attached_from||null,attached_to:to,opening_km:num('detOpeningKm'),km_run_camp:num('detKmRun'),closing_km:num('detClosingKm'),kpl:num('detKpl'),pol_consumed:num('detPolConsumed'),pol_drawn_total:num('detPolDrawn'),tank_balance:num('detTankBalance')};
+  const q=await db.from('pol_vehicle_detachments').update(payload).eq('id',edit).eq('camp_id',c.id).select('*').maybeSingle();
+  if(q.error)return alert('Update failed: '+q.error.message);if(!q.data)return alert('No detachment record was updated.');
+  detEditInput86().value='';const b=document.querySelector('#polDetachSection button[onclick="saveVehicleDetachment()"]');if(b)b.textContent='SAVE DETACHMENT';
+  await window.loadPOLDetachments?.();alert('Vehicle detachment updated successfully.');
+};
+window.clearVehicleDetachment=function(){['detVehSelect','detVehType','detUnit','detAttachedFrom','detAttachedTo','detOpeningKm','detKmRun','detClosingKm','detKpl','detPolConsumed','detPolDrawn','detTankBalance'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=''});detEditInput86().value='';const b=document.querySelector('#polDetachSection button[onclick="saveVehicleDetachment()"]');if(b)b.textContent='SAVE DETACHMENT';const m=document.getElementById('detMsg');if(m)m.textContent='';};
+
+window.renderDetachmentRegister=function(){
+  const box=document.getElementById('detachmentTable');if(!box)return;const q=(document.getElementById('detSearch')?.value||'').toLowerCase();const arr=Array.isArray(window.polDetachmentEntries)?window.polDetachmentEntries:(window.vehicleDetachments||[]);const rows=arr.filter(x=>!q||[x.vehicle_no,x.unit,x.vehicle_type].join(' ').toLowerCase().includes(q));
+  let h='<table><tr><th>SL</th><th>Vehicle</th><th>Type</th><th>Unit</th><th>Attached From</th><th>Attached To</th><th>Opening KM</th><th>KM Run</th><th>Closing KM</th><th>KPL</th><th>POL Consumed</th><th>POL Drawn</th><th>Tank Balance</th><th>Action</th></tr>';
+  rows.forEach((x,i)=>{const id=esc86(x.id);const can=typeof canDelete==='function'?canDelete():true;h+=`<tr><td>${i+1}</td><td>${esc86(x.vehicle_no)}</td><td>${esc86(x.vehicle_type)}</td><td>${esc86(x.unit)}</td><td>${esc86(x.attached_from||'')}</td><td>${esc86(x.attached_to||'')}</td><td>${n86(x.opening_km).toFixed(1)}</td><td>${n86(x.km_run_camp).toFixed(1)}</td><td>${n86(x.closing_km).toFixed(1)}</td><td>${n86(x.kpl).toFixed(2)}</td><td>${n86(x.pol_consumed).toFixed(2)}</td><td>${n86(x.pol_drawn_total).toFixed(2)}</td><td>${n86(x.tank_balance).toFixed(2)}</td><td><div class="v85-action-group"><button class="btn" onclick="editVehicleDetachment('${id}')">EDIT</button><button class="btn" onclick="generateKMCard('${id}')">KM CARD</button><button class="btn dark" onclick="generateDetachmentCertificate('${id}')">DETACHMENT CERT.</button>${can?`<button class="btn red" onclick="deleteVehicleDetachment('${id}')">DELETE</button>`:''}</div></td></tr>`});
+  h+='</table>';box.innerHTML=rows.length?h:'<div class="empty">No vehicle detachment records.</div>';
+};
+
+/* ---------- KM Card / Certificate: source values are tied to the attachment + detachment registers ---------- */
+function attachment86(row){return (window.polVehicles||[]).find(v=>String(v.id)===String(row?.vehicle_id||''))||{};}
+const oldKM86=window.generateKMCard;
+window.generateKMCard=function(id){
+  const r=(window.polDetachmentEntries||window.vehicleDetachments||[]).find(x=>String(x.id)===String(id));if(!r)return alert('Vehicle detachment record not found.');
+  const v=attachment86(r),from=r.attached_from||v.attached_from||'',to=r.attached_to||r.detachment_date||'';
+  const tank=n86(v.initial_tank_balance!=null?v.initial_tank_balance:(v.pol_balance??0));
+  /* Rebuild the document with the requested attachment tank balance in the top-right field. */
+  const diaries=(window.carDiaryEntries||[]).filter(x=>String(x.vehicle_id||'')===String(r.vehicle_id||'')&&(!from||String(x.entry_date)>=String(from))&&(!to||String(x.entry_date)<=String(to)));
+  const pols=(window.polEntries||[]).filter(x=>String(x.vehicle_id||'')===String(r.vehicle_id||'')&&(!from||String(x.entry_date)>=String(from))&&(!to||String(x.entry_date)<=String(to)));
+  const dates=[...new Set([...diaries.map(x=>x.entry_date),...pols.map(x=>x.entry_date)].filter(Boolean))].sort();
+  const rows=dates.map(d=>{const ds=diaries.filter(x=>x.entry_date===d),ps=pols.filter(x=>x.entry_date===d);return[d,ds.reduce((a,x)=>a+n86(x.km_run),0),ps.reduce((a,x)=>a+n86(x.litres),0),ps.map(x=>x.invoice_number||'').filter(Boolean).join(', '),ps.reduce((a,x)=>a+n86(x.total_amount||n86(x.litres)*n86(x.rate)),0),ds.map(x=>x.remarks||'').filter(Boolean).join('; ')]});
+  if(!rows.length)rows.push(['',n86(r.km_run_camp),n86(r.pol_drawn_total),'',0,'']);
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>KM Card</title><style>body{font-family:Arial,sans-serif;color:#17324d;margin:18px;font-size:11px}h1{text-align:center;font-size:19px}table{width:100%;border-collapse:collapse;margin:8px 0 14px}th,td{border:1px solid #687f8d;padding:6px}th{background:#dceff4;font-weight:800}.num{text-align:right}.sign{margin-top:35px;display:flex;justify-content:flex-end;font-weight:700}</style></head><body><h1>KM CARD OF VEHICLE</h1><table><tr><th>Vehicle No.</th><td>${esc86(r.vehicle_no||v.vehicle_no)}</td><th>Unit</th><td>${esc86(r.unit||v.unit||'')}</td></tr><tr><th>KPL</th><td>${n86(r.kpl||v.kpl).toFixed(2)}</td><th>Tank Balance</th><td>${tank.toFixed(2)} L</td></tr><tr><th>Attached From</th><td>${esc86(from)}</td><th>Attached To</th><td>${esc86(to)}</td></tr></table><table><thead><tr><th>Date</th><th>KM Run</th><th>POL Drawn</th><th>Invoice No.</th><th>Amount</th><th>Remarks</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${esc86(x[0])}</td><td class="num">${n86(x[1]).toFixed(1)}</td><td class="num">${n86(x[2]).toFixed(2)}</td><td>${esc86(x[3])}</td><td class="num">${money86(x[4])}</td><td>${esc86(x[5])}</td></tr>`).join('')}</tbody></table><table><tr><th>Opening Km</th><td class="num">${n86(r.opening_km).toFixed(1)}</td><th>Opening POL</th><td class="num">${tank.toFixed(2)} L</td></tr><tr><th>Km Run in the Camp</th><td class="num">${n86(r.km_run_camp).toFixed(1)}</td><th>POL DRAWN</th><td class="num">${n86(r.pol_drawn_total).toFixed(2)} L</td></tr><tr><th>Closing KM</th><td class="num">${n86(r.closing_km).toFixed(1)}</td><th>Tank Balance</th><td class="num">${n86(r.tank_balance).toFixed(2)} L</td></tr></table><div class="sign"><span>Officer</span></div><script>window.onload=function(){setTimeout(function(){window.print()},250)}<\\/script></body></html>`;
+  if(typeof popupPrint85==='function')popupPrint85(html,'KM Card');else{const w=window.open('','_blank');if(w){w.document.write(html);w.document.close()}}
+};
+
+const oldCert86=window.generateDetachmentCertificate;
+window.generateDetachmentCertificate=function(id){
+  const r=(window.polDetachmentEntries||window.vehicleDetachments||[]).find(x=>String(x.id)===String(id));if(!r)return alert('Vehicle detachment record not found.');
+  const v=attachment86(r),c=camp86()||{};const from=r.attached_from||v.attached_from||'',to=r.attached_to||'';const openingFuel=n86(v.initial_tank_balance!=null?v.initial_tank_balance:(v.pol_balance??0));
+  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Vehicle Detachment Certificate</title><style>body{font-family:Arial,sans-serif;color:#17324d;margin:22px;font-size:12px}h1{text-align:center;font-size:20px;margin:0 0 16px;text-transform:uppercase}.grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #687f8d}.cell{padding:8px;border-bottom:1px solid #9fb5c3}.cell:nth-child(odd){border-right:1px solid #9fb5c3;font-weight:800}.section{margin-top:14px;font-weight:800;font-size:13px;color:#087f8c}.sign{margin-top:65px;display:flex;justify-content:flex-end;font-weight:700}</style></head><body><h1>VEHICLE DETACHMENT CERTIFICATE</h1><p><b>Camp conducted by:</b> ${esc86(c.conducted_by||c.organisation||'NCC Camp')}</p><p><b>Held On:</b> ${esc86(to)}</p><div class="grid"><div class="cell">Unit Vehicle</div><div class="cell">${esc86(r.unit||v.unit||'')}</div><div class="cell">Vehicle BA No</div><div class="cell">${esc86(r.vehicle_no||v.vehicle_no||'')}</div><div class="cell">Camp Details</div><div class="cell">${esc86(c.camp_name||c.camp_code||'')}</div><div class="cell">Location at</div><div class="cell">${esc86(c.station||c.location||'')}</div><div class="cell">Attached From</div><div class="cell">${esc86(from)}</div><div class="cell">Attached To</div><div class="cell">${esc86(to)}</div></div><div class="section">Vehicle KM Details</div><div class="grid"><div class="cell">Camp Opening Km</div><div class="cell">${n86(r.opening_km).toFixed(1)}</div><div class="cell">Total Km Run in Camp</div><div class="cell">${n86(r.km_run_camp).toFixed(1)}</div><div class="cell">Camp Closing Km</div><div class="cell">${n86(r.closing_km).toFixed(1)}</div><div class="cell">KPL</div><div class="cell">${n86(r.kpl||v.kpl).toFixed(2)}</div></div><div class="section">Vehicle Fuel Details</div><div class="grid"><div class="cell">Camp Opening Fuel</div><div class="cell">${openingFuel.toFixed(2)} L</div><div class="cell">Drawn Fuel in Camp</div><div class="cell">${n86(r.pol_drawn_total).toFixed(2)} L</div><div class="cell">Consumed Fuel</div><div class="cell">${n86(r.pol_consumed).toFixed(2)} L</div><div class="cell">Fuel Balance</div><div class="cell">${n86(r.tank_balance).toFixed(2)} L</div></div><p style="margin-top:18px">Certified that the above vehicle details are recorded from the camp vehicle, Car Diary and POL Drawn registers.</p><div class="sign"><span>Camp Commandant</span></div><script>window.onload=function(){setTimeout(function(){window.print()},250)}<\\/script></body></html>`;
+  if(typeof popupPrint85==='function')popupPrint85(html,'Vehicle Detachment Certificate');else{const w=window.open('','_blank');if(w){w.document.write(html);w.document.close()}}
+};
+
+/* Rebind the payment source dropdown whenever the payment head changes. */
+const ph=document.getElementById('cashPaymentCodeHead');if(ph&&!ph.dataset.v86){ph.addEventListener('change',()=>setTimeout(window.loadCashSources,0));ph.dataset.v86='1';}
+
+/* Force latest handlers onto current buttons after navigation. */
+function bind86(){
+  const cash=document.getElementById('cashbook');
+  if(cash)cash.querySelectorAll('button').forEach(b=>{const t=u86(b.textContent);if(t==='PRINT / PDF')b.onclick=e=>{e.preventDefault();e.stopPropagation();window.__V85SafePrint()};});
+  try{window.renderDetachmentRegister?.()}catch(_){ }
+  try{window.loadCashSources?.()}catch(_){ }
+}
+const oldSP86=window.showPage;if(typeof oldSP86==='function'&&!window.__V86SP){window.__V86SP=true;window.showPage=function(){const r=oldSP86.apply(this,arguments);setTimeout(bind86,100);setTimeout(bind86,500);return r}}
+const oldRF86=window.refreshAll;if(typeof oldRF86==='function'&&!window.__V86RF){window.__V86RF=true;window.refreshAll=async function(){const r=await oldRF86.apply(this,arguments);setTimeout(bind86,120);return r}}
+setTimeout(bind86,250);setTimeout(bind86,1000);setTimeout(bind86,2500);
+})();
+</script>
+<style id="v86-final-css">
+.v85-action-group{display:flex;gap:5px;flex-wrap:wrap;align-items:center}.v85-action-group .btn{font-weight:800;white-space:nowrap}
+#detachmentTable td:last-child{min-width:270px}.v86-editing{outline:2px solid #0ea5a8}
+</style>
