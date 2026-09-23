@@ -8885,4 +8885,97 @@ document.addEventListener('DOMContentLoaded',()=>setTimeout(boot88,300));
 })();
 </script>
 
+
+<!-- V89: exact workbook-format Cash Book + approved Payment Voucher printing -->
+<style>
+.v89-sheet{background:#fff;color:#111;padding:18px;max-width:1500px;margin:auto;font-family:Arial,Helvetica,sans-serif;font-size:10px}
+.v89-sheet h1{font-size:18px;text-align:center;margin:0 0 10px;font-weight:800}.v89-sheet h2{font-size:13px;margin:12px 0 5px;text-align:center}
+.v89-meta{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.v89-meta div{border:1px solid #555;padding:5px}.v89-sheet table{width:100%;border-collapse:collapse;table-layout:fixed}.v89-sheet th,.v89-sheet td{border:1px solid #555;padding:4px 3px;vertical-align:middle;word-break:break-word}.v89-sheet th{font-weight:800;text-transform:none;background:#eaf2f6}.v89-num{text-align:right;white-space:nowrap}.v89-two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.v89-bal{margin-top:10px}.v89-bal-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.v89-toolbar{position:sticky;top:0;z-index:4;background:#fff;padding:8px;border-bottom:1px solid #aaa;display:flex;gap:7px;justify-content:flex-end}.v89-toolbar button{border:0;border-radius:5px;padding:8px 12px;font-weight:800;cursor:pointer;background:#0aa8b5;color:#fff}.v89-toolbar button.dark{background:#15344c}.v89-toolbar button.light{background:#eee;color:#17324d;border:1px solid #aaa}.v89-pv{max-width:900px}.v89-pv .title{font-size:20px;text-align:center;font-weight:900;margin:2px 0 6px}.v89-pv .rightmeta{text-align:right;font-weight:700}.v89-pv .camp-title{text-align:center;font-weight:900;font-size:13px;white-space:pre-line}.v89-pv .item th,.v89-pv .item td{text-align:center}.v89-pv .item td:nth-child(2){text-align:left}.v89-pv input,.v89-pv textarea{font:inherit;border:0;border-bottom:1px dotted #777;background:transparent;width:100%;box-sizing:border-box}.v89-pv textarea{min-height:45px;border:1px solid #aaa;padding:4px}.v89-sign{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:30px;text-align:center}.v89-sign span{padding-top:28px;border-top:1px solid #333;font-weight:700}.v89-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}.v89-actions button{padding:8px 12px;border:0;border-radius:5px;background:#0aa8b5;color:#fff;font-weight:800}.v89-actions .dark{background:#17324d}
+@media print{body>*:not(#v89PrintRoot){display:none!important}#v89PrintRoot{display:block!important}.v89-toolbar{display:none!important}.v89-sheet{max-width:none;padding:4mm;font-size:8px}.v89-sheet h1{font-size:14px}.v89-sheet h2{font-size:10px}.v89-sheet th,.v89-sheet td{padding:2px}.v89-two,.v89-bal-grid{gap:3px}.v89-pv{font-size:10px}.v89-pv .title{font-size:16px}.v89-pv input,.v89-pv textarea{border:0}.v89-actions{display:none}}
+</style>
+<script>
+(function(){
+  const n=v=>{const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(x)?x:0};
+  const u=v=>String(v??'').trim().toUpperCase();
+  const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const money=v=>'₹'+n(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const camp=()=>window.activeCamp||window.currentCamp||window.camp||{};
+  const entries=()=>Array.isArray(window.cashbookEntries)?window.cashbookEntries:[];
+  const approved=e=>u(e.approval_status||'APPROVED')==='APPROVED';
+  const heads=[['messing','MESSING'],['inc','INC'],['pol','POL'],['rank pay','RANK PAY'],['TA Cadets','TA Cadets'],['TA/DA Civ','TA/DA Civ'],['Rent','Rent'],['Other','Other']];
+  const canon=k=>{const x=u(k);if(x==='INC'||x==='INCIDENTAL')return'inc';if(x==='TA/DA CIV STAFF'||x==='TA DA CIV STAFF'||x==='TA/DA CIV')return'TA/DA Civ';if(x==='RANK PAY')return'rank pay';if(x==='TA CADETS')return'TA Cadets';if(x==='RENT')return'Rent';if(x==='POL')return'pol';if(x==='MESSING')return'messing';return'Other'};
+  const alloc=e=>{let a=e?.head_allocations;if(typeof a==='string'){try{a=JSON.parse(a)}catch(_){a={}}}return a&&typeof a==='object'?a:{}};
+  function sourcePV(e){
+    const sd=e?.source_details||{};let items=Array.isArray(sd.items)?sd.items:[];const type=u(e?.source_type||'');
+    if(!items.length && type==='MESSING_RV'){
+      const x=(window.inInvoices||[]).find(a=>String(a.id)===String(e.source_id));
+      items=(x?.stock_in_items||[]).map(r=>{const it=(window.items||[]).find(a=>String(a.id)===String(r.item_id))||{};return{name:it.name||r.item_name||'',rate:n(r.rate),qty:n(r.quantity),amount:n(r.amount||n(r.rate)*n(r.quantity)),page:it.ledger_page_no||''}});
+      return {type,party:x?.supplier||e.party||'',date:x?.invoice_date||e.entry_date,ref:x?.invoice_number||e.reference_no||'',items};
+    }
+    if(!items.length && type==='INCIDENTAL_RV'){
+      const x=(window.incidentals||[]).find(a=>String(a.id)===String(e.source_id));
+      items=(x?.items||[]).map(r=>({name:r.desc||'',rate:n(r.rate),qty:n(r.qty),amount:n(r.amount||n(r.rate)*n(r.qty)),page:r.page||''}));
+      return {type,party:x?.vendor_name||x?.party||e.party||'',date:x?.voucher_date||e.entry_date,ref:x?.invoice_number||x?.voucher_no||e.reference_no||'',items};
+    }
+    if(!items.length && type==='POL_DRAWN'){
+      const x=(window.polEntries||[]).find(a=>String(a.id)===String(e.source_id));
+      items=[{name:(x?.fuel_type||'')+' – '+(x?.vehicle_no||''),rate:n(x?.rate),qty:n(x?.litres),amount:n(x?.total_amount||n(x?.rate)*n(x?.litres)),page:''}];
+      return {type,party:x?.petrol_bunk||e.party||'',date:x?.entry_date||e.entry_date,ref:x?.invoice_number||e.reference_no||'',items};
+    }
+    return {type,party:sd.to_whom_paid||e.party||'',date:e.entry_date,ref:e.reference_no||'',items};
+  }
+  function removeRoot(){document.getElementById('v89PrintRoot')?.remove()}
+  function openPrint(html,title){removeRoot();const r=document.createElement('div');r.id='v89PrintRoot';r.innerHTML=html;document.body.appendChild(r);document.title=title||'NCC Camp Messing IMS';setTimeout(()=>r.querySelector('[data-auto-focus]')?.focus(),50)}
+  window.closeV89Print=removeRoot;
+  window.printV89=function(){window.print()};
+
+  function budgetHeads(){
+    const c=camp();let extra={taCadets:0,taDaCiv:0,rankPay:0,rent:0};try{const raw=String(c.remarks||'');const p=raw.indexOf('[NCC_HEAD_AMOUNTS]');if(p>=0)extra=Object.assign(extra,JSON.parse(raw.slice(p+17).trim())||{})}catch(_){}
+    return {MESSING:n(c.messing_budget),INCIDENTAL:n(c.incidental_budget),POL:n(c.pol_budget),'RANK PAY':n(extra.rankPay),'TA Cadets':n(extra.taCadets),'TA/DA Civ':n(extra.taDaCiv),Rent:n(extra.rent),Other:0};
+  }
+  function cashBookData(date){
+    const all=entries();const before=all.filter(e=>String(e.entry_date||'')<String(date));const rows=all.filter(e=>String(e.entry_date||'')===String(date));
+    let bfCash=0,bfBank=0;for(const e of before){const a=n(e.amount);if(u(e.entry_type)==='RECEIPT'){u(e.mode)==='BANK'?bfBank+=a:bfCash+=a}else if(u(e.entry_type)==='PAYMENT'&&approved(e)){u(e.mode)==='BANK'?bfBank-=a:bfCash-=a}else if(u(e.entry_type)==='CASH_DRAWN'){bfCash+=a;bfBank-=a}}
+    const r=[],p=[];const rtot={cash:0,bank:0},ptot={cash:0,bank:0};heads.forEach(([k])=>{rtot[k]=0;ptot[k]=0});
+    rows.forEach(e=>{
+      const t=u(e.entry_type);if(t==='RECEIPT'){const a=n(e.amount);const h=alloc(e);const line=Object.keys(h).filter(k=>n(h[k])).length?Object.entries(h).filter(([,v])=>n(v)).map(([k,v])=>[canon(k),n(v)]):[['Other',a]];line.forEach(([k,v])=>{if(u(e.mode)==='BANK')rtot.bank+=v;else rtot.cash+=v;rtot[k]=(rtot[k]||0)+v;r.push({e,head:k,value:v})})}
+      else if(t==='PAYMENT'&&approved(e)){const a=n(e.amount);const h=alloc(e);const line=Object.keys(h).filter(k=>n(h[k])).length?Object.entries(h).filter(([,v])=>n(v)).map(([k,v])=>[canon(k),n(v)]):[[canon(e.code_head||e.source_type),a]];line.forEach(([k,v])=>{if(u(e.mode)==='BANK')ptot.bank+=v;else ptot.cash+=v;ptot[k]=(ptot[k]||0)+v;p.push({e,head:k,value:v})})}
+      else if(t==='CASH_DRAWN'){const a=n(e.amount);const rvNo='RV-CD-'+String(String(e.voucher_number||'CD').replace(/\D/g,'')||'01').padStart(2,'0');r.push({e:{...e,entry_type:'RECEIPT',voucher_number:rvNo,party:'FROM_BANK',reference_no:'CASH_A/C',mode:'CASH'},head:'Other',value:a,drawCredit:true});p.push({e:{...e,party:'CASH DRAWN',reference_no:'FROM_BANK_ACCOUNT',mode:'BANK'},head:'Other',value:a,drawDebit:true});}
+    });
+    const exp={};heads.forEach(([k])=>exp[k]=0);p.forEach(x=>{if(!x.drawDebit)exp[x.head]=(exp[x.head]||0)+x.value});
+    const cfCash=bfCash+rtot.cash-ptot.cash;const cfBank=bfBank+rtot.bank-ptot.bank-(rows.filter(e=>u(e.entry_type)==='CASH_DRAWN').reduce((s,e)=>s+n(e.amount),0));
+    return {date,bfCash,bfBank,r,p,rtot,ptot,exp,cfCash,cfBank};
+  }
+  const cell=(v)=>n(v)?money(v):'';
+  function cbRow(x,pay){const e=x.e||{};const h=x.head;const cash=x.drawCredit?x.value:(x.drawDebit?0:(u(e.mode)==='CASH'?x.value:0));const bank=x.drawDebit?x.value:(x.drawCredit?0:(u(e.mode)==='BANK'?x.value:0));const vals=[cash,bank,...heads.map(([k])=>h===k&&!x.drawCredit&&!x.drawDebit?x.value:0)];return '<tr><td>'+esc(e.entry_date||'')+'</td><td>'+esc(e.voucher_number||'')+'</td><td>'+esc(e.party||e.to_whom||e.supplier||'')+'</td><td>'+esc(e.reference_no||e.on_account||e.code_head||e.source_type||'')+'</td>'+vals.map(cell).map(v=>'<td class="v89-num">'+v+'</td>').join('')+'</tr>'}
+  function cbTable(title,arr,pay){const th=['Date',pay?'PV No':'RV No',pay?'To whom Paid':'To whom receive','on what account','cash','bank','messing','inc','pol','rank pay','TA Cadets','TA/DA Civ','Rent','Other '];return '<h2>'+title+'</h2><table><thead><tr>'+th.map(x=>'<th>'+x+'</th>').join('')+'</tr></thead><tbody>'+(arr.length?arr.map(x=>cbRow(x,pay)).join(''):'<tr><td colspan="14">No entries for selected date</td></tr>')+'</tbody></table>'}
+  window.openCashBookFormat89=function(){
+    const d=document.getElementById('cashDayDate')?.value||new Date().toISOString().slice(0,10),x=cashBookData(d),B=budgetHeads(),liab={};Object.keys(B).forEach(k=>liab[k]=B[k]-(x.exp[k]||0));const totalL=Object.values(liab).reduce((a,v)=>a+v,0),assets=x.cfCash+x.cfBank,sy=totalL-assets;
+    const campName=camp().camp_name||camp().camp_code||'NCC CAMP',station=camp().station||camp().location||'';
+    const lr=Object.entries(liab).map(([k,v])=>'<tr><td>'+esc(k)+'</td><td class="v89-num">'+money(v)+'</td></tr>').join('');
+    const html='<div class="v89-toolbar"><button onclick="printV89()">PRINT / SAVE PDF</button><button class="light" onclick="window.closeV89Print()">CLOSE</button></div><div class="v89-sheet"><h1>NCC CAMP MESSING IMS — CASH BOOK</h1><div class="v89-meta"><div><b>Camp:</b> '+esc(campName)+'</div><div><b>Station:</b> '+esc(station)+'</div><div><b>Cash Book Date:</b> '+esc(d)+'</div><div><b>Status:</b> '+esc(document.getElementById('cashDayStatus')?.value||'OPEN')+'</div></div><div class="v89-two">'+cbTable('Receipts',x.r,false)+cbTable('Payments',x.p,true)+'</div><div class="v89-two v89-bal"><div><h2>RECEIPT TOTAL / C/F / BALANCE</h2><table><tr><th>Particular</th><th>Amount</th></tr><tr><td>Cash B/F</td><td class="v89-num">'+money(x.bfCash)+'</td></tr><tr><td>Bank B/F</td><td class="v89-num">'+money(x.bfBank)+'</td></tr><tr><td>Cash Receipts</td><td class="v89-num">'+money(x.rtot.cash)+'</td></tr><tr><td>Bank Receipts</td><td class="v89-num">'+money(x.rtot.bank)+'</td></tr><tr><td>Cash C/F</td><td class="v89-num">'+money(x.cfCash)+'</td></tr><tr><td>Bank C/F</td><td class="v89-num">'+money(x.cfBank)+'</td></tr></table></div><div><h2>PAYMENT EXP / BALANCE</h2><table><tr><th>Particular</th><th>Amount</th></tr><tr><td>Cash Payments</td><td class="v89-num">'+money(x.ptot.cash)+'</td></tr><tr><td>Bank Payments</td><td class="v89-num">'+money(x.ptot.bank)+'</td></tr><tr><td>Cash Drawn from Bank</td><td class="v89-num">'+money(x.p.filter(a=>a.drawDebit).reduce((s,a)=>s+a.value,0))+'</td></tr><tr><td>Total Expenditure</td><td class="v89-num">'+money(x.ptot.cash+x.ptot.bank)+'</td></tr></table></div></div><h2>LIABILITY / ASSET</h2><div class="v89-bal-grid"><table><thead><tr><th>Liability / Sanctioned Head</th><th>Amount</th></tr></thead><tbody>'+lr+'<tr><th>Total Liabilities</th><th class="v89-num">'+money(totalL)+'</th></tr></tbody></table><table><thead><tr><th>Asset</th><th>Amount</th></tr></thead><tbody><tr><td>Cash In Hand</td><td class="v89-num">'+money(x.cfCash)+'</td></tr><tr><td>Cash at Bank</td><td class="v89-num">'+money(x.cfBank)+'</td></tr><tr><td>SY DR / Balance Adjustment</td><td class="v89-num">'+money(sy)+'</td></tr><tr><th>Total Assets</th><th class="v89-num">'+money(assets+sy)+'</th></tr></tbody></table></div></div>';
+    openPrint(html,'Cash Book '+d);
+  };
+
+  function pvHTML(e){
+    const d=sourcePV(e),c=camp(),items=d.items||[],total=items.reduce((s,x)=>s+n(x.amount||n(x.rate)*n(x.qty)),0);const rows=items.length?items.map((x,i)=>'<tr><td>'+((i+1))+'</td><td><input value="'+esc(x.name)+'"></td><td><input value="'+esc(x.rate||0)+'"></td><td><input value="'+esc(x.qty||0)+'"></td><td><input value="'+esc(x.amount||0)+'"></td></tr>').join(''):'<tr><td>1</td><td><input></td><td><input></td><td><input></td><td><input></td></tr>';
+    const words=window.words88?window.words88(total):'';
+    return '<div class="v89-toolbar"><button onclick="printV89()">PRINT / SAVE PDF</button><button class="light" onclick="window.closeV89Print()">CLOSE</button></div><div class="v89-sheet v89-pv"><div class="rightmeta">PV No: <input data-auto-focus value="'+esc(e.voucher_number||'')+'"><br>Date: <input type="date" value="'+esc(d.date||e.entry_date||'')+'"></div><div class="title">PAYMENT VOUCHER</div><div class="camp-title">'+esc((c.camp_name||c.camp_code||'').toUpperCase())+'\n'+esc((c.location||c.station||'').toUpperCase())+'\nFROM '+esc(c.from_date||'')+' TO '+esc(c.to_date||'')+'</div><p><b>CAMP COMMANDANT</b><br>'+esc(c.camp_name||'')+'<br>'+esc(c.location||c.station||'')+'</p><table class="item"><thead><tr><th>Ser No</th><th>Items</th><th>Rate</th><th>Qty</th><th>Amount</th></tr></thead><tbody>'+rows+'</tbody><tfoot><tr><th colspan="4">Total</th><th>'+money(total)+'</th></tr></tfoot></table><p>(Rupees <input value="'+esc(words?words+' Only':'')+'"> Only).</p><h2>PURCHASE COMMITTEE</h2><textarea>Certified that the item has been purchased at the most competitive rates having regards to prevailing market rates and quality.</textarea><div class="v89-sign"><span>Presiding Officer</span><span>1. Members</span><span>2. Members / 3. Members</span></div><h2>STOCK CERTIFICATE</h2><textarea>Certified that the items have been received in good condition and in correct quantity and taken to stock on page No. __________________ Expendable / Non-Expendable / Stock Book / Mileage card diary.</textarea><div style="text-align:right;margin-top:25px;font-weight:700">Signature of Camp Quarter Master</div><h2>PAY ORDER</h2><p>Passed for Rs. <input value="'+money(total)+'"> /- Rupees <input value="'+esc(words?words+' Only':'')+'"></p><div class="v89-sign"><span>Dy Camp Commandant / Accounts Officer</span><span></span><span>Signature of Camp Commandant</span></div></div>';
+  }
+  window.generateApprovedPV89=function(id){const e=entries().find(x=>String(x.id)===String(id));if(!e)return alert('Payment entry not found.');if(!approved(e))return alert('Payment voucher can be generated only after approval.');const t=u(e.source_type);if(!['MESSING_RV','INCIDENTAL_RV','POL_DRAWN'].includes(t))return alert('PV generation is available for Messing, Incidental RV and POL payments.');openPrint(pvHTML(e),'Payment Voucher '+(e.voucher_number||''));};
+
+  function decorateCashbookPV(){
+    document.querySelectorAll('#cashbookTable tbody tr').forEach(tr=>{
+      if(tr.dataset.v89pv)return;const txt=tr.textContent||'';const del=tr.querySelector('[onclick*="deleteCashbook"]');const oc=del?.getAttribute('onclick')||'';const id=(oc.match(/['"]([^'"]+)['"]/)||[])[1];if(!id)return;const e=entries().find(x=>String(x.id)===String(id));if(!e||u(e.entry_type)!=='PAYMENT'||!approved(e)||!['MESSING_RV','INCIDENTAL_RV','POL_DRAWN'].includes(u(e.source_type)))return;const td=tr.cells[tr.cells.length-1];if(!td)return;tr.dataset.v89pv='1';td.insertAdjacentHTML('beforeend',' <button class="btn green" onclick="generateApprovedPV89(&quot;'+esc(id)+'&quot;)">GENERATE PV</button>');
+    });
+    // Also add to any approval-aware payment row that has no action/delete button.
+    document.querySelectorAll('#cashbookTable tbody tr').forEach(tr=>{if(tr.dataset.v89pv)return;const cells=[...tr.cells];const pv=cells.find(c=>/^PV[- ]/i.test((c.textContent||'').trim()));if(!pv)return;const e=entries().find(x=>String(x.voucher_number||'')===(pv.textContent||'').trim());if(!e||u(e.entry_type)!=='PAYMENT'||!approved(e)||!['MESSING_RV','INCIDENTAL_RV','POL_DRAWN'].includes(u(e.source_type)))return;const td=tr.cells[tr.cells.length-1]||tr.insertCell(-1);tr.dataset.v89pv='1';td.insertAdjacentHTML('beforeend',' <button class="btn green" onclick="generateApprovedPV89(&quot;'+esc(e.id)+'&quot;)">GENERATE PV</button>');});
+  }
+  const oldRender=window.renderCashbook;window.renderCashbook=function(){try{oldRender?.apply(this,arguments)}catch(_){}setTimeout(decorateCashbookPV,80)};
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(decorateCashbookPV,800));
+  setInterval(()=>{if(document.getElementById('cashbook'))decorateCashbookPV()},1800);
+  // Replace old Cash Book print binding with exact workbook layout.
+  const oldPrint=window.printDayCashbook;window.printDayCashbook=function(){try{window.openCashBookFormat89()}catch(err){console.error(err);if(oldPrint)oldPrint()}};
+})();
+</script>
 </body></html>
