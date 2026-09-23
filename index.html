@@ -8428,3 +8428,102 @@ window.editVehicleDetachment=function(id){const r=findById3(dets3(),id);if(!r)re
 })();
 </script>
 </body></html>
+<script id="ims-v91-4-payment-voucher-final">
+(function(){
+  'use strict';
+  const n4=v=>{const x=parseFloat(String(v??'').replace(/[^0-9.-]/g,''));return Number.isFinite(x)?x:0};
+  const u4=v=>String(v??'').trim().toUpperCase();
+  const e4=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const money4=v=>'₹'+n4(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const arr4=(...names)=>{let first=[];for(const name of names){let a;try{a=window[name]}catch(_){}if(!Array.isArray(a)){try{a=globalThis[name]}catch(_){} }if(Array.isArray(a)){if(!first.length)first=a;if(a.length)return a;}}return first};
+  const entries4=()=>arr4('cashbookEntries','cashBookEntries','cashbook');
+  const inc4=()=>arr4('incidentals');
+  const items4=()=>arr4('items','inventory');
+  const invoices4=()=>arr4('inInvoices','stockInInvoices');
+  const pol4=()=>arr4('polEntries','polDrawnEntries','polDrawn','polFuelEntries');
+  const camp4=()=>window.activeCamp||window.currentCamp||{};
+  const json4=v=>{if(v&&typeof v==='object')return v;if(typeof v==='string'){try{return JSON.parse(v)}catch(_){}}return {}};
+  const child4=r=>{for(const k of ['items','voucher_items','incidental_items','stock_items']){let a=r?.[k];if(Array.isArray(a))return a; a=json4(a);if(Array.isArray(a))return a}const s=json4(r?.source_details);return Array.isArray(s.items)?s.items:[]};
+  const approved4=r=>u4(r?.entry_type)==='PAYMENT'&&u4(r?.approval_status||'APPROVED')==='APPROVED';
+  const source4=(type,id,row)=>{
+    const t=u4(type), sid=String(id??'');
+    if(t==='MESSING_RV'){
+      const x=invoices4().find(a=>String(a.id)===sid);if(x){const its=(Array.isArray(x.stock_in_items)?x.stock_in_items:child4(x)).map(z=>{const it=items4().find(a=>String(a.id)===String(z.item_id))||{};return{name:it.name||z.item_name||z.name||'',unit:it.unit||z.unit||z.a_u||'',rate:n4(z.rate),qty:n4(z.quantity??z.qty),amount:n4(z.amount||n4(z.rate)*n4(z.quantity??z.qty)),page:it.ledger_page_no||z.page_no||''}});return{party:x.supplier||x.vendor_name||'',date:x.invoice_date||x.voucher_date||x.date||row?.entry_date||'',ref:x.invoice_number||x.voucher_number||x.voucher_no||row?.reference_no||'',head:'MESSING',items:its}}}
+    if(t==='INCIDENTAL_RV'){
+      const x=inc4().find(a=>String(a.id)===sid&&u4(a.voucher_type)==='RV');if(x){const its=child4(x).map(z=>({name:z.name||z.desc||z.item_name||'',unit:z.unit||z.a_u||'',rate:n4(z.rate),qty:n4(z.qty??z.quantity),amount:n4(z.amount||n4(z.rate)*n4(z.qty??z.quantity)),page:z.page||z.page_no||''}));return{party:x.party||x.vendor_name||'',date:x.voucher_date||x.date||row?.entry_date||'',ref:x.invoice_number||x.voucher_no||x.voucher_number||row?.reference_no||'',head:'INCIDENTAL',items:its}}}
+    if(t==='POL_DRAWN'){
+      const x=pol4().find(a=>String(a.id)===sid);if(x)return{party:x.petrol_bunk||x.bunk||x.vendor||'',date:x.entry_date||x.date||row?.entry_date||'',ref:x.invoice_number||x.invoice_no||x.voucher_no||row?.reference_no||'',head:'POL',items:[{name:((x.fuel_type||x.fuel||'')+' - '+(x.vehicle_no||x.vehicle||'')).trim()||'POL DRAWN',unit:'Ltr',rate:n4(x.rate),qty:n4(x.litres??x.quantity??x.qty),amount:n4(x.total_amount||x.amount||n4(x.rate)*n4(x.litres??x.quantity??x.qty)),page:''}]}}
+    const sd=json4(row?.source_details);if(sd&&Array.isArray(sd.items))return{party:sd.to_whom_paid||row?.party||'',date:row?.entry_date||'',ref:sd.source_reference||row?.reference_no||'',head:sd.source_label||row?.code_head||'OTHER',items:sd.items.map(z=>({name:z.name||z.item_name||z.desc||'',unit:z.unit||z.a_u||'',rate:n4(z.rate),qty:n4(z.qty??z.quantity),amount:n4(z.amount||n4(z.rate)*n4(z.qty??z.quantity)),page:z.page||z.page_no||''}))};
+    return null;
+  };
+  function words4(v){
+    let n=Math.round(n4(v)*100)/100, ru=Math.floor(n), pa=Math.round((n-ru)*100);
+    if(!ru&&!pa)return 'Zero Rupees';
+    const one=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+    const ten=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+    const under100=x=>x<20?one[x]:ten[Math.floor(x/10)]+(x%10?' '+one[x%10]:'');
+    const under1000=x=>{let a=[];if(x>=100){a.push(one[Math.floor(x/100)]+' Hundred');x%=100}if(x)a.push(under100(x));return a.join(' ')};
+    let a=[];const cr=Math.floor(ru/10000000);ru%=10000000;const lk=Math.floor(ru/100000);ru%=100000;const th=Math.floor(ru/1000);ru%=1000;if(cr)a.push(under1000(cr)+' Crore');if(lk)a.push(under1000(lk)+' Lakh');if(th)a.push(under1000(th)+' Thousand');if(ru)a.push(under1000(ru));
+    let s=(a.join(' ')||'Zero')+' Rupees';if(pa)s+=' and '+under1000(pa)+' Paise';return s;
+  }
+  function nextPV4(){let max=0;entries4().forEach(r=>{if(u4(r.approval_status)==='REJECTED')return;const m=String(r.voucher_number||'').match(/^PV[-\s]?0*(\d+)$/i);if(m)max=Math.max(max,Number(m[1]))});return 'PV-'+String(max+1).padStart(2,'0')}
+  function pvBody4(row){
+    const c=camp4(), src=source4(row.source_type,row.source_id,row)||{};
+    const payment=n4(row.amount), items=src.items||[];
+    const details=json4(row.source_details);
+    const party=details.to_whom_paid||row.party||src.party||'';
+    const account=details.on_account||row.on_account||row.code_head||src.head||'';
+    const ref=details.source_reference||row.reference_no||src.ref||'';
+    const date=row.entry_date||src.date||new Date().toISOString().slice(0,10);
+    const pv=row.voucher_number||nextPV4();
+    const rows=items.length?items.map((x,i)=>'<tr><td class="num">'+(i+1)+'</td><td>'+e4(x.name)+'</td><td>'+e4(x.unit||'')+'</td><td class="num">'+n4(x.rate).toFixed(2)+'</td><td class="num">'+n4(x.qty).toFixed(2)+'</td><td class="num">'+money4(x.amount)+'</td></tr>').join(''):'<tr><td class="num">1</td><td>'+e4(ref||account)+'</td><td></td><td></td><td></td><td class="num">'+money4(payment)+'</td></tr>';
+    const autoWords=words4(payment);
+    return '<style>.pv4{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:11px}.pv4 h1{text-align:center;font-size:18px;margin:2px 0 6px}.pv4 h2{text-align:center;font-size:13px;margin:12px 0 6px}.pv4 .top{display:grid;grid-template-columns:1fr 230px;gap:12px}.pv4 .camp{text-align:center;font-weight:800;line-height:1.45}.pv4 .meta{border:1px solid #222;padding:6px}.pv4 table{width:100%;border-collapse:collapse;margin:7px 0}.pv4 th,.pv4 td{border:1px solid #222;padding:5px;vertical-align:middle}.pv4 th{background:#eee}.pv4 .num{text-align:right}.pv4 .box{border:1px solid #222;padding:7px;margin-top:7px}.pv4 textarea{width:100%;min-height:52px;border:1px solid #777;padding:5px;font:inherit}.pv4 input{border:0;border-bottom:1px solid #777;font:inherit;min-width:120px}.pv4 .amountwords{width:100%;min-height:46px}.pv4 .sig{display:grid;grid-template-columns:repeat(3,1fr);gap:25px;margin-top:42px;text-align:center}.pv4 .sig div{border-top:1px solid #222;padding-top:25px;font-weight:700}.pv4 .note{font-size:10px}.pv4 .strong{font-weight:800}.pv4 .right{text-align:right}@media print{.pv4 input,.pv4 textarea{border:0;outline:0}.pv4 .amountwords{resize:none}}</style><div class="pv4"><div class="top"><div class="camp">'+e4(String(c.camp_name||c.camp_code||'NCC CAMP').toUpperCase())+'<br>'+e4(String(c.location||c.station||'').toUpperCase())+'<br>FROM '+e4(c.from_date||'')+' TO '+e4(c.to_date||'')+'</div><div class="meta"><b>PAYMENT VOUCHER NO.:</b><br><input value="'+e4(pv)+'" style="font-weight:800;font-size:13px"><br><b>DATE:</b><br><input type="date" value="'+e4(date)+'"></div></div><h1>PAYMENT VOUCHER</h1><table><tr><th style="width:18%">To Whom Paid</th><td>'+e4(party)+'</td><th style="width:18%">Mode</th><td>'+e4(row.mode||'')+'</td></tr><tr><th>On What Account</th><td>'+e4(account)+'</td><th>Source / Invoice</th><td>'+e4(ref)+'</td></tr><tr><th>Code Head</th><td>'+e4(row.code_head||src.head||'')+'</td><th>Payment Amount</th><td class="num"><b>'+money4(payment)+'</b></td></tr></table><div class="box"><b>Particulars / Purchase Details</b><table><thead><tr><th>Ser No</th><th>Items / Particulars</th><th>A/u</th><th>Rate</th><th>Qty</th><th>Amount</th></tr></thead><tbody>'+rows+'</tbody><tfoot><tr><th colspan="5" class="right">TOTAL PAYMENT</th><th class="num">'+money4(payment)+'</th></tr></tfoot></table></div><div class="box"><b>Amount in Words</b><textarea class="amountwords">'+e4(autoWords)+' Only</textarea><div class="note">The amount in words is auto-fetched from the approved payment amount and may be edited before printing.</div></div><h2>PURCHASE COMMITTEE CERTIFICATE</h2><div class="box"><textarea>Certified that the item(s) shown above have been purchased/received for the camp requirement at reasonable and prevailing rates and the expenditure is chargeable to the above code head.</textarea></div><h2>STOCK CERTIFICATE</h2><div class="box"><textarea>Certified that the item(s) have been received in good condition and correct quantity and have been taken to stock wherever applicable.</textarea></div><h2>PAY ORDER</h2><div class="box"><p>Passed for <b>'+money4(payment)+'</b> /- (Rupees '+e4(autoWords)+' Only).</p><p>Mode of payment: <b>'+e4(row.mode||'')+'</b> &nbsp; To: <b>'+e4(party)+'</b></p></div><div class="sig"><div>Presiding Officer / Purchase Committee</div><div>Dy. Camp Commandant / Accounts Officer</div><div>Camp Commandant</div></div></div>';
+  }
+  window.generateApprovedPVFinal=function(id){
+    const row=entries4().find(x=>String(x.id)===String(id));
+    if(!row)return alert('Payment entry not found. Please refresh the Cash Book.');
+    if(!approved4(row))return alert('Payment voucher can be generated only after Manager approval.');
+    const src=source4(row.source_type,row.source_id,row);
+    if(!src && !json4(row.source_details).items)return alert('Approved payment found, but the source voucher details are not available. Refresh the data and try again.');
+    const body=pvBody4(row);
+    if(typeof window.popup==='function')window.popup('Payment Voucher '+(row.voucher_number||nextPV4()),body);
+    else {const w=window.open('','_blank','width=1450,height=950');if(!w)return alert('Please allow pop-ups for this site.');w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Payment Voucher</title></head><body>'+body+'<script>window.print()<\\/script></body></html>');w.document.close();}
+  };
+  function role4(){try{if(typeof profile!=='undefined'&&profile)return String(profile.role||'').toUpperCase()}catch(_){}return String(window.profile?.role||window.currentUser?.role||'').toUpperCase()}
+  function approvedPayments4(){return entries4().filter(approved4).sort((a,b)=>String(b.entry_date||'').localeCompare(String(a.entry_date||''))||String(b.created_at||'').localeCompare(String(a.created_at||'')))}
+  function ensurePVPanel4(){
+    const page=document.getElementById('cashbook');if(!page)return;
+    let box=document.getElementById('approvedPVPanelV91_4');
+    if(!box){box=document.createElement('div');box.id='approvedPVPanelV91_4';box.style.cssText='margin:0 0 12px;padding:12px;border:1px solid #c8d9e4;border-radius:10px;background:#fff;box-shadow:0 3px 12px rgba(16,42,67,.05)';const anchor=document.getElementById('cashbookTable');if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(box,anchor);else page.insertBefore(box,page.firstChild)}
+    const rows=approvedPayments4();
+    box.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px"><div><b style="font-size:14px;color:#173a55">Approved Payment Vouchers</b><div style="font-size:11px;color:#647b8d">Generate the Payment Voucher only after approval. Amount and source particulars are fetched automatically.</div></div><span style="font-weight:800;color:#138a5b">'+rows.length+' APPROVED</span></div>'+(rows.length?'<div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr><th style="padding:6px;border:1px solid #d5e2ea;background:#e8f1f6">Date</th><th style="padding:6px;border:1px solid #d5e2ea;background:#e8f1f6">PV No.</th><th style="padding:6px;border:1px solid #d5e2ea;background:#e8f1f6">To Whom Paid</th><th style="padding:6px;border:1px solid #d5e2ea;background:#e8f1f6">Code Head</th><th style="padding:6px;border:1px solid #d5e2ea;background:#e8f1f6;text-align:right">Amount</th><th style="padding:6px;border:1px solid #d5e2ea;background:#e8f1f6">Action</th></tr></thead><tbody>'+rows.map(r=>{const d=json4(r.source_details);return '<tr><td style="padding:6px;border:1px solid #d5e2ea">'+e4(r.entry_date||'')+'</td><td style="padding:6px;border:1px solid #d5e2ea;font-weight:800">'+e4(r.voucher_number||'')+'</td><td style="padding:6px;border:1px solid #d5e2ea">'+e4(d.to_whom_paid||r.party||'')+'</td><td style="padding:6px;border:1px solid #d5e2ea">'+e4(r.code_head||'')+'</td><td style="padding:6px;border:1px solid #d5e2ea;text-align:right">'+money4(r.amount)+'</td><td style="padding:6px;border:1px solid #d5e2ea"><button class="btn green v91GeneratePV" data-pv-id="'+e4(r.id)+'" style="background:#138a5b!important;color:#fff!important;border:0;border-radius:6px;padding:7px 10px;font-weight:800;cursor:pointer">GENERATE PV</button></td></tr>'}).join('')+'</tbody></table></div>':'<div style="padding:10px;border:1px dashed #b9cddd;color:#647b8d">No approved payment entries available for this camp.</div>');
+  }
+  function addPVButtonsToExistingTable4(){
+    const table=document.getElementById('cashbookTable');if(!table)return;
+    const rows=approvedPayments4();if(!rows.length)return;
+    /* If the active renderer already has a PV button, do not duplicate it. */
+    if(table.querySelector('.v91GeneratePV'))return;
+    const trs=table.querySelectorAll('tr');
+    const byAmount={};rows.forEach(r=>{const k=n4(r.amount).toFixed(2);(byAmount[k]||(byAmount[k]=[])).push(r)});
+    trs.forEach(tr=>{
+      if(tr.querySelector('th'))return;
+      const cells=[...tr.children];if(!cells.length)return;
+      const txt=tr.textContent||'';let candidate=null;
+      for(const c of cells){const m=(c.textContent||'').replace(/[^0-9.-]/g,'');if(m&&Object.prototype.hasOwnProperty.call(byAmount,n4(m).toFixed(2))){const list=byAmount[n4(m).toFixed(2)];candidate=list.find(r=>!tr.dataset.pvBound||tr.dataset.pvBound!==String(r.id))||list[0];break}}
+      if(!candidate)return;
+      const action=cells[cells.length-1];if(!action)return;
+      const b=document.createElement('button');b.className='btn green v91GeneratePV';b.textContent='GENERATE PV';b.style.cssText='background:#138a5b!important;color:#fff!important;border:0;border-radius:6px;padding:7px 10px;font-weight:800;cursor:pointer;margin-left:5px';b.dataset.pvId=candidate.id;action.appendChild(b);tr.dataset.pvBound=String(candidate.id);
+    });
+  }
+  document.addEventListener('click',function(ev){const b=ev.target.closest?.('.v91GeneratePV');if(!b)return;ev.preventDefault();ev.stopPropagation();window.generateApprovedPVFinal(b.dataset.pvId)},true);
+  function refreshPVUI4(){try{ensurePVPanel4();addPVButtonsToExistingTable4()}catch(err){console.warn('PV UI',err)}}
+  const oldR=window.renderCashbook;
+  if(typeof oldR==='function'&&!window.__V91_4_RENDER_WRAP__){window.__V91_4_RENDER_WRAP__=true;window.renderCashbook=function(){const r=oldR.apply(this,arguments);setTimeout(refreshPVUI4,30);return r}}
+  const oldRA=window.renderCashbookApprovalAware;
+  if(typeof oldRA==='function'&&!window.__V91_4_RENDER_AWARE_WRAP__){window.__V91_4_RENDER_AWARE_WRAP__=true;window.renderCashbookApprovalAware=function(){const r=oldRA.apply(this,arguments);setTimeout(refreshPVUI4,30);return r}}
+  let mo4;try{mo4=new MutationObserver(()=>refreshPVUI4());const root=document.getElementById('cashbook');if(root)mo4.observe(root,{childList:true,subtree:true})}catch(_){}
+  window.addEventListener('load',()=>{setTimeout(refreshPVUI4,500);setTimeout(refreshPVUI4,1800);setTimeout(refreshPVUI4,3500)});
+  setTimeout(refreshPVUI4,600);setTimeout(refreshPVUI4,1600);setTimeout(refreshPVUI4,3000);
+})();
+</script>
