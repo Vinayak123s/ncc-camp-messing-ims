@@ -7578,7 +7578,7 @@ const O=v=>{if(!v)return{};if(typeof v==='object')return v;try{return JSON.parse
 const entries=()=>Array.isArray(window.cashbookEntries)?window.cashbookEntries:[];
 const db=()=>window.sb||null;
 const camp=()=>window.activeCamp||null;
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
 const localAdd=(base,days)=>{if(!/^\d{4}-\d\d-\d\d$/.test(String(base||'')))return '';const [y,m,d]=String(base).split('-').map(Number);const dt=new Date(y,m-1,d);dt.setDate(dt.getDate()+days);return [dt.getFullYear(),String(dt.getMonth()+1).padStart(2,'0'),String(dt.getDate()).padStart(2,'0')].join('-')};
 const fmt=v=>/^\d{4}-\d\d-\d\d$/.test(String(v||''))?String(v).split('-').reverse().join('-'):String(v||'');
 const typeOf=e=>U(O(e&&e.source_details).bank_transaction_type||O(e&&e.source_details).payment_channel||'');
@@ -7588,6 +7588,9 @@ const settled=e=>!deferred(e)||U(O(e&&e.source_details).settlement_status)==='SE
 const dueDate=e=>{const base=String(e&&e.entry_date||'');const t=typeOf(e);return t==='CHEQUE'?localAdd(base,3):t==='NEFT'?localAdd(base,1):''};
 window.__v94DeferredDueDate=dueDate;
 window.__v94BankSettled=settled;
+/* Shared by the Cash Book print/report engine: pending CHEQUE/NEFT must not reduce bank until clearance. */
+window.__v93BankSettled=settled;
+window.__v93Deferred=deferred;
 function pending(){return entries().filter(e=>deferred(e)&&approved(e)&&!settled(e))}
 function allDeferred(){return entries().filter(e=>deferred(e)&&approved(e))}
 function snapshot(){
@@ -7618,7 +7621,7 @@ async function settle(id){
  if(!deferred(e))return alert('This payment does not require Sundry Creditor settlement.');
  if(!approved(e))return alert('Only approved payments can be settled.');
  const expected=dueDate(e),now=today();
- if(expected&&now<expected){return alert('Bank debit/clearance is not due yet.\n\n'+typeOf(e)+' payment: '+M(e.amount)+'\nExpected clearance: '+fmt(expected)+'\nToday: '+fmt(now)+'\n\nNEFT is scheduled for the next day and Cheque for 3 days after the payment date. The Sundry Creditor will remain a liability until then.');}
+ if(expected&&now<expected){return alert('Bank debit/clearance is not due yet.\n\n'+typeOf(e)+' payment: '+M(e.amount)+'\nExpected clearance: '+fmt(expected)+'\nToday: '+fmt(now)+'\n\nNEFT clears on the next day and Cheque after 3 days. Until that date, the amount remains a Sundry Creditor liability and the Bank balance is unchanged.');}
  const sd=O(e.source_details),ref=sd.bank_reference||sd.cheque_no||sd.neft_utr||e.reference_no||'';
  if(!confirm((typeOf(e)==='CHEQUE'?'Cheque':'NEFT')+' '+ref+' is being cleared today.\n\nAmount: '+M(e.amount)+'\nBank will be debited by this amount.\nSundry Creditor will be reduced by this amount.\nCode Head is already reduced from approval.\n\nContinue?'))return;
  sd.settlement_status='SETTLED';sd.settlement_date=now;sd.sundry_creditor_created=true;sd.sundry_creditor_settled=true;sd.bank_debit_date=now;sd.accounting_effect=Object.assign({},sd.accounting_effect||{},{bank:-N(e.amount),code_head:0,sundry_creditors:-N(e.amount)});
@@ -7636,7 +7639,7 @@ function render(){
  const rows=pending(),all=allDeferred(),x=snapshot();
  const trs=rows.length?rows.map(e=>{
   const sd=O(e.source_details),t=typeOf(e),ref=sd.bank_reference||sd.cheque_no||sd.neft_utr||e.reference_no||'',due=dueDate(e),ready=!due||today()>=due;
-  const action=ready?'<button class="btn v94-settle-btn" type="button" onclick="settleSundryCreditor(\''+E(e.id)+'\')">BANK DEBITED / SETTLE</button>':'<button class="btn v94-disabled" type="button" disabled>AVAILABLE '+E(fmt(due))+'</button>';
+  const action=ready?'<button class="btn v94-settle-btn" type="button" onclick="settleSundryCreditor(\''+E(e.id)+'\')">BANK DEBITED / SETTLE</button>':'<button class="btn v94-available-btn" type="button" onclick="settleSundryCreditor(\''+E(e.id)+'\')">AVAILABLE '+E(fmt(due))+'</button>';
   return '<tr><td>'+E(e.entry_date||'')+'</td><td><b>'+E(e.voucher_number||'')+'</b></td><td>'+E(e.party||sd.to_whom_paid||'')+'</td><td>'+E(e.code_head||'')+'</td><td>'+E(t)+'</td><td>'+E(ref)+'</td><td class="num">'+M(e.amount)+'</td><td>'+E(fmt(due))+'</td><td><span class="v94-pending">Sundry Creditor</span></td><td>'+action+'</td></tr>';
  }).join(''):'<tr><td colspan="10" class="center">No pending Sundry Creditors.</td></tr>';
  const settledRows=all.filter(e=>settled(e)).map(e=>{const sd=O(e.source_details),t=typeOf(e),ref=sd.bank_reference||sd.cheque_no||sd.neft_utr||e.reference_no||'';return '<tr><td>'+E(e.entry_date||'')+'</td><td>'+E(e.voucher_number||'')+'</td><td>'+E(t)+'</td><td>'+E(ref)+'</td><td class="num">'+M(e.amount)+'</td><td>'+E(fmt(sd.bank_debit_date||sd.settlement_date||''))+'</td><td><span class="v94-settled">BANK DEBITED</span></td></tr>'}).join('');
@@ -7655,7 +7658,7 @@ setTimeout(hook,700);setTimeout(hook,1800);
 #cashbook .v93-account-cards span{display:block;font-size:10px;font-weight:800;color:#60788a}#cashbook .v93-account-cards b{display:block;margin-top:3px;font-size:15px;color:#173a55}
 #cashbook .v93-creditor-total{display:inline-block;background:#fff5dd;border:1px solid #efd28a;color:#7c5600;padding:6px 10px;border-radius:8px;font-weight:900}
 #cashbook .v93-table-wrap{overflow:auto;border:1px solid #d5e2ea;border-radius:8px}#cashbook .v93-table{width:100%;border-collapse:collapse;min-width:1080px;font-size:11px}#cashbook .v93-table th,#cashbook .v93-table td{border:1px solid #d5e2ea;padding:7px 6px;white-space:nowrap}#cashbook .v93-table th{background:#eaf3f7;color:#173a55;font-weight:900}#cashbook .v93-table td.num{text-align:right}
-#cashbook .v93-pending{background:#fff1d6;color:#8a5b00;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:900}#cashbook .v93-settled{background:#e6f7ed;color:#147443;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:900}
+#cashbook .v93-pending{background:#fff1d6;color:#8a5b00;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:900}#cashbook .v93-settled{background:#e6f7ed;color:#147443;border-radius:999px;padding:3px 7px;font-size:9px;font-weight:900}#cashbook .v94-available-btn{background:#0ea5a8!important;color:#fff!important;cursor:pointer!important}
 @media(max-width:800px){#cashbook .v93-account-cards{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){#cashbook .v93-account-cards{grid-template-columns:1fr}}
 </style>
