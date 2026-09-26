@@ -8902,3 +8902,82 @@ function boot(){ensureStyles();addUI();patchSave();patchPrint();renderV95();['ca
 window.addEventListener('load',()=>{setTimeout(boot,500);setTimeout(boot,1500);setTimeout(boot,3000)});setTimeout(boot,900);setTimeout(boot,2200);
 })();
 </script>
+<script id="ims-v96-manual-clearance-date">
+(function(){
+'use strict';
+const U=v=>String(v==null?'':v).trim().toUpperCase();
+const N=v=>{const n=Number(String(v==null?'':v).replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
+const O=v=>{if(v&&typeof v==='object')return v;if(typeof v==='string'){try{return JSON.parse(v)}catch(_){}}return {}};
+const M=v=>'₹'+N(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const E=v=>String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function camp(){try{if(window.activeCamp?.id)return window.activeCamp; if(typeof activeCamp!=='undefined'&&activeCamp?.id)return activeCamp}catch(_){}const cs=Array.isArray(window.camps)?window.camps:[];const pid=window.profile?.current_camp_id;return cs.find(x=>String(x.id)===String(pid))||cs[0]||null}
+function db(){try{if(typeof sb!=='undefined'&&sb)return sb}catch(_){}return window.sb||window.IMS_SUPABASE_CLIENT||window.supabaseClient||null}
+function rows(){return Array.isArray(window.cashbookEntries)?window.cashbookEntries:[]}
+function sd(e){return O(e?.source_details)}
+function inst(e){const d=sd(e);return U(d.bank_transaction_type||d.payment_channel||'')}
+function deferred(e){return U(e?.entry_type)==='PAYMENT'&&['NEFT','CHEQUE'].includes(inst(e))}
+function approved(e){return U(e?.approval_status||'APPROVED')==='APPROVED'}
+function settled(e){return U(sd(e).settlement_status)==='SETTLED'}
+function expected(e){const d=sd(e);const x=String(d.expected_clearance_date||d.expected_bank_debit_date||'');if(/^\d{4}-\d{2}-\d{2}$/.test(x))return x;return ''}
+function fmt(v){if(!v)return '';const a=String(v).split('-');return a.length===3?a[2]+'/'+a[1]+'/'+a[0]:v}
+function today(){return new Date().toLocaleDateString('en-CA')}
+function addDateField(){
+ const pf=document.getElementById('cashPaymentFormWrap');if(!pf)return;
+ let f=document.getElementById('v96ExpectedBankDateField');
+ if(!f){
+   f=document.createElement('div');f.className='field';f.id='v96ExpectedBankDateField';
+   f.innerHTML='<label>Expected Bank Debit / Clearance Date *</label><input id="v96ExpectedBankDate" type="date"><small style="display:block;color:#60788a;margin-top:4px">ADMIN / ACCOUNTS must enter the expected actual bank clearance date for NEFT / CHEQUE. The system will not choose this date automatically.</small>';
+   const grid=pf.querySelector('.form-grid'); if(grid) grid.appendChild(f);
+ }
+ const mode=U(document.getElementById('cashPaymentMode')?.value||'CASH');
+ const it=U(document.getElementById('v92BankInstrumentType')?.value||'');
+ f.style.display=(mode==='BANK'&&['NEFT','CHEQUE'].includes(it))?'':'none';
+}
+async function saveDate(id){
+ const role=U(window.profile?.role||'');if(!['ADMIN','ACCOUNTS'].includes(role))return alert('Only ADMIN or ACCOUNTS can set the expected bank clearance date.');
+ const c=camp(),d=db();if(!c?.id||!d)return alert('Supabase client or active camp is unavailable. Please refresh the page and select the active camp.');
+ const inp=document.getElementById('v96Date_'+id),date=inp?.value||'';if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return alert('Select the expected bank clearance date.');
+ const e=rows().find(x=>String(x.id)===String(id));if(!e)return alert('Payment not found. Refresh Cash Book and try again.');
+ const x=sd(e);x.expected_clearance_date=date;x.expected_bank_debit_date=date;x.expected_date_set_by=window.currentUser?.id||null;x.expected_date_set_role=role;
+ const q=await d.from('cashbook_entries').update({source_details:x}).eq('id',e.id).eq('camp_id',c.id).select('id,source_details').maybeSingle();
+ if(q.error)return alert('Expected bank clearance date could not be saved: '+q.error.message);
+ e.source_details=x;render();try{window.renderCashbook?.()}catch(_){}alert('Expected bank clearance date saved: '+fmt(date));
+}
+window.v96SaveExpectedDate=saveDate;
+function render(){
+ const page=document.getElementById('cashbook');if(!page)return;
+ let box=document.getElementById('v96SundryCreditors');if(!box){box=document.createElement('div');box.id='v96SundryCreditors';box.className='v92-cb-panel';const anchor=document.getElementById('v95SYSummary')||document.getElementById('v94SundryCreditors')||document.getElementById('v92AccountingPanel');if(anchor?.parentNode)anchor.parentNode.insertBefore(box,anchor);else page.appendChild(box)}
+ const role=U(window.profile?.role||'');const canSet=['ADMIN','ACCOUNTS'].includes(role);
+ const pending=rows().filter(e=>deferred(e)&&approved(e)&&!settled(e));
+ const creditor=pending.reduce((s,e)=>s+N(e.amount),0);
+ const trs=pending.length?pending.map(e=>{const d=sd(e),date=expected(e),ready=date&&today()>=date,ref=d.bank_reference||d.cheque_no||d.neft_utr||e.reference_no||'';return '<tr><td>'+E(e.entry_date)+'</td><td><b>'+E(e.voucher_number)+'</b></td><td>'+E(e.party||d.to_whom_paid||'')+'</td><td>'+E(e.code_head||'')+'</td><td>'+E(inst(e))+'</td><td>'+E(ref)+'</td><td>'+M(e.amount)+'</td><td><input id="v96Date_'+E(e.id)+'" type="date" value="'+E(date)+'" '+(canSet?'':'disabled')+'><button class="btn ghost" type="button" '+(canSet?'':'disabled')+' onclick="v96SaveExpectedDate(\\''+E(e.id)+"')\\">SAVE DATE</button></td><td>Sundry Creditor</td><td><button class="btn v94-available-btn" type="button" onclick="settleSundryCreditor(\\''+E(e.id)+"')\\">'+(ready?'BANK DEBITED / SETTLE':(date?'AVAILABLE '+fmt(date):'SET DATE FIRST'))+'</button></td></tr>'}).join(''):'<tr><td colspan="10">No pending Sundry Creditors.</td></tr>';
+ box.innerHTML='<div class="v92-cb-head"><div><h3>Sundry Creditors / Bank Clearing</h3><p>Approved NEFT/CHEQUE creates SY CR. Code Head is reduced at approval. Bank is reduced only on actual clearance.</p></div><div><b>Sundry Creditors: '+M(creditor)+'</b></div></div><div class="v94-account-cards"><div><span>SY CR OUTSTANDING</span><b>'+M(creditor)+'</b></div><div><span>Pending Transactions</span><b>'+pending.length+'</b></div></div><h4 class="v94-section-title">PENDING SUNDRY CREDITORS</h4><div class="v93-table-wrap"><table class="v93-table"><thead><tr><th>Payment Date</th><th>PV No.</th><th>To Whom Paid</th><th>Code Head</th><th>Mode</th><th>Cheque / UTR</th><th>Amount</th><th>Expected Bank Debit / Clearance</th><th>Liability</th><th>Action</th></tr></thead><tbody>'+trs+'</tbody></table></div>';
+}
+// Replace the settlement action with a robust final version so the correct client/camp is always resolved.
+window.settleSundryCreditor=async function(id){
+ const c=camp(),d=db();if(!c?.id||!d)return alert('Supabase client or active camp is unavailable. Please refresh the page and select the active camp.');
+ const e=rows().find(x=>String(x.id)===String(id));if(!e)return alert('Sundry Creditor payment not found. Please refresh Cash Book.');
+ if(!deferred(e))return alert('This payment is not a deferred NEFT/CHEQUE payment.');if(!approved(e))return alert('Only an approved payment can be settled.');
+ const date=expected(e);if(!date)return alert('Set the expected bank clearance date before settlement.');if(today()<date)return alert(inst(e)+' clearance is not due yet.\n\nExpected bank clearance: '+fmt(date)+'\nToday: '+fmt(today()));
+ const x=sd(e);x.settlement_status='SETTLED';x.settlement_date=today();x.bank_debit_date=today();x.sundry_creditor_settled=true;x.accounting_effect=Object.assign({},x.accounting_effect||{},{bank:-N(e.amount),code_head:0,sundry_creditors:-N(e.amount)});
+ const q=await d.from('cashbook_entries').update({source_details:x}).eq('id',e.id).eq('camp_id',c.id).select('id,source_details').maybeSingle();if(q.error)return alert('Bank debit settlement failed: '+q.error.message);
+ e.source_details=x;try{await window.refreshAll?.()}catch(_){}render();try{window.renderCashbook?.()}catch(_){}alert('Bank debit recorded. '+M(e.amount)+' deducted from Bank and SY CR. Code Head is not deducted again.');
+};
+// Preserve the previous Cash Book register and add only SY DR / SY CR columns; do not replace the register with the summary panel.
+function wrapSave(){
+ if(window.__V96_SAVE__)return;const old=window.saveCashbook;if(typeof old!=='function')return;window.__V96_SAVE__=old;
+ window.saveCashbook=async function(){
+   const type=U((typeof cashType!=='undefined'?cashType:window.cashType)||'');
+   const date=type==='PAYMENT'?(document.getElementById('payDate')?.value||''):'';const voucher=type==='PAYMENT'?(document.getElementById('payVoucherNo')?.value||'').trim():'';
+   const mode=U(document.getElementById('cashPaymentMode')?.value||'CASH'),it=U(document.getElementById('v92BankInstrumentType')?.value||'');const deferredPay=type==='PAYMENT'&&mode==='BANK'&&['NEFT','CHEQUE'].includes(it);
+   const expectedDate=document.getElementById('v96ExpectedBankDate')?.value||'';
+   if(deferredPay&&!/^\d{4}-\d{2}-\d{2}$/.test(expectedDate))return alert('ADMIN / ACCOUNTS must enter the expected bank clearance date for NEFT / CHEQUE.');
+   const result=await old.apply(this,arguments);
+   if(deferredPay&&date&&voucher&&expectedDate){const c=camp(),d=db();if(c?.id&&d){const q=await d.from('cashbook_entries').select('id,source_details').eq('camp_id',c.id).eq('voucher_number',voucher).eq('entry_date',date).eq('entry_type','PAYMENT').order('created_at',{ascending:false}).limit(1).maybeSingle();if(!q.error&&q.data){const x=O(q.data.source_details);x.expected_clearance_date=expectedDate;x.expected_bank_debit_date=expectedDate;x.expected_date_set_by=window.currentUser?.id||null;x.expected_date_set_role=U(window.profile?.role||'');await d.from('cashbook_entries').update({source_details:x}).eq('id',q.data.id).eq('camp_id',c.id)}}}
+   try{await window.refreshAll?.()}catch(_){}setTimeout(()=>{addDateField();render();try{window.renderCashbook?.()}catch(_){}},500);return result;
+ };
+}
+function bind(){addDateField();const mode=document.getElementById('cashPaymentMode'),instEl=document.getElementById('v92BankInstrumentType');[mode,instEl].forEach(el=>{if(el&&!el.dataset.v96){el.addEventListener('change',addDateField);el.dataset.v96='1'}});wrapSave();render();try{window.renderCashbook?.()}catch(_){} }
+window.addEventListener('load',()=>{setTimeout(bind,800);setTimeout(bind,1800);setTimeout(bind,3200)});setTimeout(bind,1200);setTimeout(bind,2500);
+})();
+</script>
