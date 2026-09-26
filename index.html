@@ -9103,3 +9103,23 @@ function boot(){addStyles();watch();}
 window.addEventListener('load',()=>{setTimeout(boot,700);setTimeout(boot,1800);setTimeout(boot,3500)});setInterval(watch,1200);
 })();
 </script>
+
+<script id="cashbook-final-binding">
+(function(){
+  function bind(){
+    if(typeof window.printCashbookExcel!=='function') return;
+    window.printDayCashbook=window.printCashbookExcel;
+    window.printCashbookV72=window.printCashbookExcel;
+    window.forcePrint=window.printCashbookExcel;
+    document.querySelectorAll('#cashbook button').forEach(function(b){
+      if(String(b.textContent||'').trim().toUpperCase()==='PRINT / PDF' && !b.dataset.finalCashbookPrint){
+        var n=b.cloneNode(true); n.removeAttribute('onclick'); n.dataset.finalCashbookPrint='1';
+        n.onclick=function(e){e.preventDefault();e.stopPropagation();window.printCashbookExcel();};
+        b.replaceWith(n);
+      }
+    });
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',function(){setTimeout(bind,150);}); else setTimeout(bind,150);
+  window.addEventListener('load',function(){setTimeout(bind,500);setTimeout(bind,1500);});
+})();
+</script>
