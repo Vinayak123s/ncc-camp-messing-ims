@@ -9222,3 +9222,90 @@ window.addEventListener('load',()=>{setTimeout(boot,700);setTimeout(boot,1800);s
   setInterval(()=>{window.printDayCashbook=printExcelCashBook;},1000);
 })();
 </script>
+
+<script id="cashbook-accounting-final-v99">
+(function(){
+'use strict';
+const U=v=>String(v??'').trim().toUpperCase();
+const N=v=>{const n=Number(String(v??0).replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
+const O=v=>{if(v&&typeof v==='object')return v;if(typeof v==='string'){try{return JSON.parse(v)}catch(_){}}return{}};
+const E=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const M=v=>'₹'+N(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const HEADS=['MESSING','INC','POL','RANK PAY','TA CADETS','TA/DA CIV','RENT','OTHERS'];
+const rows=()=>Array.isArray(window.cashbookEntries)?window.cashbookEntries:[];
+const sd=e=>O(e?.source_details);
+const inst=e=>U(sd(e).bank_transaction_type||sd(e).payment_channel||sd(e).instrument_type||'');
+const deferred=e=>U(e?.entry_type)==='PAYMENT' && (['CHEQUE','NEFT'].includes(inst(e)) || sd(e).sundry_creditor_created===true || U(sd(e).settlement_status)==='PENDING');
+const approved=e=>U(e?.approval_status||'APPROVED')==='APPROVED';
+const settled=e=>U(sd(e).settlement_status)==='SETTLED';
+const pending=e=>deferred(e)&&approved(e)&&!settled(e);
+const cash=e=>U(e?.mode)==='CASH'?N(e?.amount):0;
+const bank=e=>U(e?.mode)==='BANK'?N(e?.amount):0;
+function alloc(e){
+ const raw=O(e?.head_allocations),o={};HEADS.forEach(h=>o[h]=0);
+ Object.entries(raw||{}).forEach(([k,v])=>{const u=U(k);let h=u==='INC'?'INC':u==='POL'?'POL':u==='RANK PAY'?'RANK PAY':u==='TA CADETS'?'TA CADETS':(u==='TA/DA CIV'||u==='TA DA CIV'||u==='TA/DA CIV STAFF')?'TA/DA CIV':u==='RENT'?'RENT':u==='MESSING'?'MESSING':'OTHERS';o[h]+=N(v)});
+ return o;
+}
+function payHeads(e){
+ const a=alloc(e);if(Object.values(a).some(v=>Math.abs(v)>0.005))return a;
+ const o={};HEADS.forEach(h=>o[h]=0);let h=U(e?.code_head||'');if(h==='INCIDENTAL')h='INC';if(h==='TA/DA CIV STAFF')h='TA/DA CIV';if(h==='OTHER')h='OTHERS';if(!Object.prototype.hasOwnProperty.call(o,h))h='OTHERS';o[h]=N(e?.amount);return o;
+}
+function syDr(e){return U(e?.entry_type)==='RECEIPT'?N(sd(e).sundry_debtor_receipt):0}
+function syCr(e){return pending(e)?N(e?.amount):0}
+function snap(d){
+ const all=rows().filter(e=>String(e.entry_date||'')<=String(d));
+ const prior=all.filter(e=>String(e.entry_date||'')<String(d));
+ const day=all.filter(e=>String(e.entry_date||'')===String(d));
+ const cashDelta=e=>U(e.entry_type)==='RECEIPT'?cash(e):U(e.entry_type)==='PAYMENT'?-cash(e):U(e.entry_type)==='CASH_DRAWN'?N(e.amount):0;
+ // Pending cheque/NEFT is a contra SY-CR receipt + payment in the cashbook, so its net bank effect is zero until settlement.
+ const bankDelta=e=>U(e.entry_type)==='RECEIPT'?bank(e):U(e.entry_type)==='PAYMENT'?(pending(e)?0:-bank(e)):U(e.entry_type)==='CASH_DRAWN'?-N(e.amount):0;
+ const bfCash=prior.reduce((s,e)=>s+cashDelta(e),0),bfBank=prior.reduce((s,e)=>s+bankDelta(e),0);
+ const rec=day.filter(e=>U(e.entry_type)==='RECEIPT'),pay=day.filter(e=>U(e.entry_type)==='PAYMENT'),draw=day.filter(e=>U(e.entry_type)==='CASH_DRAWN');
+ const rc=rec.reduce((s,e)=>s+cash(e),0),rb=rec.reduce((s,e)=>s+bank(e),0),pc=pay.reduce((s,e)=>s+cash(e),0),pb=pay.reduce((s,e)=>s+(pending(e)?0:bank(e)),0),contra=pay.filter(pending).reduce((s,e)=>s+bank(e),0),dr=draw.reduce((s,e)=>s+N(e.amount),0);
+ const bfh={},rh={},ph={},cfh={};
+ HEADS.forEach(h=>{bfh[h]=prior.reduce((s,e)=>s+(U(e.entry_type)==='RECEIPT'?alloc(e)[h]:U(e.entry_type)==='PAYMENT'?-payHeads(e)[h]:0),0);rh[h]=rec.reduce((s,e)=>s+alloc(e)[h],0);ph[h]=pay.reduce((s,e)=>s+payHeads(e)[h],0);cfh[h]=bfh[h]+rh[h]-ph[h]});
+ const creditors=all.reduce((s,e)=>s+syCr(e),0),debtors=all.filter(e=>U(e.entry_type)==='RECEIPT').reduce((s,e)=>s+syDr(e),0);
+ return {all,prior,day,rec,pay,draw,bfCash,bfBank,rc,rb,pc,pb,contra,dr,bfh,rh,ph,cfh,cfCash:bfCash+rc-pc+dr,cfBank:bfBank+rb-pb-dr,creditors,debtors};
+}
+function hideOld(){['v94SundryCreditors','v96SundryCreditors','v95SYSummary','v92AccountingPanel'].forEach(id=>{const x=document.getElementById(id);if(x)x.style.display='none'});}
+function renderFinalSYCR(){
+ const page=document.getElementById('cashbook');if(!page)return;hideOld();
+ let box=document.getElementById('v99SundryCreditors');
+ if(!box){box=document.createElement('div');box.id='v99SundryCreditors';box.className='panel';const anchor=document.getElementById('cashDayWrap')?.parentNode||document.getElementById('cashbookTable')?.parentNode||page.firstElementChild;if(anchor?.parentNode)anchor.parentNode.insertBefore(box,anchor);}
+ const role=U(window.profile?.role||window.currentUser?.role||'');const can=['ADMIN','ACCOUNTS'].includes(role);const ps=rows().filter(pending),total=ps.reduce((s,e)=>s+N(e.amount),0);
+ const body=ps.length?ps.map(e=>{const d=sd(e),date=String(d.expected_clearance_date||d.expected_bank_debit_date||''),ref=d.cheque_no||d.neft_utr||d.bank_reference||e.reference_no||'';return '<tr><td>'+E(e.entry_date)+'</td><td><b>'+E(e.voucher_number)+'</b></td><td>'+E(e.party||d.to_whom_paid||'')+'</td><td>'+E(e.code_head||'')+'</td><td>'+E(inst(e)||'CHEQUE')+'</td><td>'+E(ref)+'</td><td class="num">'+M(e.amount)+'</td><td>'+E(date||'DATE NOT SET')+'</td><td>SY CR</td><td>'+(can?'<button class="btn ghost" type="button" onclick="window.editSyCrPayment&&window.editSyCrPayment('+JSON.stringify(e.id)+')">EDIT</button>':'')+'</td></tr>'}).join(''):'<tr><td colspan="10">No pending Sundry Creditors.</td></tr>';
+ box.innerHTML='<div class="section-head"><div><h3 style="margin:0">Sundry Creditors / SY CR — FINAL ACCOUNTING</h3><p style="margin:4px 0">Approved CHEQUE/NEFT creates SY CR immediately. Code Head is reduced at approval. Bank is affected only on actual clearance.</p></div><div><b>SY CR Outstanding: '+M(total)+'</b></div></div><div class="tablewrap"><table><thead><tr><th>Payment Date</th><th>PV No.</th><th>To Whom Paid</th><th>Code Head</th><th>Mode</th><th>Cheque / UTR</th><th>Amount</th><th>Expected Clearance</th><th>Liability</th><th>Action</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+}
+function printFinal(){
+ const d=document.getElementById('cashDayDate')?.value||new Date().toLocaleDateString('en-CA'),s=snap(d),realRec=s.rec,realPay=s.pay;
+ // Spreadsheet-style contra receipt for pending SY CR: payment is shown on Payments and a matching SY CR bank receipt is shown on Receipts; net Bank C/F is unchanged.
+ const contra=realPay.filter(pending).map(e=>({synthetic:true,entry_date:d,voucher_number:'C/F '+(e.voucher_number||''),party:'SY CR — '+(e.party||sd(e).to_whom_paid||''),account:'SY CR on '+(inst(e)||'CHEQUE')+' payment',amount:N(e.amount),mode:'BANK',sycr:N(e.amount)}));
+ const rec=[...realRec,...contra],pay=realPay,n=Math.max(rec.length,pay.length,1),c=(typeof CAMP==='function'?CAMP():window.activeCamp)||{};
+ const rHead=['Date','RV No','To whom receive','on what account','cash','bank','messing','inc','pol','rank pay','TA Cadets','TA/DA Civ','Rent','Other ','SY DR'],pHead=['Date','PV No','To whom Paid','on what account','cash','bank','messing','inc','pol','rank pay','TA Cadets','TA/DA Civ','Rent','Other ','SY CR'];
+ let html='<!doctype html><html><head><meta charset="utf-8"><title>Day Cash Book '+E(d)+'</title><style>body{font-family:Arial,Helvetica,sans-serif;color:#111;margin:7mm;font-size:7px}h1{text-align:center;font-size:15px;margin:0 0 2px}h2{text-align:center;font-size:9px;margin:0 0 5px}.meta{text-align:center;font-size:7px;margin-bottom:5px}table{border-collapse:collapse;width:100%;table-layout:fixed;margin:0 0 5px}th,td{border:1px solid #5e7180;padding:2px;height:14px;word-break:break-word;vertical-align:middle}th{background:#d9e8ee;text-align:center;font-weight:800}td.num{text-align:right;white-space:nowrap}.section{background:#c9dde5;font-weight:800;text-align:center}.total{font-weight:800;background:#edf4f7}.two{display:grid;grid-template-columns:1fr 1fr;gap:7px}.sign{height:32px;text-align:center;vertical-align:bottom;font-weight:700}.small{font-size:6px}.no-print{margin-bottom:5px}@page{size:A3 landscape;margin:6mm}@media print{.no-print{display:none!important}body{margin:0}}</style></head><body><div class="no-print"><button onclick="window.print()">PRINT / SAVE PDF</button></div>';
+ html+='<h1>NCC CAMP MESSING IMS — DAY CASH BOOK</h1><h2>RECEIPTS &amp; PAYMENTS</h2><div class="meta"><b>Camp:</b> '+E(c.camp_name||'')+' &nbsp;&nbsp; <b>Code:</b> '+E(c.camp_code||'')+' &nbsp;&nbsp; <b>Station:</b> '+E(c.station||'')+' &nbsp;&nbsp; <b>Date:</b> '+E(d)+'</div>';
+ html+='<table><tr><th colspan="15" class="section">RECEIPTS</th><th colspan="15" class="section">PAYMENTS</th></tr><tr>'+rHead.map(x=>'<th>'+E(x)+'</th>').join('')+pHead.map(x=>'<th>'+E(x)+'</th>').join('')+'</tr>';
+ for(let i=0;i<n;i++){
+  const r=rec[i],p=pay[i],ra=r&&!r.synthetic?alloc(r):{},pa=p?payHeads(p):{};html+='<tr>';
+  if(r){html+='<td>'+E(r.entry_date||d)+'</td><td>'+E(r.voucher_number||'')+'</td><td>'+E(r.synthetic?r.party:(r.party||sd(r).to_whom_received||''))+'</td><td>'+E(r.synthetic?r.account:(sd(r).on_account||r.reference_no||''))+'</td><td class="num">'+(r.synthetic?'':(cash(r)?M(cash(r)):''))+'</td><td class="num">'+(r.synthetic?M(r.amount):(bank(r)?M(bank(r)):''))+'</td>'+HEADS.map(h=>'<td class="num">'+(r&&!r.synthetic&&ra[h]?M(ra[h]):'')+'</td>').join('')+'<td class="num">'+(r.synthetic?M(r.sycr):(syDr(r)?M(syDr(r)):''))+'</td>'}else html+=rHead.map(()=>'<td></td>').join('');
+  if(p){html+='<td>'+E(p.entry_date||d)+'</td><td>'+E(p.voucher_number||'')+'</td><td>'+E(p.party||sd(p).to_whom_paid||'')+'</td><td>'+E(sd(p).on_account||p.code_head||p.reference_no||'')+'</td><td class="num">'+(cash(p)?M(cash(p)):'')+'</td><td class="num">'+(bank(p)?M(bank(p)):'')+'</td>'+HEADS.map(h=>'<td class="num">'+(pa[h]?M(pa[h]):'')+'</td>').join('')+'<td class="num">'+(syCr(p)?M(syCr(p)):'')+'</td>'}else html+=pHead.map(()=>'<td></td>').join('');
+  html+='</tr>';
+ }
+ const recCash=realRec.reduce((a,e)=>a+cash(e),0),recBank=realRec.reduce((a,e)=>a+bank(e),0)+s.contra,payCash=realPay.reduce((a,e)=>a+cash(e),0),payBankDisplay=realPay.reduce((a,e)=>a+bank(e),0),daySyDr=realRec.reduce((a,e)=>a+syDr(e),0),daySyCr=realPay.reduce((a,e)=>a+syCr(e),0);
+ html+='<tr class="total"><td></td><td></td><td>C/F</td><td></td><td class="num">'+M(s.bfCash)+'</td><td class="num">'+M(s.bfBank)+'</td>'+HEADS.map(h=>'<td class="num">'+M(s.bfh[h])+'</td>').join('')+'<td class="num">'+M(s.debtors)+'</td><td></td><td></td><td>Exp</td><td></td><td class="num">'+M(payCash)+'</td><td class="num">'+M(payBankDisplay)+'</td>'+HEADS.map(h=>'<td class="num">'+M(s.ph[h])+'</td>').join('')+'<td class="num">'+M(daySyCr)+'</td></tr>';
+ html+='<tr class="total"><td></td><td></td><td>EXP</td><td></td><td class="num">'+M(recCash)+'</td><td class="num">'+M(recBank)+'</td>'+HEADS.map(h=>'<td class="num">'+M(s.rh[h])+'</td>').join('')+'<td class="num">'+M(daySyDr)+'</td><td></td><td></td><td>From B/F</td><td></td><td class="num">'+M(s.bfCash)+'</td><td class="num">'+M(s.bfBank)+'</td>'+HEADS.map(h=>'<td class="num">'+M(s.bfh[h])+'</td>').join('')+'<td class="num">'+M(Math.max(0,s.creditors-daySyCr))+'</td></tr>';
+ const balBank=s.bfBank+recBank-payBankDisplay;
+ html+='<tr class="total"><td></td><td></td><td>BALANCE</td><td></td><td class="num">'+M(s.cfCash)+'</td><td class="num">'+M(s.cfBank)+'</td>'+HEADS.map(h=>'<td class="num">'+M(s.cfh[h])+'</td>').join('')+'<td class="num">'+M(s.debtors)+'</td><td></td><td></td><td>Balance</td><td></td><td class="num">'+M(s.bfCash+recCash-payCash)+'</td><td class="num">'+M(balBank)+'</td>'+HEADS.map(h=>'<td class="num">'+M(s.cfh[h])+'</td>').join('')+'<td class="num">'+M(s.creditors)+'</td></tr></table>';
+ html+='<div class="two"><div><h3>CODE HEAD POSITION</h3><table><tr><th>Code Head</th><th>B/F</th><th>Receipt / Allotment</th><th>Payments</th><th>Closing / Liability Position</th></tr>';HEADS.forEach(h=>html+='<tr><td>'+E(h)+'</td><td class="num">'+M(s.bfh[h])+'</td><td class="num">'+M(s.rh[h])+'</td><td class="num">'+M(s.ph[h])+'</td><td class="num">'+M(s.cfh[h])+'</td></tr>');const totalCode=HEADS.reduce((a,h)=>a+s.cfh[h],0);html+='<tr class="total"><th>TOTAL</th><th></th><th></th><th></th><th class="num">'+M(totalCode)+'</th></tr></table></div>';
+ const totalLiab=totalCode+s.creditors,totalAssetsBefore=s.cfCash+s.cfBank+s.debtors,sydrBalance=Math.max(s.debtors,totalLiab-s.cfCash-s.cfBank),totalAssets=s.cfCash+s.cfBank+sydrBalance;
+ html+='<div><h3>RECEIPT / PAYMENT TOTALS</h3><table><tr><th>Particular</th><th>Amount</th></tr><tr><td>Cash B/F</td><td class="num">'+M(s.bfCash)+'</td></tr><tr><td>Bank B/F</td><td class="num">'+M(s.bfBank)+'</td></tr><tr><td>Total Receipts</td><td class="num">'+M(recCash+recBank)+'</td></tr><tr><td>Total Payments</td><td class="num">'+M(payCash+payBankDisplay)+'</td></tr><tr><td>SY DR</td><td class="num">'+M(s.debtors)+'</td></tr><tr><td>SY CR Outstanding</td><td class="num">'+M(s.creditors)+'</td></tr><tr class="total"><td>Cash C/F</td><td class="num">'+M(s.cfCash)+'</td></tr><tr class="total"><td>Bank C/F</td><td class="num">'+M(s.cfBank)+'</td></tr></table></div></div>';
+ html+='<h3>BALANCE SHEET</h3><table><tr><th colspan="2">LIABILITIES</th><th colspan="2">ASSETS</th></tr><tr><td>Code Head Closing Position</td><td class="num">'+M(totalCode)+'</td><td>Cash In Hand</td><td class="num">'+M(s.cfCash)+'</td></tr><tr><td>SY CR — Sundry Creditors</td><td class="num">'+M(s.creditors)+'</td><td>Cash at Bank</td><td class="num">'+M(s.cfBank)+'</td></tr><tr><td>Other Liabilities</td><td class="num">₹0.00</td><td>SY DR — Sundry Debtors / Balancing Asset</td><td class="num">'+M(sydrBalance)+'</td></tr><tr class="total"><th>Total Liabilities</th><th class="num">'+M(totalLiab)+'</th><th>Total Assets</th><th class="num">'+M(totalAssets)+'</th></tr></table><p class="small"><b>Accounting check:</b> Total Liabilities '+M(totalLiab)+' | Total Assets '+M(totalAssets)+' | Difference '+M(totalLiab-totalAssets)+'. Pending CHEQUE/NEFT is shown as SY CR contra receipt and payment; Bank C/F is unchanged until actual clearance.</p><table><tr><td class="sign">Prepared By<br><br>________________</td><td class="sign">Checked By<br><br>________________</td><td class="sign">Accounts<br><br>________________</td><td class="sign">Approving Authority<br><br>________________</td></tr></table></body></html>';
+ const w=window.open('','_blank','width=1800,height=1100');if(!w)return alert('Please allow pop-ups for Cash Book.');w.document.open();w.document.write(html);w.document.close();setTimeout(()=>{w.focus();w.print()},300);
+}
+window.printDayCashbook=printFinal;window.printCashbookV72=printFinal;window.forcePrint=printFinal;window.__CASHBOOK_V99__=printFinal;
+function bindPrint(){document.querySelectorAll('#cashbook button').forEach(b=>{const t=U(b.textContent);if(t==='PRINT / PDF'||t==='PRINT CASH BOOK'){b.onclick=e=>{e.preventDefault();e.stopImmediatePropagation();printFinal()}}})}
+function boot(){renderFinalSYCR();bindPrint()}
+window.addEventListener('load',()=>{setTimeout(boot,600);setTimeout(boot,1600);setTimeout(boot,3000)});setInterval(()=>{renderFinalSYCR();bindPrint()},1500);
+})();
+
+</script>
