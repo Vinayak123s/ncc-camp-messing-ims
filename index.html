@@ -7551,6 +7551,22 @@ function printCash82(){
 
 
 
+
+</body></html>`;
+ const w=window.open('','_blank','width=1800,height=1000');if(w){w.document.open();w.document.write(html);w.document.close();setTimeout(()=>{try{w.focus()}catch(_){}},100);return;}
+ const ov=document.createElement('div');ov.className='v82-print-overlay';ov.innerHTML=html.replace(/^[\s\S]*?<body>/i,'').replace(/<\/body>[\s\S]*<\/html>/i,'');document.body.appendChild(ov);setTimeout(()=>{window.print();setTimeout(()=>ov.remove(),500)},100);
+}
+window.printDayCashbook=printCash82;window.printCashbookV72=printCash82;
+
+/* Keep final handlers after legacy layers and hide the receipt SY DR block after every refresh/navigation. */
+function bind82(){hideReceiptSYDR82();renderDay82();renderDashboard82();document.querySelectorAll('#cashbook button').forEach(b=>{const t=U82(b.textContent);if(t==='PRINT / PDF')b.onclick=(e)=>{e.preventDefault();printCash82()};});}
+const oldRefresh82=window.refreshAll;if(typeof oldRefresh82==='function'&&!window.__V82_REFRESH){window.__V82_REFRESH=true;window.refreshAll=async function(){const r=await oldRefresh82.apply(this,arguments);setTimeout(bind82,40);return r}}
+const oldShow82=window.showPage;if(typeof oldShow82==='function'&&!window.__V82_SHOW){window.__V82_SHOW=true;window.showPage=function(){const r=oldShow82.apply(this,arguments);setTimeout(bind82,80);return r}}
+document.addEventListener('click',e=>{const b=e.target.closest?.('button');if(!b)return;const t=U82(b.textContent);if(t==='PRINT / PDF'&&b.closest('#cashbook')){e.preventDefault();e.stopImmediatePropagation();printCash82();}else if(t==='CLOSE DAY'&&b.closest('#cashbook')){e.preventDefault();e.stopImmediatePropagation();window.closeCashbookDay82()}else if((t==='RE-OPEN DAY'||t==='REOPEN DAY')&&b.closest('#cashbook')){e.preventDefault();e.stopImmediatePropagation();window.reopenCashbookDay82()}},true);
+setTimeout(bind82,150);setTimeout(bind82,700);setTimeout(bind82,1500);
+})();
+</script>
+
 <script id="ims-v94-sundry-creditor-accounting">
 (function(){
 'use strict';
@@ -7643,20 +7659,6 @@ setTimeout(hook,700);setTimeout(hook,1800);
 @media(max-width:800px){#cashbook .v93-account-cards{grid-template-columns:1fr 1fr}}
 @media(max-width:520px){#cashbook .v93-account-cards{grid-template-columns:1fr}}
 </style>
-</body></html>`;
- const w=window.open('','_blank','width=1800,height=1000');if(w){w.document.open();w.document.write(html);w.document.close();setTimeout(()=>{try{w.focus()}catch(_){}},100);return;}
- const ov=document.createElement('div');ov.className='v82-print-overlay';ov.innerHTML=html.replace(/^[\s\S]*?<body>/i,'').replace(/<\/body>[\s\S]*<\/html>/i,'');document.body.appendChild(ov);setTimeout(()=>{window.print();setTimeout(()=>ov.remove(),500)},100);
-}
-window.printDayCashbook=printCash82;window.printCashbookV72=printCash82;
-
-/* Keep final handlers after legacy layers and hide the receipt SY DR block after every refresh/navigation. */
-function bind82(){hideReceiptSYDR82();renderDay82();renderDashboard82();document.querySelectorAll('#cashbook button').forEach(b=>{const t=U82(b.textContent);if(t==='PRINT / PDF')b.onclick=(e)=>{e.preventDefault();printCash82()};});}
-const oldRefresh82=window.refreshAll;if(typeof oldRefresh82==='function'&&!window.__V82_REFRESH){window.__V82_REFRESH=true;window.refreshAll=async function(){const r=await oldRefresh82.apply(this,arguments);setTimeout(bind82,40);return r}}
-const oldShow82=window.showPage;if(typeof oldShow82==='function'&&!window.__V82_SHOW){window.__V82_SHOW=true;window.showPage=function(){const r=oldShow82.apply(this,arguments);setTimeout(bind82,80);return r}}
-document.addEventListener('click',e=>{const b=e.target.closest?.('button');if(!b)return;const t=U82(b.textContent);if(t==='PRINT / PDF'&&b.closest('#cashbook')){e.preventDefault();e.stopImmediatePropagation();printCash82();}else if(t==='CLOSE DAY'&&b.closest('#cashbook')){e.preventDefault();e.stopImmediatePropagation();window.closeCashbookDay82()}else if((t==='RE-OPEN DAY'||t==='REOPEN DAY')&&b.closest('#cashbook')){e.preventDefault();e.stopImmediatePropagation();window.reopenCashbookDay82()}},true);
-setTimeout(bind82,150);setTimeout(bind82,700);setTimeout(bind82,1500);
-})();
-</script>
 
 <script id="v83-final-stability-fixes">
 (function(){
