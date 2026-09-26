@@ -7547,11 +7547,6 @@ function printCash82(){
  const h=campHead82(c),bud=baseBudget82(c);const budget={MESSING:bud.Messing,INCIDENTAL:bud.Incidental,POL:bud.POL,'RANK PAY':h.rankPay,'TA CADETS':h.taCadets,'TA/DA CIV':h.taDaCiv,RENT:h.rent,OTHERS:0};const paid={};heads.forEach(k=>paid[k]=0);(s.rows||[]).filter(e=>U82(e.entry_type)==='PAYMENT'&&U82(e.approval_status||'APPROVED')==='APPROVED').forEach(e=>{const a=alloc(e),ks=Object.entries(a).filter(([,v])=>N82(v));if(ks.length)ks.forEach(([k,v])=>paid[norm(k)]+=N82(v));else paid[norm(e.code_head)]+=N82(e.amount)});
  const liab=heads.map(k=>`<tr><td>${k}</td><td class="num">${M82(budget[k])}</td><td class="num">${M82(paid[k])}</td><td class="num">${M82(Math.max(0,budget[k]-paid[k]))}</td></tr>`).join('');const totalLiab=heads.reduce((a,k)=>a+Math.max(0,budget[k]-paid[k]),0);const assets=N82(s.cfCash)+N82(s.cfBank);const diff=totalLiab-assets;
  const html=`<!doctype html><html><head><meta charset="utf-8"><title>Cash Book ${E82(d)}</title><style>body{font-family:Inter,Segoe UI,Arial,sans-serif;color:#17324d;margin:18px;font-size:10px}h1{font-size:19px;color:#12344d}h2{font-size:13px;color:#087f8c;margin:16px 0 6px}table{width:100%;border-collapse:collapse;margin-bottom:12px}th{background:#dceff4;color:#102a43;font-weight:900}th,td{border:1px solid #b8cad4;padding:5px 6px;font-weight:650}.num{text-align:right}.bar{display:flex;gap:8px;margin:10px 0}.bar button{background:#087f8c;color:#fff;border:0;padding:8px 12px;border-radius:6px;font-weight:900}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.box{border:1px solid #b8cad4;border-radius:8px;padding:8px}.total{font-weight:900;background:#edf6f9}@media print{.bar{display:none}.grid{display:grid}}</style></head><body><div class="bar"><button onclick="window.print()">PRINT / SAVE PDF</button><button onclick="exportX()">EXPORT EXCEL</button></div><h1>NCC CAMP MESSING IMS — DAY CASH BOOK</h1><p><b>Camp:</b> ${E82(c.camp_name||c.camp_code||'')} &nbsp; <b>Date:</b> ${E82(d)}</p>${table('RECEIPTS',rec,false)}${table('PAYMENTS',pay,true)}<h2>DAY BALANCE</h2><table><tr><th>Particular</th><th>Amount</th></tr><tr><td>Cash B/F</td><td class="num">${M82(s.bfCash)}</td></tr><tr><td>Bank B/F</td><td class="num">${M82(s.bfBank)}</td></tr><tr><td>Cash Receipts</td><td class="num">${M82(s.rc??s.receiptCash??0)}</td></tr><tr><td>Bank Receipts</td><td class="num">${M82(s.rb??s.receiptBank??0)}</td></tr><tr><td>Cash Payments</td><td class="num">${M82(s.pc??s.payCash??0)}</td></tr><tr><td>Bank Payments</td><td class="num">${M82(s.pb??s.payBank??0)}</td></tr><tr><td>Cash Drawn from Bank</td><td class="num">${M82(s.draw)}</td></tr><tr class="total"><td>Cash C/F</td><td class="num">${M82(s.cfCash)}</td></tr><tr class="total"><td>Bank C/F</td><td class="num">${M82(s.cfBank)}</td></tr></table><div class="grid"><div class="box"><h2>LIABILITIES / CODE HEADS</h2><table><tr><th>Code Head</th><th>Camp Budget</th><th>Approved Expenditure</th><th>Balance</th></tr>${liab}<tr class="total"><th colspan="3">Total Liabilities / Unspent Heads</th><th class="num">${M82(totalLiab)}</th></tr></table></div><div class="box"><h2>ASSETS</h2><table><tr><th>Asset</th><th>Amount</th></tr><tr><td>Cash in Hand</td><td class="num">${M82(s.cfCash)}</td></tr><tr><td>Cash at Bank</td><td class="num">${M82(s.cfBank)}</td></tr><tr class="total"><th>Total Assets</th><th class="num">${M82(assets)}</th></tr></table><p><b>Balance Difference:</b> ${M82(Math.abs(diff))}</p></div></div><script>function exportX(){const h=document.documentElement.outerHTML.replace(/<script[\\s\\S]*?<\\/script>/gi,'');const b=new Blob(['\\ufeff',h],{type:'application/vnd.ms-excel'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='Cash_Book_${E82(d)}.xls';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}<\\/script>
-
-
-
-
-
 </body></html>`;
  const w=window.open('','_blank','width=1800,height=1000');if(w){w.document.open();w.document.write(html);w.document.close();setTimeout(()=>{try{w.focus()}catch(_){}},100);return;}
  const ov=document.createElement('div');ov.className='v82-print-overlay';ov.innerHTML=html.replace(/^[\s\S]*?<body>/i,'').replace(/<\/body>[\s\S]*<\/html>/i,'');document.body.appendChild(ov);setTimeout(()=>{window.print();setTimeout(()=>ov.remove(),500)},100);
@@ -7564,6 +7559,42 @@ const oldRefresh82=window.refreshAll;if(typeof oldRefresh82==='function'&&!windo
 const oldShow82=window.showPage;if(typeof oldShow82==='function'&&!window.__V82_SHOW){window.__V82_SHOW=true;window.showPage=function(){const r=oldShow82.apply(this,arguments);setTimeout(bind82,80);return r}}
 document.addEventListener('click',e=>{const b=e.target.closest?.('button');if(!b)return;const t=U82(b.textContent);if(t==='PRINT / PDF'&&b.closest('#cashbook')){e.preventDefault();e.stopImmediatePropagation();printCash82();}else if(t==='CLOSE DAY'&&b.closest('#cashbook')){e.preventDefault();e.stopImmediatePropagation();window.closeCashbookDay82()}else if((t==='RE-OPEN DAY'||t==='REOPEN DAY')&&b.closest('#cashbook')){e.preventDefault();e.stopImmediatePropagation();window.reopenCashbookDay82()}},true);
 setTimeout(bind82,150);setTimeout(bind82,700);setTimeout(bind82,1500);
+})();
+</script>
+<script id="ims-v95-sundry-accounting-fix">
+(function(){
+'use strict';
+const U=v=>String(v==null?'':v).trim().toUpperCase();
+const N=v=>{const n=Number(String(v==null?'':v).replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
+const E=v=>String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const M=v=>'₹'+N(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const JSONO=v=>{if(v&&typeof v==='object')return v;if(typeof v==='string'){try{return JSON.parse(v)}catch(_){}}return {}};
+function CAMP(){try{if(typeof activeCamp!=='undefined'&&activeCamp)return activeCamp}catch(_){}return window.activeCamp||window.currentCamp||null}
+function DB(){try{if(typeof sb!=='undefined'&&sb)return sb}catch(_){}return window.sb||window.supabaseClient||window.IMS_SUPABASE_CLIENT||null}
+function ENTRIES(){return Array.isArray(window.cashbookEntries)?window.cashbookEntries:[]}
+function APPROVED(e){return U(e&&e.approval_status||'APPROVED')==='APPROVED'}
+function SD(e){return JSONO(e&&e.source_details)}
+function INST(e){const d=SD(e);return U(d.bank_transaction_type||d.payment_channel||'')}
+function DEFERRED(e){return ['NEFT','CHEQUE'].includes(INST(e))}
+function SETTLED(e){const d=SD(e);return !DEFERRED(e)||U(d.settlement_status)==='SETTLED'}
+function CREDIT(e){return APPROVED(e)&&DEFERRED(e)&&!SETTLED(e)?N(e.amount):0}
+function due(e){const d=SD(e),t=INST(e),base=String(e&&e.entry_date||'');if(!base||!/^\d{4}-\d{2}-\d{2}$/.test(base))return '';const [y,m,day]=base.split('-').map(Number);const x=new Date(y,m-1,day);x.setDate(x.getDate()+(t==='CHEQUE'?3:t==='NEFT'?1:0));return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0')}
+function TODAY(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function FMT(v){if(!v)return '';const [y,m,d]=String(v).split('-');return d+'/'+m+'/'+y}
+function CANON(v){const x=U(v);if(x==='INC'||x==='INCIDENTAL')return'INCIDENTAL';if(x==='TA/DA CIV STAFF'||x==='TA DA CIV STAFF'||x==='TA/DA CIV')return'TA/DA CIV';if(x==='RANK PAY')return'RANK PAY';if(x==='TA CADETS')return'TA CADETS';if(x==='POL')return'POL';if(x==='MESSING')return'MESSING';if(x==='RENT')return'RENT';return'OTHERS'}
+function BUDGET(){const c=CAMP()||{};const out={MESSING:N(c.messing_budget),INCIDENTAL:N(c.incidental_budget),POL:N(c.pol_budget),'RANK PAY':0,'TA CADETS':0,'TA/DA CIV':0,RENT:0,OTHERS:0};const raw=String(c.remarks||''),mark='[NCC_HEAD_AMOUNTS]',i=raw.indexOf(mark);if(i>=0){const z=JSONO(raw.slice(i+mark.length).trim());out['RANK PAY']=N(z.rankPay??z.rank_pay);out['TA CADETS']=N(z.taCadets??z.ta_cadets);out['TA/DA CIV']=N(z.taDaCiv??z.ta_da_civ);out.RENT=N(z.rent)};[['RANK PAY',['rank_pay','rankPay']],['TA CADETS',['ta_cadets','taCadets']],['TA/DA CIV',['ta_da_civ','taDaCiv']],['RENT',['rent']]].forEach(([h,fs])=>{for(const f of fs)if(N(c[f])){out[h]=N(c[f]);break}});return out}
+function ALLOC(e){const a=JSONO(e&&e.head_allocations),o={};Object.keys(a).forEach(k=>{const h=CANON(k);o[h]=N(o[h])+Math.abs(N(a[k]))});return o}
+function SNAP(){const budget=BUDGET(),heads=Object.keys(budget),head={};heads.forEach(h=>head[h]=0);let cash=0,bank=0,creditors=0;for(const e of ENTRIES()){const t=U(e.entry_type),a=N(e.amount),m=U(e.mode);if(t==='RECEIPT'){if(m==='BANK')bank+=a;else cash+=a;const al=ALLOC(e);Object.keys(al).forEach(h=>head[h]=(head[h]||0)+al[h])}else if(t==='PAYMENT'&&APPROVED(e)){if(m==='BANK'){if(SETTLED(e))bank-=a}else if(m==='CASH')cash-=a;const al=ALLOC(e);if(Object.keys(al).length)Object.keys(al).forEach(h=>head[h]=(head[h]||0)-al[h]);else head[CANON(e.code_head)]=(head[CANON(e.code_head)]||0)-a;creditors+=CREDIT(e)}else if(t==='CASH_DRAWN'){cash+=a;bank-=a}else if(t==='REAPPROPRIATION'){const d=SD(e),f=CANON(d.from_head||e.code_head),to=CANON(d.to_head);head[f]-=a;head[to]+=a}}
+const balance={};heads.forEach(h=>balance[h]=Math.max(0,N(budget[h])+N(head[h])));return{budget,head,balance,cash,bank,creditors}}
+window.getSundryCreditorSnapshotV95=SNAP;
+async function SETTLE(id){const c=CAMP(),d=DB();if(!c||!c.id||!d)return alert('Supabase client or active camp is unavailable. Please refresh the page and select the active camp.');const e=ENTRIES().find(x=>String(x.id)===String(id));if(!e)return alert('Sundry Creditor payment not found. Please refresh Cash Book.');if(!DEFERRED(e))return alert('This payment is not a deferred NEFT/CHEQUE payment.');if(!APPROVED(e))return alert('Only an approved payment can be settled.');const expected=due(e),now=TODAY();if(expected&&now<expected){alert('Bank clearance is not due yet.\n\n'+INST(e)+' amount: '+M(e.amount)+'\nExpected bank debit: '+FMT(expected)+'\nToday: '+FMT(now));return}const sd=SD(e);sd.settlement_status='SETTLED';sd.settlement_date=now;sd.bank_debit_date=now;sd.sundry_creditor_settled=true;sd.accounting_effect=Object.assign({},sd.accounting_effect||{},{bank:-N(e.amount),code_head:0,sundry_creditors:-N(e.amount)});const q=await d.from('cashbook_entries').update({source_details:sd}).eq('id',e.id).eq('camp_id',c.id).select('id,source_details').maybeSingle();if(q.error){alert('Bank debit settlement failed: '+q.error.message);return}try{e.source_details=sd;await window.refreshAll?.()}catch(_){}RENDER();try{window.renderCashbook?.()}catch(_){}alert('Bank debit recorded. '+M(e.amount)+' deducted from Bank and Sundry Creditors. Code Head is not deducted again.');}
+window.settleSundryCreditor=SETTLE;
+function RENDER(){const page=document.getElementById('cashbook');if(!page)return;let box=document.getElementById('v94SundryCreditors');if(!box){box=document.createElement('div');box.id='v94SundryCreditors';box.className='v92-cb-panel';const a=document.getElementById('v92AccountingPanel');if(a&&a.parentNode)a.parentNode.insertBefore(box,a.nextSibling);else page.prepend(box)}const rows=ENTRIES().filter(e=>DEFERRED(e)&&APPROVED(e)&&!SETTLED(e));const all=ENTRIES().filter(e=>DEFERRED(e)&&APPROVED(e));const x=SNAP();const trs=rows.length?rows.map(e=>{const sd=SD(e),t=INST(e),ref=sd.bank_reference||sd.cheque_no||sd.neft_utr||e.reference_no||'',dd=due(e),ready=!dd||TODAY()>=dd;return '<tr><td>'+E(e.entry_date)+'</td><td><b>'+E(e.voucher_number)+'</b></td><td>'+E(e.party||sd.to_whom_paid||'')+'</td><td>'+E(CANON(e.code_head))+'</td><td>'+E(t)+'</td><td>'+E(ref)+'</td><td class="num">'+M(e.amount)+'</td><td>'+E(FMT(dd))+'</td><td><span class="v94-pending">Sundry Creditor</span></td><td><button class="btn v94-available-btn" type="button" onclick="settleSundryCreditor(\''+E(e.id)+"\')">'+(ready?'BANK DEBITED / SETTLE':'AVAILABLE '+FMT(dd))+'</button></td></tr>'}).join(''):'<tr><td colspan="10" class="center">No pending Sundry Creditors.</td></tr>';const sr=all.filter(e=>SETTLED(e)).map(e=>{const sd=SD(e),ref=sd.bank_reference||sd.cheque_no||sd.neft_utr||e.reference_no||'';return '<tr><td>'+E(e.entry_date)+'</td><td>'+E(e.voucher_number)+'</td><td>'+E(INST(e))+'</td><td>'+E(ref)+'</td><td class="num">'+M(e.amount)+'</td><td>'+E(FMT(sd.bank_debit_date||sd.settlement_date))+'</td><td><span class="v94-settled">BANK DEBITED</span></td></tr>'}).join('')||'<tr><td colspan="7" class="center">No settled deferred bank payments.</td></tr>';box.innerHTML='<div class="v92-cb-head"><div><h3>Sundry Creditors / Bank Clearing</h3><p><b>Accounting treatment:</b> Approved NEFT/Cheque reduces the selected Code Head immediately and creates a Sundry Creditor. Bank reduces only on actual clearance.</p></div><div><span class="v94-creditor-total">Sundry Creditors: '+M(x.creditors)+'</span></div></div><div class="v94-account-cards"><div><span>Pending Sundry Creditors</span><b>'+M(x.creditors)+'</b></div><div><span>Cash at Bank</span><b>'+M(x.bank)+'</b></div><div><span>Pending Transactions</span><b>'+rows.length+'</b></div><div><span>Bank Debited / Cleared</span><b>'+M(all.filter(e=>SETTLED(e)).reduce((s,e)=>s+N(e.amount),0))+'</b></div></div><h4 class="v94-section-title">LIABILITIES — SUNDRY CREDITORS</h4><div class="v94-liability"><span>Outstanding NEFT / Cheque liabilities</span><strong>'+M(x.creditors)+'</strong></div><h4 class="v94-section-title">PENDING SUNDRY CREDITORS</h4><div class="v93-table-wrap"><table class="v93-table"><thead><tr><th>Payment Date</th><th>PV No.</th><th>To Whom Paid</th><th>Code Head</th><th>Mode</th><th>Cheque / UTR No.</th><th>Amount</th><th>Expected Bank Debit</th><th>Liability</th><th>Action</th></tr></thead><tbody>'+trs+'</tbody></table></div><h4 class="v94-section-title">SETTLED / BANK DEBITED</h4><div class="v93-table-wrap"><table class="v93-table"><thead><tr><th>Payment Date</th><th>PV No.</th><th>Mode</th><th>Cheque / UTR No.</th><th>Amount</th><th>Bank Debit Date</th><th>Status</th></tr></thead><tbody>'+sr+'</tbody></table></div>'}
+window.renderV94SundryCreditors=RENDER;
+function PRINT(){const d=document.getElementById('cashDayDate')?.value||TODAY(),x=SNAP(),budget=x.budget,heads=Object.keys(budget);const totalHeads=heads.reduce((s,h)=>s+N(x.balance[h]),0);const totalLiab=totalHeads+x.creditors;const assets=x.cash+x.bank;const diff=totalLiab-assets;const sy=Math.max(0,diff);const headRows=heads.map(h=>'<tr><td>'+E(h)+'</td><td class="num">'+M(x.balance[h])+'</td></tr>').join('');const w=window.open('','_blank','width=1600,height=1000');if(!w){alert('Please allow pop-ups for Cash Book.');return}const html='<!doctype html><html><head><meta charset="utf-8"><title>Cash Book '+E(d)+'</title><style>body{font-family:Arial,sans-serif;color:#17324a;margin:18px;font-size:11px}h1{font-size:19px}h2{font-size:14px;color:#087f8c;margin-top:18px}table{width:100%;border-collapse:collapse;margin-bottom:12px}th{background:#dceff4;color:#12344d;font-weight:900}th,td{border:1px solid #b8cad4;padding:6px}.num{text-align:right}.total{font-weight:900;background:#edf6f9}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.bar{margin-bottom:12px}.bar button{padding:8px 12px;border:0;border-radius:6px;background:#087f8c;color:#fff;font-weight:800}@media print{.bar{display:none}}</style></head><body><div class="bar"><button onclick="window.print()">PRINT / SAVE PDF</button></div><h1>NCC CAMP MESSING IMS — DAY CASH BOOK</h1><p><b>Camp:</b> '+E((CAMP()||{}).camp_name||'')+' &nbsp; <b>Code:</b> '+E((CAMP()||{}).camp_code||'')+' &nbsp; <b>Date:</b> '+E(d)+'</p><h2>CODE HEAD POSITION</h2><table><tr><th>Code Head</th><th>Closing / Liability Position</th></tr>'+headRows+'<tr class="total"><th>Total Code Head Balance</th><th class="num">'+M(totalHeads)+'</th></tr></table><h2>BALANCE SHEET</h2><div class="grid"><table><tr><th>LIABILITIES</th><th>AMOUNT</th></tr>'+headRows+'<tr><td>SUNDRY CREDITORS</td><td class="num">'+M(x.creditors)+'</td></tr><tr class="total"><th>Total Liabilities</th><th class="num">'+M(totalLiab)+'</th></tr></table><table><tr><th>ASSETS</th><th>AMOUNT</th></tr><tr><td>Cash in Hand</td><td class="num">'+M(x.cash)+'</td></tr><tr><td>Cash at Bank</td><td class="num">'+M(x.bank)+'</td></tr><tr><td>SY DR / Balance Difference</td><td class="num">'+M(sy)+'</td></tr><tr class="total"><th>Total Assets</th><th class="num">'+M(assets+sy)+'</th></tr></table></div><p><b>Accounting check:</b> Total Liabilities '+M(totalLiab)+' | Total Assets '+M(assets+sy)+' | Difference '+M(totalLiab-(assets+sy))+'</p></body></html>';w.document.open();w.document.write(html);w.document.close();setTimeout(()=>{w.focus();w.print()},250)}
+window.printDayCashbook=PRINT;window.forcePrint=PRINT;
+function bind(){try{RENDER()}catch(e){console.warn('V95 sundry render',e)}const b=document.querySelector('button[onclick="printDayCashbook()"]');if(b)b.onclick=function(ev){ev.preventDefault();PRINT()}}
+window.addEventListener('load',()=>{setTimeout(bind,600);setTimeout(bind,1800);setTimeout(bind,3500)});setTimeout(bind,900);setTimeout(bind,2200);
 })();
 </script>
 
@@ -8753,3 +8784,121 @@ window.addEventListener('load',function(){setTimeout(boot,300);setTimeout(boot,1
 })();
 </script>
 </body></html>
+<!-- V95 CASHBOOK SY DR / SY CR ACCOUNTING EXTENSION -->
+<script id="ims-v95-sydr-sycr-accounting">
+(function(){
+'use strict';
+const U=v=>String(v==null?'':v).trim().toUpperCase();
+const N=v=>{const n=Number(String(v==null?'':v).replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0};
+const M=v=>{try{return new Intl.NumberFormat('en-IN',{style:'currency',currency:'INR',minimumFractionDigits:2,maximumFractionDigits:2}).format(N(v))}catch(_){return 'Rs. '+N(v).toFixed(2)}};
+const O=v=>{if(!v)return{};if(typeof v==='object')return v;try{return JSON.parse(v)}catch(_){return{}}};
+const E=v=>String(v==null?'':v).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const entries=()=>Array.isArray(window.cashbookEntries)?window.cashbookEntries:[];
+const DB=()=>window.sb||null;
+const CAMP=()=>window.activeCamp||null;
+const role=()=>U(window.profile?.role||window.currentUser?.role||'');
+function addUI(){
+  const rf=document.getElementById('cashReceiptFormWrap');
+  if(rf&&!document.getElementById('v95SyDrField')){
+    const grid=rf.querySelector('.form-grid');
+    if(grid){const d=document.createElement('div');d.className='field';d.id='v95SyDrField';d.innerHTML='<label>SY DR / SUNDRY DEBTOR RECEIPT</label><input id="cashSyDrAmount" type="number" min="0" step="0.01" value="0"><small style="display:block;color:#60788a;margin-top:4px">Use only when this receipt is a recovery from a Sundry Debtor / receivable. It reduces SY DR; it does not create new income.</small>';grid.appendChild(d)}
+  }
+  const pf=document.getElementById('cashPaymentFormWrap');
+  if(pf&&!document.getElementById('v95SyCrField')){
+    const mode=document.getElementById('cashPaymentMode');
+    if(mode&&mode.parentElement&&mode.parentElement.parentElement){const d=document.createElement('div');d.className='field';d.id='v95SyCrField';d.innerHTML='<label>SY CR / SUNDRY CREDITOR</label><input id="cashSyCrAmount" class="calculated" readonly value="₹0.00"><small id="v95SyCrNote" style="display:block;color:#60788a;margin-top:4px">Pending NEFT/CHEQUE creates SY CR until bank clearance. Direct cash/cleared bank payments do not remain as SY CR.</small>';mode.parentElement.parentElement.appendChild(d)}
+  }
+  updateUI();
+}
+function updateUI(){
+  const r=N(document.getElementById('cashAmount')?.value);let rd=N(document.getElementById('cashSyDrAmount')?.value);if(rd>r){rd=r;const el=document.getElementById('cashSyDrAmount');if(el)el.value=rd.toFixed(2)}
+  const d=document.getElementById('cashSyDrAmount');if(d)d.title=rd?'SY DR recovery / debtor receipt':'No SY DR recovery';
+  const mode=U(document.getElementById('cashPaymentMode')?.value||'CASH');
+  const inst=U(document.getElementById('v92BankInstrumentType')?.value||'');
+  const amt=N(document.getElementById('cashPaymentAmount')?.value);
+  const cr=(mode==='BANK'&&['NEFT','CHEQUE'].includes(inst))?amt:0;
+  const ce=document.getElementById('cashSyCrAmount');if(ce)ce.value=M(cr);
+  const note=document.getElementById('v95SyCrNote');if(note)note.textContent=cr?'Approved '+inst+' payment creates SY CR / Sundry Creditor until actual bank clearance. Code Head is reduced at approval; Bank is reduced only at clearance.':'Direct cash/cleared bank payment: no pending SY CR liability.';
+}
+function ensureStyles(){if(document.getElementById('v95Style'))return;const s=document.createElement('style');s.id='v95Style';s.textContent='#v95SyDrField,#v95SyCrField{border:1px solid #c5d9e6;border-radius:7px;padding:8px;background:#f7fbfd}#cashbook .v95-sycr{font-weight:800;color:#8a3b12}#cashbook .v95-sydr{font-weight:800;color:#0b6170}';document.head.appendChild(s)}
+async function patchSavedEntry(date,voucher,type,syDr,syCr){
+  const db=DB(),c=CAMP();if(!db||!c?.id||!voucher)return;
+  const q=await db.from('cashbook_entries').select('id,source_details,amount,mode,entry_type').eq('camp_id',c.id).eq('voucher_number',voucher).eq('entry_date',date).eq('entry_type',type).order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(q.error||!q.data)return;
+  const e=q.data,sd=O(e.source_details);sd.sundry_debtor_receipt=N(syDr);sd.sundry_creditor_created_amount=N(syCr);sd.accounting_effect=Object.assign({},sd.accounting_effect||{}, {sundry_debtors:-N(syDr),sundry_creditors:N(syCr)});
+  if(type==='PAYMENT'&&syCr>0){sd.sundry_creditor_created=true;sd.settlement_status=sd.settlement_status||'PENDING';}
+  await db.from('cashbook_entries').update({source_details:sd}).eq('id',e.id).eq('camp_id',c.id);
+}
+function patchSave(){
+  if(window.__V95_SAVE_PATCH__)return;
+  const old=window.saveCashbook;if(typeof old!=='function')return;
+  window.__V95_SAVE_PATCH__=old;
+  window.saveCashbook=async function(){
+    const t=U((typeof cashType!=='undefined'?cashType:window.cashType)||'');
+    const date=t==='RECEIPT'?(document.getElementById('cashDate')?.value||''):(document.getElementById('payDate')?.value||'');
+    const voucher=t==='RECEIPT'?(document.getElementById('cashVoucherNo')?.value||'').trim():(document.getElementById('payVoucherNo')?.value||'').trim();
+    let syDr=0,syCr=0;
+    if(t==='RECEIPT'){
+      const total=N(document.getElementById('cashAmount')?.value);syDr=N(document.getElementById('cashSyDrAmount')?.value);
+      if(syDr<0||syDr>total+0.005){alert('SY DR amount cannot exceed the receipt amount.');return}
+    }else if(t==='PAYMENT'){
+      const mode=U(document.getElementById('cashPaymentMode')?.value||'CASH'),inst=U(document.getElementById('v92BankInstrumentType')?.value||'');
+      syCr=(mode==='BANK'&&['NEFT','CHEQUE'].includes(inst))?N(document.getElementById('cashPaymentAmount')?.value):0;
+    }
+    const result=await old.apply(this,arguments);
+    try{if(t==='RECEIPT'&&voucher)await patchSavedEntry(date,voucher,'RECEIPT',syDr,0);if(t==='PAYMENT'&&voucher)await patchSavedEntry(date,voucher,'PAYMENT',0,syCr)}catch(e){console.warn('V95 SY patch',e)}
+    try{await window.refreshAll?.()}catch(_){ }
+    setTimeout(()=>{renderV95();updateUI()},350);
+    return result;
+  };
+}
+function deferred(e){const sd=O(e.source_details);return U(e.entry_type)==='PAYMENT'&&['NEFT','CHEQUE'].includes(U(sd.bank_transaction_type||sd.payment_channel))}
+function approved(e){return U(e.approval_status||'APPROVED')==='APPROVED'}
+function settled(e){return !deferred(e)||U(O(e.source_details).settlement_status)==='SETTLED'}
+function sycrPending(){return entries().filter(e=>deferred(e)&&approved(e)&&!settled(e)).reduce((s,e)=>s+N(e.amount),0)}
+function sydrRecovery(){return entries().filter(e=>U(e.entry_type)==='RECEIPT').reduce((s,e)=>s+N(O(e.source_details).sundry_debtor_receipt),0)}
+function renderV95(){
+  addUI();
+  const page=document.getElementById('cashbook');if(!page)return;
+  let box=document.getElementById('v95SYSummary');
+  if(!box){box=document.createElement('div');box.id='v95SYSummary';box.className='v92-cb-panel';const anchor=document.getElementById('v94SundryCreditors')||document.getElementById('v92AccountingPanel');if(anchor&&anchor.parentNode)anchor.parentNode.insertBefore(box,anchor.nextSibling);else page.appendChild(box)}
+  const cr=sycrPending(),dr=sydrRecovery();
+  box.innerHTML='<div class="v92-cb-head"><div><h3>SY DR / SY CR — Cash Book Accounting</h3><p>Receipt-side SY DR identifies recovery from Sundry Debtors. Payment-side SY CR identifies approved deferred NEFT/CHEQUE liabilities until actual bank clearance.</p></div></div><div class="v94-account-cards"><div><span>SY DR RECOVERED</span><b>'+M(dr)+'</b></div><div><span>SY CR OUTSTANDING</span><b>'+M(cr)+'</b></div></div><div style="margin-top:8px;font-size:11px;color:#60788a">Accounting: Receipt from Sundry Debtor = Cash/Bank Dr, SY DR Cr. Deferred payment = Code Head Dr, SY CR Cr; on clearance = SY CR Dr, Bank Cr.</div>';
+}
+function patchPrint(){
+  if(window.__V95_PRINT__)return;const old=window.printDayCashbook;if(typeof old!=='function')return;window.__V95_PRINT__=old;
+  window.printDayCashbook=function(){
+    try{
+      const d=document.getElementById('cashDayDate')?.value||new Date().toLocaleDateString('en-CA');
+      const rows=entries().filter(e=>String(e.entry_date||'')===String(d));
+      const rec=rows.filter(e=>U(e.entry_type)==='RECEIPT'),pay=rows.filter(e=>U(e.entry_type)==='PAYMENT');
+      const heads=['MESSING','INCIDENTAL','POL','RANK PAY','TA CADETS','TA/DA CIV','RENT','OTHERS'];
+      const line=(e)=>{const sd=O(e.source_details);return{sd,dr:N(sd.sundry_debtor_receipt),cr:U(e.entry_type)==='PAYMENT'&&deferred(e)&&approved(e)&&!settled(e)?N(e.amount):0}}
+      let recRows='',payRows='';
+      rec.forEach(e=>{const z=line(e);recRows+='<tr><td>'+E(e.entry_date)+'</td><td>'+E(e.voucher_number||'')+'</td><td>'+E(e.party||'')+'</td><td>'+E(e.reference_no||'')+'</td><td>'+E(U(e.mode)==='CASH'?M(e.amount):'')+'</td><td>'+E(U(e.mode)==='BANK'?M(e.amount):'')+'</td><td class="num">'+M(z.dr)+'</td></tr>'});
+      pay.forEach(e=>{const z=line(e),sd=z.sd;payRows+='<tr><td>'+E(e.entry_date)+'</td><td>'+E(e.voucher_number||'')+'</td><td>'+E(e.party||sd.to_whom_paid||'')+'</td><td>'+E(e.code_head||'')+'</td><td>'+E(U(e.mode)==='CASH'?M(e.amount):'')+'</td><td>'+E(U(e.mode)==='BANK'?M(e.amount):'')+'</td><td class="num">'+M(z.cr)+'</td></tr>'});
+      const w=window.open('','_blank','width=1600,height=1000');if(!w){alert('Please allow pop-ups for Cash Book.');return}
+      const html='<!doctype html><html><head><meta charset="utf-8"><title>Day Cash Book '+E(d)+'</title><style>body{font-family:Arial,sans-serif;margin:18px;color:#17324d;font-size:11px}table{width:100%;border-collapse:collapse;margin:8px 0 16px}th,td{border:1px solid #b8cad4;padding:5px}th{background:#dceff4;font-weight:800}.num{text-align:right}h1{font-size:19px}h2{font-size:14px;color:#087f8c;margin-top:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.total{font-weight:800;background:#edf6f9}@media print{.bar{display:none}}</style></head><body><div class="bar"><button onclick="window.print()">PRINT / SAVE PDF</button></div><h1>NCC CAMP MESSING IMS — DAY CASH BOOK</h1><p><b>Date:</b> '+E(d)+'</p><h2>RECEIPTS</h2><table><tr><th>Date</th><th>RV No.</th><th>From Whom Received</th><th>On What Account</th><th>Cash</th><th>Bank</th><th>SY DR</th></tr>'+(recRows||'<tr><td colspan="7">No receipts.</td></tr>')+'</table><h2>PAYMENTS</h2><table><tr><th>Date</th><th>PV No.</th><th>To Whom Paid</th><th>Code Head</th><th>Cash</th><th>Bank</th><th>SY CR</th></tr>'+(payRows||'<tr><td colspan="7">No payments.</td></tr>')+'</table><h2>SY DR / SY CR POSITION</h2><div class="grid"><table><tr><th>Asset</th><th>Amount</th></tr><tr><td>SY DR recovered through receipts</td><td class="num">'+M(sydrRecovery())+'</td></tr></table><table><tr><th>Liability</th><th>Amount</th></tr><tr><td>SY CR outstanding</td><td class="num">'+M(sycrPending())+'</td></tr></table></div><p>Accounting note: SY DR is an asset account; SY CR is a liability account. Pending SY CR is not deducted from Bank until actual clearance.</p></body></html>';
+      w.document.open();w.document.write(html);w.document.close();setTimeout(()=>{w.focus();w.print()},250);
+    }catch(e){console.error(e);old.apply(this,arguments)}
+  };
+}
+
+function patchCashbookTable(){
+  const table=document.getElementById('cashbookTable');if(!table)return;
+  const t=table.querySelector('table');if(!t)return;
+  const head=t.querySelector('thead tr')||t.querySelector('tr');if(!head)return;
+  if(![...head.children].some(x=>U(x.textContent)==='SY DR')){
+    const cells=[...head.children];const actionIdx=cells.findIndex(x=>U(x.textContent)==='ACTION');const pos=actionIdx>=0?actionIdx:cells.length;
+    const a=document.createElement('th');a.textContent='SY DR';head.insertBefore(a,head.children[pos]);
+    const b=document.createElement('th');b.textContent='SY CR';head.insertBefore(b,head.children[pos+1]);
+    const body=t.querySelector('tbody');if(body){[...body.querySelectorAll('tr')].forEach((tr,i)=>{const e=entries()[i];if(!e)return;const sd=O(e.source_details),dr=N(sd.sundry_debtor_receipt),cr=(U(e.entry_type)==='PAYMENT'&&deferred(e)&&approved(e)&&!settled(e))?N(e.amount):0;const c1=document.createElement('td');c1.className='num v95-sydr';c1.textContent=dr?M(dr):'';const c2=document.createElement('td');c2.className='num v95-sycr';c2.textContent=cr?M(cr):'';const idx=Math.max(0,(actionIdx>=0?actionIdx:tr.children.length));tr.insertBefore(c1,tr.children[idx]||null);tr.insertBefore(c2,tr.children[idx+1]||null);});}
+  }
+}
+const oldRenderCashbook95=window.renderCashbook;
+if(typeof oldRenderCashbook95==='function'&&!window.__V95_RENDER_PATCH__){window.__V95_RENDER_PATCH__=true;window.renderCashbook=function(){const r=oldRenderCashbook95.apply(this,arguments);setTimeout(patchCashbookTable,30);return r}}
+
+function boot(){ensureStyles();addUI();patchSave();patchPrint();renderV95();['cashAmount','cashSyDrAmount','cashPaymentAmount','cashPaymentMode','v92BankInstrumentType'].forEach(id=>{const el=document.getElementById(id);if(el&&!el.dataset.v95){el.addEventListener('input',updateUI);el.addEventListener('change',updateUI);el.dataset.v95='1'}});}
+window.addEventListener('load',()=>{setTimeout(boot,500);setTimeout(boot,1500);setTimeout(boot,3000)});setTimeout(boot,900);setTimeout(boot,2200);
+})();
+</script>
